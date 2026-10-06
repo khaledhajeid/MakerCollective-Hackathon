@@ -207,6 +207,12 @@ export const otpChallenges = pgTable(
     phoneHash: text('phone_hash').notNull(),
     // HMAC of (challenge id + code): useless if leaked, and never logged.
     codeHash: text('code_hash').notNull(),
+    // Registration submitted with the request; becomes a `visitors` row only once the code is verified.
+    nameEnc: text('name_enc').notNull(),
+    phoneEnc: text('phone_enc').notNull(),
+    outreachConsent: boolean('outreach_consent').notNull().default(false),
+    consentVersion: text('consent_version').notNull(),
+    locale: text('locale').notNull().default('ar'),
     attempts: integer('attempts').notNull().default(0),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     consumedAt: timestamp('consumed_at', { withTimezone: true }),
@@ -218,6 +224,7 @@ export const otpChallenges = pgTable(
     index('otp_challenges_phone_created_idx').on(t.phoneHash, t.createdAt.desc()),
     index('otp_challenges_device_created_idx').on(t.deviceId, t.createdAt.desc()),
     check('otp_challenges_attempts_nonneg', sql`${t.attempts} >= 0`),
+    check('otp_challenges_locale', sql`${t.locale} IN ('ar', 'en')`),
   ],
 );
 

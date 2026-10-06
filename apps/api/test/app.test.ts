@@ -95,13 +95,26 @@ describe('environment validation', () => {
     ).toThrow(/PII_ENCRYPTION_KEY: must be 32 bytes/);
   });
 
-  it('refuses the console SMS provider in production', () => {
-    expect(() => testEnv({ NODE_ENV: 'production', SMS_PROVIDER: 'console' })).toThrow(
-      /SMS_PROVIDER/,
-    );
+  it('refuses OTP-exposing SMS providers in production unless DEMO_MODE is explicit', () => {
+    for (const SMS_PROVIDER of ['console', 'demo-inbox']) {
+      expect(() => testEnv({ NODE_ENV: 'production', SMS_PROVIDER })).toThrow(/DEMO_MODE=true/);
+      expect(() =>
+        testEnv({ NODE_ENV: 'production', SMS_PROVIDER, DEMO_MODE: 'true' }),
+      ).not.toThrow();
+    }
   });
 
-  it('requires Twilio credentials when Twilio is selected', () => {
-    expect(() => testEnv({ SMS_PROVIDER: 'twilio' })).toThrow(/TWILIO_ACCOUNT_SID/);
+  it('requires a URL and body template for the http SMS gateway, https in production', () => {
+    expect(() => testEnv({ SMS_PROVIDER: 'http' })).toThrow(/SMS_HTTP_URL/);
+    const ok = {
+      SMS_PROVIDER: 'http',
+      SMS_HTTP_URL: 'https://sms.example.org/send',
+      SMS_HTTP_BODY_TEMPLATE: '{"to":"{to}","text":"{message}"}',
+    };
+    expect(() => testEnv({ ...ok, NODE_ENV: 'production' })).not.toThrow();
+    expect(() => testEnv({ ...ok, SMS_HTTP_BODY_TEMPLATE: 'nope' })).toThrow(/valid JSON/);
+    expect(() =>
+      testEnv({ ...ok, NODE_ENV: 'production', SMS_HTTP_URL: 'http://sms.example.org' }),
+    ).toThrow(/https/);
   });
 });

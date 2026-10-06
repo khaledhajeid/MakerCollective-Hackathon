@@ -153,7 +153,7 @@ The **impeccable** design skill is used for critique and polish passes at the en
 | Cache / limits | **Redis 7** (shared rate-limit store, read cache) | Shared limits across replicas; **optional**: if Redis is down, limits degrade to in-process memory and voting continues |
 | Object storage | `StorageProvider` interface: **shared Docker volume** (laptop demo; both replicas mount it) or **S3-compatible** (cloud); `sharp` resizes, converts to WebP and strips EXIF | Replicas stay stateless with no extra MinIO service to run during a 2-day build |
 | Frontend | **React 19 + Vite**, React Router (code-split: `/vote`, `/live`, `/admin`), TanStack Query, **Tailwind CSS v4** with brand tokens, Motion for animation, i18next (AR/EN, RTL) | Fast and lightweight; admin code never ships to voters |
-| SMS | `SmsProvider` interface: `ConsoleProvider` (dev/tests), **`TwilioProvider`** (Programmable Messaging; **we** generate, hash and verify the OTP, so our controls work with any gateway), `GenericHttpProvider` (CPF's future gateway) | Twilio for the pitch; CPF's gateway becomes a config switch |
+| SMS | `SmsProvider` interface: `console` (dev/tests), **`demo-inbox`** (pitch: SMS shown on an admin screen), **`http`** (CPF's own gateway, configured by env; **we** generate, hash and verify the OTP, so our controls work with any gateway) | Decision 2026-10-06 (ADR-004): no paid vendor needed; handing over = one config block |
 | Admin auth | argon2id, TOTP MFA (RFC 6238) + recovery codes, DB-backed sessions, RBAC (`SUPER_ADMIN`, `ADMIN`, `DISPLAY`) | Meets "username + password, MFA if possible" in full |
 | Edge | **Caddy** load-balances ≥ 2 API replicas and serves the SPA; **Cloudflare Tunnel** (`cloudflared`) gives a public HTTPS URL to the laptop for the demo | No cold starts; Secure cookies need HTTPS; real client IP = right-most untrusted `X-Forwarded-For` hop from the trusted connector only (ADR-002); `CF-Connecting-IP` never read |
 | Packaging | **Docker Compose** (local or single VM); docs for managed cloud | "Deployable on local server or cloud without special hardware" |
@@ -302,13 +302,13 @@ The core flow works end to end by Phase 4 (an early "walking skeleton"), which p
 **Pitch-day demo script (short version):**
 1. Show the admin settings: the room's public IP is added live as a venue CIDR.
 2. A phone on 4G is **rejected** with the friendly "join the Wi-Fi" screen.
-3. The same phone on room Wi-Fi gets a real Twilio SMS → votes 3 times → the TV updates in under a second.
+3. The same phone on room Wi-Fi gets its OTP (shown in the demo SMS inbox) → votes 3 times → the TV updates in under a second.
 4. Try a second vote on the same phone: rejected.
 5. The admin toggles **Blind Hour**: the TVs freeze while the phones keep voting. Show the network tab: no live counts leak.
 6. **Reveal** the winners.
 7. Kill an API replica: voting continues.
 
-**Twilio trial caveat:** trial accounts only send SMS to *verified* numbers, and messages carry a trial prefix. Today we need to verify your number and your teammates' numbers, and run one test SMS to a Jordanian (+962) number to confirm delivery from Twilio. Judges' phones can't receive codes on a trial account, so the demo uses our own phones.
+**SMS note (ADR-004):** the pitch uses the `demo-inbox` adapter, so no SMS vendor or verified-number list is needed; every other OTP control runs as in production. CPF plugs its own gateway into the `http` adapter after handover.
 
 ---
 

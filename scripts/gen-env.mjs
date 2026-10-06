@@ -30,11 +30,16 @@ SESSION_SECRET=${hex(32)}
 PII_ENCRYPTION_KEY=${randomBytes(32).toString('base64')}
 PHONE_HASH_PEPPER=${hex(32)}
 
-# console = OTP printed to API logs (dev only). Set to twilio + credentials for the demo.
+# ADR-004: console (OTP in API log) | demo-inbox (admin SMS inbox) | http (the organisers' own gateway)
 SMS_PROVIDER=console
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_FROM=
+# console/demo-inbox need DEMO_MODE=true when NODE_ENV=production. Never set it at the real event.
+DEMO_MODE=false
+# SMS_PROVIDER=http only:
+SMS_HTTP_URL=
+SMS_HTTP_AUTH_HEADER=
+SMS_HTTP_BODY_TEMPLATE=
+# Extra browser origins allowed to POST (comma separated), e.g. http://localhost:8080
+EXTRA_ORIGINS=
 
 # Full Docker stack (pnpm stack:up)
 STACK_NODE_ENV=development

@@ -54,3 +54,22 @@ Updated at the end of every phase. Residual risks are accepted only through an A
 | Elevation | Dev seed silently turns the IP check off at the venue (S-8, Medium) | `--dev` explicit flag; refused in production | Manual check | None |
 | DoS / Info | Test harness wipes a real database (S-9, Medium) | Refuses any DB not named `*_test` | Verified refusal on `mc` | None |
 | Elevation | SMS pumping to premium/foreign numbers | Prefix allow-list (`+9627`) in the DB + mobile-type check | Phone tests | Low |
+
+## Phase 2: On-site gate, OTP and visitor session
+
+| STRIDE | Threat | Mitigation | Test / evidence | Residual |
+|---|---|---|---|---|
+| Spoofing | Off-site visitor passes the venue check with forged IP headers | Single trusted hop (ADR-002); gate enforced server-side on OTP request **and** verify; fails closed with no ranges | 3 unit + 3 integration tests; **live through Cloudflare** (forged XFF/X-Real-IP/True-Client-IP ignored) | Low (Wi-Fi bleed outside the hall; IPv6 prefix must be configured) |
+| Spoofing | OTP brute force (10⁶ space) | Attempt taken **atomically before** comparison; max 5 per challenge; new code retires the old; resend cooldown + 5 requests/phone/hour | 5 wrong → `OTP_LOCKED`; **50 parallel guesses → exactly 5 evaluated** | Low: ≤25 guesses/phone/hour |
+| Spoofing | OTP replay / double-submit | `consumed_at` flipped atomically; challenge bound by id | Concurrent double verify → one success; replay → `OTP_EXPIRED` | None |
+| Spoofing | Forged or tampered session cookie | HMAC-signed (`SESSION_SECRET`), expiring, UUID-validated; HttpOnly, SameSite=Lax, Secure on https | Tamper/forge/garbage/missing → unauthenticated | Low (12 h bearer cookie; no server-side revocation except `is_blocked`) |
+| Tampering | CSRF on state-changing endpoints | Origin allow-list + `Sec-Fetch-Site: cross-site` refusal on non-GET; JSON-only bodies; SameSite=Lax | Cross-origin and cross-site → `CSRF_FAILED` (unit + live) | Low |
+| Tampering | SMS template injection (message text rewriting the gateway request) | Placeholders replaced in JSON string values only | Test with a quote-breaking message | None |
+| Info disclosure | OTP, phone, name leak via DB or logs | Code stored as keyed HMAC bound to challenge id; name/phone AES-GCM; logs redact `phone/code/otp/name/cookie`; console adapter logs only masked number | Live: 0 PII hits in API logs; ciphertext-only at rest | Low (console/demo adapters expose codes by design — gated by `DEMO_MODE`) |
+| Info disclosure | Phone enumeration (who is registered / blocked) | Uniform request response; blocked status only revealed after the OTP proves ownership | Tests | Low |
+| Info disclosure | Wi-Fi password leaked to off-site callers | `access/status` and gate errors expose the SSID only | Tests | None |
+| DoS | SMS flood / pumping (cost) | Jordan-mobile prefix + type check; per phone/device/IP limits; **global hourly SMS ceiling**; IPv6 limits keyed per /64 | Cap tests (phone, global); `rateKey` tests | Low |
+| DoS | Redis outage removes rate limits | Per-process fallback counters (≈ N× looser); Postgres-enforced cooldown and attempt lock are unaffected | Fallback test; Redis-down run in Phase 1 | Low |
+| DoS | **Targeted griefing:** someone on the venue Wi-Fi keeps requesting codes for a victim's number, keeping the 60 s cooldown / 5-per-hour cap active so the victim cannot sign in | Attack needs presence on-site and ~1 request/min; every request is logged with IP + device | — | **Accepted (Medium impact, low likelihood).** Phase 6 adds an admin "clear OTP throttle for this phone" action; the victim also still has the SMS code the attacker triggered. |
+| Elevation | Demo SMS adapters left on at the real event | API refuses to boot in production unless `DEMO_MODE=true` for `console`/`demo-inbox`; loud boot warning | Env tests; Phase 7 checklist | Low |
+| Elevation | Blocked visitor keeps voting | `is_blocked` re-checked on session read and at sign-in | Test | None |
