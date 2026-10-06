@@ -8,8 +8,15 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const WEB_PORT = 5180;
 const API_PORT = 3101;
-const dbUrl = execFileSync('node', ['../../scripts/e2e-db.mjs'], { encoding: 'utf8' }).trim();
-process.env.E2E_DATABASE_URL = dbUrl;
+// Playwright re-evaluates this file in every worker. The database is (re)built ONCE, by the main process; workers
+// inherit the result through the environment instead of dropping the schema under a running suite.
+if (!process.env.E2E_DB_PREPARED) {
+  process.env.E2E_DATABASE_URL = execFileSync('node', ['../../scripts/e2e-db.mjs'], {
+    encoding: 'utf8',
+  }).trim();
+  process.env.E2E_DB_PREPARED = '1';
+}
+const dbUrl = process.env.E2E_DATABASE_URL as string;
 
 const apiEnv = {
   NODE_ENV: 'development',

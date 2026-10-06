@@ -34,6 +34,12 @@ export class VoteService {
     req: VoteRequest,
     clientIp: string | undefined,
   ): Promise<{ vote: Vote; alreadyRecorded: boolean }> {
+    // 1. A vote already on record answers first. A retry after a lost response must still succeed even if an
+    //    organiser has archived the exhibitor/category in the meantime; and a different choice is final.
+    const prior = await this.findVote(visitorId, req.categoryId);
+    if (prior) return this.settle(prior, req);
+
+    // 2. New vote: the exhibitor must compete (active) in this (active) category.
     const [eligible] = await this.db
       .select({ id: exhibitorCategories.exhibitorId })
       .from(exhibitorCategories)
@@ -81,12 +87,22 @@ export class VoteService {
     }
     if (inserted[0]) return { vote: toVote(inserted[0]), alreadyRecorded: false };
 
-    // Conflict: this visitor already voted in the category. Votes are immutable, so the row is still there.
-    const [existing] = await this.db
+    // 3. Lost a race with a parallel request from the same visitor: votes are immutable, so the winner is on record.
+    const winner = await this.findVote(visitorId, req.categoryId);
+    if (!winner) throw new Error('vote conflict without an existing row'); // impossible: votes are append-only
+    return this.settle(winner, req);
+  }
+
+  private async findVote(visitorId: string, categoryId: string) {
+    const [row] = await this.db
       .select()
       .from(votes)
-      .where(and(eq(votes.visitorId, visitorId), eq(votes.categoryId, req.categoryId)));
-    if (!existing) throw new Error('vote conflict without an existing row'); // impossible: votes are append-only
+      .where(and(eq(votes.visitorId, visitorId), eq(votes.categoryId, categoryId)));
+    return row;
+  }
+
+  /** The visitor already voted in this category: same choice = idempotent success, anything else = final (409). */
+  private settle(existing: typeof votes.$inferSelect, req: VoteRequest) {
     if (existing.exhibitorId === req.exhibitorId) {
       return { vote: toVote(existing), alreadyRecorded: true };
     }

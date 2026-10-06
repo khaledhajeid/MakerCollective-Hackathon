@@ -7,7 +7,7 @@ import { navigate } from '../../../lib/nav';
 import { BackButton, LanguageToggle, Skeleton } from '../components/Chrome';
 import { ExhibitorCard } from '../components/ExhibitorCard';
 import { VoteSheet } from '../components/VoteSheet';
-import { useVoter } from '../store';
+import { useVoter, votedCount } from '../store';
 
 /** ⑤ Pick an exhibitor in one category (photo-led, instantly searchable). Tapping a card opens the confirm sheet. */
 export function CategoryScreen({ id }: { id: string }) {
@@ -46,7 +46,7 @@ export function CategoryScreen({ id }: { id: string }) {
   const finish = useCallback(() => {
     setSelected(null);
     const total = categories.data?.length ?? 0;
-    const doneNow = Object.keys(votes).length;
+    const doneNow = votedCount(categories.data ?? [], votes);
     // `votes` here already includes the vote just cast (store updates before the success moment ends).
     if (total > 0 && doneNow >= total) navigate('/vote/done', { replace: true, dir: 'forward' });
     else navigate('/vote', { replace: true, dir: 'back' });

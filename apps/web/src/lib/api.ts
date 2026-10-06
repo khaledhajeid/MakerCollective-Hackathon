@@ -45,20 +45,28 @@ async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown):
   } catch {
     throw new ApiError(0, 'NETWORK');
   }
-  if (res.ok) return (await res.json()) as T;
-  let code: ErrorCode = 'INTERNAL';
+  if (res.ok) {
+    try {
+      return (await res.json()) as T;
+    } catch {
+      // The body stalled past the timeout, or a captive portal / proxy answered 200 with HTML: retryable.
+      throw new ApiError(0, 'NETWORK');
+    }
+  }
+  let code: ErrorCode | null = null;
   let details: unknown;
   try {
     const parsed = (await res.json()) as { error?: { code?: ErrorCode; details?: unknown } };
     if (parsed.error?.code) code = parsed.error.code;
     details = parsed.error?.details;
   } catch {
-    /* proxy error page etc. — keep INTERNAL */
+    /* proxy error page etc. — no API error body */
   }
-  // Gateways answer 502/503/504 while an API replica restarts: that is a retryable network-class failure.
-  if (res.status === 502 || res.status === 503 || res.status === 504)
+  // A 502/503/504 WITHOUT an API error body comes from the gateway while a replica restarts: retryable. One that
+  // carries an API code (SMS_UNAVAILABLE is a 502) is the API speaking and keeps its code.
+  if (!code && (res.status === 502 || res.status === 503 || res.status === 504))
     throw new ApiError(res.status, 'NETWORK');
-  throw new ApiError(res.status, code, details);
+  throw new ApiError(res.status, code ?? 'INTERNAL', details);
 }
 
 export const api = {

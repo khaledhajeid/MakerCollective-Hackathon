@@ -65,7 +65,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     { schema: { response: { 200: z.object({ ok: z.literal(true) }) } } },
     async (request, reply) => {
       const session = readSession(request);
-      if (session) await app.auth.revokeSessions(session.id);
+      if (session) await app.auth.revokeSessions(session.id, session.issuedAtMs);
       clearSession(reply, env);
       return { ok: true as const };
     },

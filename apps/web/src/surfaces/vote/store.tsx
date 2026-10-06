@@ -67,6 +67,9 @@ interface Store {
   /** categoryId → the visitor's vote. */
   votes: Record<string, Vote>;
   online: boolean;
+  /** The visitor's earlier votes could not be loaded (shown on the hub with a retry). */
+  votesError: boolean;
+  refreshVotes: () => Promise<void>;
   /** True after the server said the session ended while the visitor was mid-flow (vote refused with 401). */
   sessionEnded: boolean;
   challenge: Challenge | null;
@@ -82,6 +85,10 @@ interface Store {
   castVote: (categoryId: string, exhibitorId: string) => Promise<VoteResponse>;
 }
 
+/** Votes cast in categories that are still in the catalog (a vote in a category an organiser archived does not count). */
+export const votedCount = (cats: readonly CatalogCategory[], votes: Record<string, Vote>): number =>
+  cats.filter((c) => votes[c.id]).length;
+
 const Ctx = createContext<Store | null>(null);
 
 export function VoterProvider({ children }: { children: ReactNode }) {
@@ -94,6 +101,8 @@ export function VoterProvider({ children }: { children: ReactNode }) {
   const [votes, setVotes] = useState<Record<string, Vote>>({});
   const [online, setOnline] = useState(() => navigator.onLine);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [votesError, setVotesError] = useState(false);
+  const signedInRef = useRef(false);
   const [challenge, setChallengeState] = useState<Challenge | null>(loadChallenge);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
 
@@ -107,9 +116,15 @@ export function VoterProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /** Never throws: a failure flips `votesError` (the hub says so and offers a retry) instead of silently showing 0 votes. */
   const loadVotes = useCallback(async () => {
-    const r = await api.myVotes();
-    setVotes(Object.fromEntries(r.votes.map((v) => [v.categoryId, v])));
+    try {
+      const r = await api.myVotes();
+      setVotes(Object.fromEntries(r.votes.map((v) => [v.categoryId, v])));
+      setVotesError(false);
+    } catch {
+      setVotesError(true);
+    }
   }, []);
 
   const refreshCatalog = useCallback(async () => {
@@ -163,7 +178,7 @@ export function VoterProvider({ children }: { children: ReactNode }) {
           () => void refreshCatalog(),
         );
       } else void refreshCatalog();
-      if (s.authenticated) await loadVotes().catch(() => undefined);
+      if (s.authenticated) await loadVotes();
       setBoot('ready');
     } catch (e) {
       setBootError(e instanceof ApiError ? e : new ApiError(0, 'NETWORK'));
@@ -187,6 +202,7 @@ export function VoterProvider({ children }: { children: ReactNode }) {
       void refreshVoting();
       void refreshCatalog();
       void recheckAccess();
+      if (signedInRef.current) void loadVotes();
     };
     window.addEventListener('online', on);
     window.addEventListener('offline', off);
@@ -200,7 +216,11 @@ export function VoterProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', visible);
       window.clearInterval(poll);
     };
-  }, [recheckAccess, refreshCatalog, refreshVoting]);
+  }, [loadVotes, recheckAccess, refreshCatalog, refreshVoting]);
+
+  useEffect(() => {
+    signedInRef.current = visitor !== null;
+  }, [visitor]);
 
   const signedIn = useCallback(
     async (v: Visitor) => {
@@ -208,7 +228,7 @@ export function VoterProvider({ children }: { children: ReactNode }) {
       setSessionEnded(false);
       setChallenge(null);
       setDraft(EMPTY_DRAFT);
-      await loadVotes().catch(() => undefined);
+      await loadVotes();
     },
     [loadVotes, setChallenge],
   );
@@ -229,7 +249,7 @@ export function VoterProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         if (e instanceof ApiError) {
           // Server truth wins: a conflict means a vote exists; a closed window / lost session must update the UI.
-          if (e.code === 'ALREADY_VOTED') void loadVotes().catch(() => undefined);
+          if (e.code === 'ALREADY_VOTED') void loadVotes();
           if (e.code === 'VOTING_NOT_OPEN') void refreshVoting();
           if (e.code === 'UNAUTHENTICATED') {
             setVisitor(null);
@@ -254,6 +274,8 @@ export function VoterProvider({ children }: { children: ReactNode }) {
       votes,
       online,
       sessionEnded,
+      votesError,
+      refreshVotes: loadVotes,
       challenge,
       draft,
       setDraft,
@@ -276,6 +298,8 @@ export function VoterProvider({ children }: { children: ReactNode }) {
       votes,
       online,
       sessionEnded,
+      votesError,
+      loadVotes,
       challenge,
       draft,
       setChallenge,

@@ -29,12 +29,15 @@ const MOTIFS = [
 interface Props {
   category: CatalogCategory;
   index: number;
+  /** The visitor already voted in this category. */
+  voted: boolean;
+  /** The exhibitor they chose, if it is still listed (an archived one is not). */
   picked: CatalogExhibitor | undefined;
   onOpen: () => void;
 }
 
 /** One category on the hub: pending (tap to choose) or voted (shows your pick). */
-export function CategoryCard({ category, index, picked, onOpen }: Props) {
+export function CategoryCard({ category, index, voted, picked, onOpen }: Props) {
   const { d, pick } = useI18n();
   const name = pick(category.nameAr, category.nameEn);
   const description = pick(category.descriptionAr, category.descriptionEn);
@@ -49,7 +52,7 @@ export function CategoryCard({ category, index, picked, onOpen }: Props) {
       whileTap={{ scale: 0.975 }}
       transition={spring.press}
       className={`flex w-full items-center gap-4 rounded-[var(--radius-card)] p-4 text-start transition-colors duration-300 ${
-        picked
+        voted
           ? 'bg-turquoise-soft shadow-[0_0_0_1.5px_var(--color-turquoise),0_10px_26px_-10px_rgb(0_0_123/0.18)]'
           : 'bg-surface shadow-[var(--shadow-card)]'
       }`}
@@ -62,7 +65,7 @@ export function CategoryCard({ category, index, picked, onOpen }: Props) {
         <svg viewBox="0 0 24 24" className="size-7">
           {MOTIFS[index % MOTIFS.length]}
         </svg>
-        {picked && (
+        {voted && (
           <span className="absolute -end-1.5 -top-1.5 grid size-6 place-items-center rounded-full bg-navy text-white ring-2 ring-turquoise-soft">
             <Icon name="check" size={14} strokeWidth={3.4} />
           </span>
@@ -73,10 +76,10 @@ export function CategoryCard({ category, index, picked, onOpen }: Props) {
         <span className="t-heading block text-navy" dir="auto">
           {name}
         </span>
-        {picked ? (
+        {voted ? (
           <span className="t-small mt-0.5 block text-ink">
             <span className="font-bold">{d.hub.yourVote}: </span>
-            <span dir="auto">{pick(picked.nameAr, picked.nameEn)}</span>
+            <span dir="auto">{picked ? pick(picked.nameAr, picked.nameEn) : '—'}</span>
           </span>
         ) : (
           <>
@@ -89,7 +92,7 @@ export function CategoryCard({ category, index, picked, onOpen }: Props) {
           </>
         )}
       </span>
-      <Icon name="forward" flip className={picked ? 'text-navy' : 'text-[#8b8bab]'} />
+      <Icon name="forward" flip className={voted ? 'text-navy' : 'text-[#8b8bab]'} />
     </m.button>
   );
 }

@@ -95,6 +95,7 @@ export const en = {
     seeSummary: 'See your votes',
     noCategories: 'Categories will appear here as soon as the organisers publish them.',
     refresh: 'Refresh',
+    votesError: "We couldn't load your earlier votes, so some categories may look open.",
   },
   category: {
     searchLabel: 'Search',
@@ -240,6 +241,7 @@ export const ar: Dict = {
     seeSummary: 'عرض أصواتك',
     noCategories: 'ستظهر الفئات هنا فور نشرها من المنظّمين.',
     refresh: 'تحديث',
+    votesError: 'تعذّر تحميل أصواتك السابقة، لذلك قد تبدو بعض الفئات مفتوحة.',
   },
   category: {
     searchLabel: 'بحث',

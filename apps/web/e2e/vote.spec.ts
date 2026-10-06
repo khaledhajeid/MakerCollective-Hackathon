@@ -208,3 +208,45 @@ test('a session that ends mid-vote explains itself instead of silently restartin
   await expect(page.getByText(t.sessionEnded)).toBeVisible();
   expect((await pool.query('SELECT count(*)::int AS n FROM votes')).rows[0].n).toBe(0);
 });
+
+test('while offline the confirm sheet can be cancelled, and nothing is sent', async ({
+  page,
+  context,
+}, info) => {
+  const locale = localeOf(info);
+  const t = T[locale];
+  await signIn(page, locale);
+  await page.getByText(t.choose).first().click();
+  await page
+    .locator('button')
+    .filter({ has: page.locator('img, svg[viewBox="0 0 160 100"]') })
+    .first()
+    .click();
+  await context.setOffline(true);
+  await page.getByRole('dialog').getByRole('button', { name: t.confirm }).click();
+  await expect(page.getByText(t.waiting)).toBeVisible();
+  await page.keyboard.press('Escape'); // backing out is allowed while nothing is being sent
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await context.setOffline(false);
+  await page.waitForTimeout(7000); // longer than the retry interval: nothing may be sent after cancelling
+  expect((await pool.query('SELECT count(*)::int AS n FROM votes')).rows[0].n).toBe(0);
+});
+
+test("if the visitor's earlier votes cannot be loaded the hub says so and offers a retry", async ({
+  page,
+}, info) => {
+  const locale = localeOf(info);
+  const t = T[locale];
+  await signIn(page, locale);
+  await voteInNextCategory(page, locale);
+  await expect(page.getByRole('heading', { name: t.hub })).toBeVisible();
+
+  await page.route('**/api/me/votes', (r) => r.abort());
+  await page.reload();
+  await expect(page.getByRole('alert').filter({ hasText: t.votesError })).toBeVisible();
+
+  await page.unroute('**/api/me/votes');
+  await page.getByRole('button', { name: t.tryAgain }).click();
+  await expect(page.getByRole('alert').filter({ hasText: t.votesError })).toHaveCount(0);
+  await expect(page.getByText(t.yourVote).first()).toBeVisible(); // the earlier vote shows again
+});

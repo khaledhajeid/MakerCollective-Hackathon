@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-06
 - **Scope:** `POST /api/votes`, `GET /api/me/votes`, `GET /api/voting/status`, shared vote contract, voting-window logic; the voter web app (7 screens + gate/closed/boot states, AR/EN, RTL, motion), ADR-005, browser E2E + accessibility suites, Dockerfile fix
-- **Verdict:** ✅ Passed. No open Critical/High findings. Items needing the user are in §7.
+- **Verdict:** ✅ Passed. No open Critical/High findings. The user-run `/security-review` found nothing at or above the confidence bar, and the `/code-review` round (10 findings) is fixed (§8). Items needing the user are in §7.
 
 ## 1. Automated checks
 
@@ -61,7 +61,28 @@ Full table: [`docs/security/threat-model.md`, Phase 3](../security/threat-model.
 | Dev database holds test visitors/votes from this phase | Low | Cleaned before hand-over (see §7) |
 
 ## 7. Needs the user
-1. **Review the Arabic copy** (`apps/web/src/i18n/dict.ts`, `ar`). It is written natively and gender-neutral where possible, but a native speaker should read every screen once.
+1. **Arabic copy review (deferred by the user):** the whole `ar` dictionary (`apps/web/src/i18n/dict.ts`) is reviewed once at the end of the project.
 2. **Real photos and category names** from the teammates (photo upload arrives in Phase 6; until then the designed pattern tile shows).
 3. **Cloudflare dashboard:** disable Web Analytics for `vote.alrabetahub.app`.
 4. Venue IT: public IPv4 **and IPv6** prefixes (unchanged from Phase 2).
+
+## 8. Review round (`/security-review` and `/code-review` on `3ca3b88`)
+
+**`/security-review`:** no vulnerability rated ≥ 7/10 (vote endpoint ordering, revocation, CSRF, XSS sinks, storage, Docker/Caddy, e2e script all checked).
+
+**`/code-review`:** 10 findings; all valid or partly valid, all addressed.
+
+| # | Finding | Outcome |
+|---|---|---|
+| R-1 | Client rewrote every 502/503/504 to `NETWORK`, hiding the API's own `SMS_UNAVAILABLE` (a 502) behind "check your connection" | **Fixed:** only body-less gateway errors are `NETWORK`; unit tests |
+| R-2 | "All done" counted votes in categories since archived, so the finish screen could appear with a category still open and disagreed with the hub | **Fixed:** shared `votedCount()` (catalog categories only) used by hub, router and category screen; unit test |
+| R-3 | Playwright re-evaluated the config in every worker, re-dropping and re-seeding the E2E database under a running suite | **Fixed:** the database is prepared once; workers inherit it through the environment |
+| R-4 | The confirm sheet stayed locked while offline: no cancel, Esc or drag | **Fixed:** only an in-flight request or the success moment locks it; closing stops retries; E2E |
+| R-5 | Revocation compared a replica's clock with another replica's `iat`; skew between hosts could leave a logged-out cookie valid | **Fixed (mitigated):** revocation time is never earlier than the issue time of the cookie being logged out. Skew can still affect *other* sessions' ordering by milliseconds; irrelevant on the single-host event deployment |
+| R-6 | Eligibility (active exhibitor/category) ran before the idempotent lookup, so a retry of a recorded vote failed with 422 after an organiser archived the exhibitor | **Fixed:** existing vote answers first (same choice → `alreadyRecorded`, different → 409); integration test |
+| R-7 | `res.json()` outside the try/catch: a stalled body or a captive-portal 200 produced an untyped error and no retry | **Fixed:** mapped to a retryable `NETWORK` error; unit tests |
+| R-8 | A failed `/me/votes` load was swallowed, showing 0/3 and open categories to a visitor who had voted | **Fixed:** hub shows a warning with retry; votes also refresh when the tab becomes visible; E2E |
+| R-9 | Preboot and app mount were independent async imports; if the app won the race the reads were duplicated | **Fixed:** preboot starts synchronously from the entry script |
+| R-10 | Hub showed `exhibitors[0]` as "your pick" when the chosen exhibitor was no longer listed | **Fixed:** shows the voted state with "—" instead of inventing a pick |
+
+Tests after the round: shared 2 · web 24 · API 154 · browser E2E **32** (16 per profile).

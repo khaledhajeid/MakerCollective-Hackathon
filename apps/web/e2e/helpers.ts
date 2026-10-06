@@ -28,6 +28,8 @@ export const T = {
     final: 'تم تسجيل صوتك في هذه الفئة.',
     review: 'مراجعة أصواتي',
     sessionEnded: 'انتهت جلستك. أدخل بياناتك للمتابعة.',
+    votesError: 'تعذّر تحميل أصواتك السابقة',
+    tryAgain: 'حاول مرة أخرى',
     yourVote: 'صوتك',
   },
   en: {
@@ -50,6 +52,8 @@ export const T = {
     final: 'Your vote in this category is recorded.',
     review: 'Review my votes',
     sessionEnded: 'Your session ended. Enter your details to continue.',
+    votesError: "We couldn't load your earlier votes",
+    tryAgain: 'Try again',
     yourVote: 'Your vote',
   },
 } as const;

@@ -11,7 +11,7 @@ import { Finish } from './screens/Finish';
 import { Hub } from './screens/Hub';
 import { BootError, ClosedScreen, GateScreen } from './screens/System';
 import { Welcome } from './screens/Welcome';
-import { VoterProvider, useVoter } from './store';
+import { VoterProvider, useVoter, votedCount } from './store';
 
 interface Resolved {
   key: string;
@@ -32,7 +32,7 @@ function useResolved(loc: Loc): Resolved {
   if (voting.state !== 'OPEN') return { key: 'closed', node: <ClosedScreen /> };
 
   const total = categories.data?.length ?? 0;
-  const allDone = total > 0 && Object.keys(votes).length >= total;
+  const allDone = total > 0 && votedCount(categories.data ?? [], votes) >= total;
 
   if (!visitor) {
     if (path === '/vote/details') return { key: 'details', node: <Details /> };

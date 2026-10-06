@@ -1,4 +1,5 @@
 import './index.css';
+import { startPreboot } from './lib/preboot';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root missing');
@@ -11,7 +12,7 @@ const path = window.location.pathname;
 const surface = path.startsWith('/admin') || path.startsWith('/live') ? 'staff' : 'vote';
 
 if (surface === 'vote') {
-  void import('./lib/preboot').then((m) => m.startPreboot()); // reads start now, in parallel with the app bundle
+  startPreboot(); // synchronous: the reads are in flight before the app bundle is even requested
   void import('./surfaces/vote/mount').then((m) => m.mountVoter(root));
 } else {
   void import('./surfaces/staff-shell').then((m) => m.mountStaff(root));

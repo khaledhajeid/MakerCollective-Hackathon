@@ -372,3 +372,37 @@ describe('GET /api/me/votes', () => {
     expect((await call('GET', '/api/me/votes', { cookies: two })).json().votes).toEqual([]);
   });
 });
+
+describe('review round: retries and revocation (code-review findings)', () => {
+  it('a retry of a recorded vote still succeeds after the exhibitor or category is archived; a different choice stays final', async () => {
+    const { call, login } = await makeApp();
+    const { a, x, y } = await seedCatalog();
+    const cookies = await login();
+    const body = { categoryId: a.id, exhibitorId: x.id };
+    expect((await call('POST', '/api/votes', { cookies, body })).statusCode).toBe(200);
+
+    await db.update(exhibitors).set({ isActive: false }).where(eq(exhibitors.id, x.id));
+    await db.update(categories).set({ isActive: false }).where(eq(categories.id, a.id));
+    const retry = await call('POST', '/api/votes', { cookies, body });
+    expect(retry.statusCode).toBe(200);
+    expect(retry.json().alreadyRecorded).toBe(true);
+
+    const other = await call('POST', '/api/votes', {
+      cookies,
+      body: { categoryId: a.id, exhibitorId: y.id },
+    });
+    expect(other.statusCode).toBe(409);
+    expect(await db.$count(votes)).toBe(1);
+  });
+
+  it('logout revokes the cookie being logged out even if this replica clock is behind the issuing one', async () => {
+    const { app, call, login } = await makeApp();
+    const cookies = await login();
+    const [v] = await db.select().from(visitors);
+    // The cookie was "issued" 10 s in the future relative to this replica's clock (skewed issuing replica).
+    await app.auth.revokeSessions(v!.id, Date.now() + 10_000);
+    const [row] = await db.select().from(visitors);
+    expect(row!.sessionsRevokedAt!.getTime()).toBeGreaterThanOrEqual(Date.now() + 9_000);
+    expect((await call('GET', '/api/me/votes', { cookies })).statusCode).toBe(401);
+  });
+});

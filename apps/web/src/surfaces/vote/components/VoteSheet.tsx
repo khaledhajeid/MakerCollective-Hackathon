@@ -92,12 +92,19 @@ export function VoteSheet({ category, exhibitor, onClose, onDone }: Props) {
 
   const name = shown ? pick(shown.nameAr, shown.nameEn) : '';
   const categoryName = pick(category.nameAr, category.nameEn);
-  const busy = phase === 'pending' || phase === 'waiting' || phase === 'done';
+  // Only a request that is actually being sent (or the success moment) locks the sheet. While offline the visitor
+  // can still back out: retries stop, and if one already in flight lands, the hub shows the recorded vote.
+  const busy = phase === 'pending' || phase === 'done';
+  const close = () => {
+    setPhase('confirm');
+    setError(null);
+    onClose();
+  };
 
   return (
     <Sheet
       open={exhibitor !== null}
-      onClose={onClose}
+      onClose={close}
       labelledBy="vote-sheet-title"
       locked={busy}
       handleLabel={d.sheet.handle}
@@ -173,7 +180,7 @@ export function VoteSheet({ category, exhibitor, onClose, onDone }: Props) {
                       : d.sheet.confirm}
                 </Button>
               )}
-              <Button variant="ghost" size="md" disabled={busy} onClick={onClose}>
+              <Button variant="ghost" size="md" disabled={busy} onClick={close}>
                 {phase === 'already' ? d.common.close : d.sheet.cancel}
               </Button>
             </div>

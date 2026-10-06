@@ -6,14 +6,15 @@ import { useI18n } from '../../../i18n';
 import { navigate } from '../../../lib/nav';
 import { BrandMark, Hero, LanguageToggle, Skeleton } from '../components/Chrome';
 import { CategoryCard } from '../components/CategoryCard';
-import { useVoter } from '../store';
+import { useVoter, votedCount } from '../store';
 
 /** ④ Vote hub: how far along you are, and the next category to decide. */
 export function Hub() {
   const { d, fmt } = useI18n();
-  const { visitor, categories, votes, signOut, refreshCatalog } = useVoter();
+  const { visitor, categories, votes, votesError, refreshVotes, signOut, refreshCatalog } =
+    useVoter();
   const cats = useMemo(() => categories.data ?? [], [categories.data]);
-  const done = useMemo(() => cats.filter((c) => votes[c.id]).length, [cats, votes]);
+  const done = useMemo(() => votedCount(cats, votes), [cats, votes]);
   const allDone = cats.length > 0 && done === cats.length;
   const firstName = (visitor?.name ?? '').trim().split(/\s+/)[0] ?? '';
 
@@ -64,6 +65,21 @@ export function Hub() {
             {d.hub.noCategories}
           </p>
         )}
+        {votesError && (
+          <div
+            role="alert"
+            className="flex items-center gap-3 rounded-[var(--radius-control)] bg-yellow-soft p-3.5"
+          >
+            <p className="t-small flex-1 font-bold text-ink">{d.hub.votesError}</p>
+            <button
+              type="button"
+              onClick={() => void refreshVotes()}
+              className="t-label min-h-11 rounded-lg px-3 text-royal underline decoration-2 underline-offset-4"
+            >
+              {d.common.tryAgain}
+            </button>
+          </div>
+        )}
         {cats.map((c, i) => {
           const v = votes[c.id];
           return (
@@ -71,11 +87,8 @@ export function Hub() {
               key={c.id}
               category={c}
               index={i}
-              picked={
-                v
-                  ? (c.exhibitors.find((e) => e.id === v.exhibitorId) ?? c.exhibitors[0])
-                  : undefined
-              }
+              voted={!!v}
+              picked={v ? c.exhibitors.find((e) => e.id === v.exhibitorId) : undefined}
               onOpen={() => navigate(`/vote/c/${c.id}`)}
             />
           );
