@@ -39,7 +39,9 @@ TWILIO_FROM=
 # Full Docker stack (pnpm stack:up)
 STACK_NODE_ENV=development
 STACK_PUBLIC_ORIGIN=http://localhost:8080
-# Tunnel (pnpm stack:up + --profile tunnel). Free static domain: https://dashboard.ngrok.com/domains
+# Tunnel: Cloudflare named tunnel token (Zero Trust > Networks > Tunnels). Route hostname -> http://caddy:80
+CLOUDFLARE_TUNNEL_TOKEN=
+# Fallback tunnel (--profile tunnel-ngrok)
 NGROK_AUTHTOKEN=
 NGROK_DOMAIN=
 `,
