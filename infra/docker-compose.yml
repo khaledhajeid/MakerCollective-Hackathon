@@ -94,8 +94,9 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.7.3
     profiles: [tunnel]
-    restart: unless-stopped
     command: tunnel --no-autoupdate run
+    # Start via `pnpm stack:tunnel` (fails fast if the token is missing); bounded restarts, no silent crash-loop.
+    restart: on-failure:5
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
     depends_on: [caddy]
@@ -121,4 +122,6 @@ volumes:
 networks:
   backend:
     ipam:
-      config: [{ subnet: 172.28.0.0/24 }]
+      # Dynamic addresses come only from .128/25, so the trusted static hops
+      # (.10 Caddy, .11 cloudflared, .12 ngrok) can never be auto-assigned to another container.
+      config: [{ subnet: 172.28.0.0/24, ip_range: 172.28.0.128/25 }]

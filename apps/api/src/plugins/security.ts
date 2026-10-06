@@ -14,7 +14,8 @@ export const securityPlugin = fp(async (app: FastifyInstance) => {
     },
     crossOriginResourcePolicy: { policy: 'same-origin' },
     referrerPolicy: { policy: 'no-referrer' },
-    hsts: { maxAge: 63_072_000, includeSubDomains: true },
+    // No includeSubDomains: the app lives on one hostname of a shared domain (code review, tunnel commit).
+    hsts: { maxAge: 63_072_000, includeSubDomains: false },
   });
 
   // Responses carry per-user state; never let a shared cache store them.

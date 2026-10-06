@@ -26,6 +26,7 @@
 
 ## Consequences and risks
 - Visitors on 4G/5G cannot vote until they join the venue Wi-Fi. This is intentional; the access-denied screen makes it a one-step fix.
-- **IPv6:** if the venue network hands out IPv6, phones will arrive with an IPv6 address, not the NAT'd IPv4. The admin "add my current IP" helper shows the detected address family, and the setup checklist requires adding the venue's IPv6 /64 prefix (or disabling IPv6 on the venue SSID).
+- **IPv6 (more likely now that we're behind Cloudflare, whose edge is dual-stack):** a phone on a dual-stack venue Wi-Fi reaches Cloudflare over IPv6, so the address appended to `X-Forwarded-For` is IPv6, not the NAT'd IPv4. **The allow-list must contain the venue's IPv4 egress addresses *and* its IPv6 prefix (typically a /56 or /64).** `venue_cidrs` is `cidr[]`, so it accepts both. The setup checklist requires venue IT to confirm both families; the admin "detect my IP" helper (Phase 2/6) shows the detected family from a phone on the venue Wi-Fi so the right prefix gets added. If the venue has no IPv6, nothing changes.
+- **Trusted hops:** Caddy trusts both tunnel connector addresses (.11, .12). Docker's dynamic pool is `172.28.0.128/25`, so those addresses can only be held by the explicitly declared connector services. Abusing them would require Docker access on the host (already full compromise). Accepted, Low.
 - Someone *on* the venue Wi-Fi can still vote without being in the hall (for example, Wi-Fi range bleeding into the car park). That is accepted; the OTP-verified phone uniqueness caps the abuse at one vote per category per real SIM.
 - A spoofed-header test exists from Phase 0 onward (unit and through the real Caddy).

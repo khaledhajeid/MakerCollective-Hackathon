@@ -54,3 +54,16 @@ On the free plan, ngrok shows a warning page on each visitor's **first** browser
 |---|---|---|---|
 | R-6 | The app connects as a Postgres superuser, which could bypass triggers via SQL injection (none known; all queries parameterised) | Medium | Phase 7: separate least-privilege `mc_app` role (DML only); migrations keep the owner role |
 | R-1…R-5 | From Phase 0 | n/a | Unchanged |
+
+## 6. Addendum: review of the Cloudflare tunnel switch (`/code-review` on 32d3862, 8 findings)
+
+| # | Finding | Severity | Outcome |
+|---|---|---|---|
+| T-1 | IPv6 through Cloudflare's dual-stack edge would block real voters on an IPv4-only allow-list | High (availability of voting) | **Addressed**: ADR-002 now requires the venue's IPv4 **and** IPv6 prefixes; `cidr[]` supports both; Phase 2 "detect my IP" helper shows the family |
+| T-2 | Trusted static IPs could be auto-assigned to another container | Medium | **Fixed**: `ip_range: 172.28.0.128/25` keeps the dynamic pool away from .10–.12 |
+| T-3 | Spoof test simulates the connector hop (the cloudflared image has no shell) | Low | **Planned**: live end-to-end check through the real tunnel in Phase 2 via `GET /api/access/status` |
+| T-4 | Spoof test counted restarting containers and exited 2 (ambiguous) | Low | **Fixed**: only `status=running`; fails closed with exit 1 |
+| T-5 | Both connector IPs trusted at once | Low | **Accepted** (ADR-002): reserved addresses + host Docker access = already full compromise |
+| T-6 | HSTS `includeSubDomains` now affects the team's whole domain | Medium | **Fixed** in Caddy and the API (helmet) |
+| T-7 | An empty tunnel token crash-loops silently (QR shows Cloudflare 1033) | Medium | **Fixed**: `pnpm stack:tunnel` refuses to start without a token; `restart: on-failure:5` |
+| T-8 | Master plan still told implementers to read `CF-Connecting-IP` | Medium (could reintroduce S-7) | **Fixed**: plan text aligned with ADR-002 |

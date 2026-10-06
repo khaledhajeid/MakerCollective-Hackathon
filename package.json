@@ -21,7 +21,8 @@
     "stack:up": "docker compose --env-file .env -f infra/docker-compose.yml --profile full up -d --build",
     "stack:down": "docker compose --env-file .env -f infra/docker-compose.yml --profile full down",
     "stack:seed": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/db/seed.js",
-    "stack:seed:dev": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/db/seed.js --dev"
+    "stack:seed:dev": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/db/seed.js --dev",
+    "stack:tunnel": "node scripts/stack-tunnel.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
