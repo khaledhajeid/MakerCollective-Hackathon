@@ -310,11 +310,16 @@ export class AuthService {
     return v;
   }
 
-  /** Logout = server-side revocation of every session issued so far (a captured cookie dies too). */
+  /**
+   * Logout = server-side revocation of every session issued so far (a captured cookie dies too).
+   * Stamped with the APP clock, the same clock that stamps a session's `iat`: comparing it with the database's
+   * `now()` would let clock skew between the API host and the Postgres host (a Docker VM drifts by milliseconds)
+   * leave a just-logged-out cookie valid.
+   */
   async revokeSessions(visitorId: string): Promise<void> {
     await this.db
       .update(visitors)
-      .set({ sessionsRevokedAt: sql`now()` })
+      .set({ sessionsRevokedAt: new Date() })
       .where(eq(visitors.id, visitorId));
   }
 }

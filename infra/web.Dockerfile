@@ -9,7 +9,8 @@ COPY packages/shared/package.json packages/shared/
 RUN pnpm install --frozen-lockfile --filter "@mc/web..."
 COPY packages/shared packages/shared
 COPY apps/web apps/web
-RUN pnpm --filter @mc/web build
+# The SPA imports runtime helpers from @mc/shared (digits), so the package must be compiled first.
+RUN pnpm --filter @mc/shared build && pnpm --filter @mc/web build
 
 FROM caddy:2-alpine
 COPY infra/Caddyfile /etc/caddy/Caddyfile

@@ -6,24 +6,14 @@ import {
   SessionSchema,
   toAsciiDigits,
 } from '@mc/shared';
-import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { AppError } from '../../lib/errors.js';
+import { venueGuard } from '../access/guard.js';
 import { clearSession, ensureDeviceId, issueSession, readSession } from './session.js';
 
 export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   const { env } = app.deps;
 
-  /** Every credential-issuing step requires the visitor to be on the venue network (F10/F11, ADR-002). */
-  const requireVenue = async (request: FastifyRequest) => {
-    const decision = await app.access.evaluate(request.ip);
-    if (!decision.allowed) {
-      request.log.info({ reason: decision.reason }, 'venue gate refused request');
-      throw new AppError(403, 'NOT_ON_VENUE_NETWORK', 'Connect to the event Wi-Fi to vote', {
-        wifiSsid: await app.access.wifiSsid(),
-      });
-    }
-  };
+  const requireVenue = venueGuard(app);
 
   app.post(
     '/auth/otp/request',

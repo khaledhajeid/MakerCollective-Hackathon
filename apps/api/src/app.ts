@@ -13,6 +13,8 @@ import { AccessPolicy } from './modules/access/policy.js';
 import { accessRoutes } from './modules/access/routes.js';
 import { AuthService } from './modules/auth/service.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { VoteService } from './modules/votes/service.js';
+import { voteRoutes } from './modules/votes/routes.js';
 import { SettingsCache } from './modules/settings/cache.js';
 import { createSmsProvider } from './modules/sms/adapters.js';
 import type { SmsProvider } from './modules/sms/provider.js';
@@ -38,6 +40,7 @@ declare module 'fastify' {
     access: AccessPolicy;
     limiter: RateLimiter;
     auth: AuthService;
+    votes: VoteService;
   }
 }
 
@@ -112,6 +115,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   );
   app.decorate('limiter', limiter);
   app.decorate('auth', new AuthService(deps.env, deps.db, settings, limiter, sms));
+  app.decorate('votes', new VoteService(deps.db));
   if (deps.env.DEMO_MODE || deps.env.SMS_PROVIDER !== 'http')
     app.log.warn({ sms: sms.name }, 'DEMO/DEV SMS adapter active — OTPs are NOT sent to phones');
   app.setValidatorCompiler(validatorCompiler);
@@ -131,6 +135,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
       await api.register(catalogRoutes);
       await api.register(accessRoutes);
       await api.register(authRoutes);
+      await api.register(voteRoutes);
     },
     { prefix: '/api' },
   );

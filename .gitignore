@@ -30,3 +30,5 @@ infra/k6/results/
 # Source brand kit (40 MB PDF + full commercial font files) stays local; only web subsets are committed.
 Branding Guildine/
 .vitest/
+apps/web/test-results/
+apps/web/playwright-report/

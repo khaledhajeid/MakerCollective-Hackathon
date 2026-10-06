@@ -73,3 +73,22 @@ Updated at the end of every phase. Residual risks are accepted only through an A
 | DoS | **Targeted griefing:** someone on the venue Wi-Fi keeps requesting codes for a victim's number, keeping the 60 s cooldown / 5-per-hour cap active so the victim cannot sign in | Attack needs presence on-site and ~1 request/min; every request is logged with IP + device | — | **Accepted (Medium impact, low likelihood).** Phase 6 adds an admin "clear OTP throttle for this phone" action; the victim also still has the SMS code the attacker triggered. |
 | Elevation | Demo SMS adapters left on at the real event | API refuses to boot in production unless `DEMO_MODE=true` for `console`/`demo-inbox`; loud boot warning | Env tests; Phase 7 checklist | Low |
 | Elevation | Blocked visitor keeps voting | `is_blocked` re-checked on session read and at sign-in | Test | None |
+
+## Phase 3: Voting and the voter app
+
+| STRIDE | Threat | Mitigation | Test / evidence | Residual |
+|---|---|---|---|---|
+| Spoofing | Vote without signing in, or with a forged/tampered session cookie | `POST /api/votes` requires a valid signed session resolved to a non-blocked visitor | 401 for missing, tampered, forged cookies | None |
+| Spoofing | Stolen/old session used after logout or after a block | Server-side revocation (`sessions_revoked_at`) and `is_blocked` are checked on every vote | Vote after logout → 401; blocked visitor → 401 | Low (12 h cookie otherwise) |
+| Elevation | Voting from outside the venue with a valid session (e.g. shared cookie) | Venue gate is a per-route preHandler on `POST /api/votes` (runs **before** the session check) | Outside IP + valid session → 403 `NOT_ON_VENUE_NETWORK`, 0 votes | Low (Wi-Fi bleed; IPv6 prefix must be configured) |
+| Tampering | Two votes per category via parallel taps, retries or two devices | `UNIQUE(visitor_id, category_id)` arbitrates; same choice = idempotent success, different = 409 | 20 parallel different choices → exactly 1 vote; E2E finality | None |
+| Tampering | Vote for an exhibitor outside the category, an archived exhibitor, or an inactive category | Eligibility query + composite FK | 422 `EXHIBITOR_NOT_IN_CATEGORY` tests | None |
+| Tampering | Vote while voting is closed, not yet open, or unconfigured | `votingState()` with the server clock; unconfigured SCHEDULED fails closed | 4 refusal cases + unit tests | Low (≤ 2 s settings-cache lag across replicas) |
+| Repudiation | Dispute about when/where a vote was cast | Each vote stores timestamp + canonical client IP | Integration test | Low (shared venue NAT IP) |
+| Info disclosure | A visitor learns other visitors' votes or live counts | Vote responses return only the caller's own vote; `/me/votes` is `private, no-store`; no tally endpoint exists in this phase | Test: second visitor sees `[]` | None |
+| Info disclosure | PII persisted in the browser | Name/phone stay in memory; `sessionStorage` holds only the masked phone and an opaque challenge id | Code review | Low |
+| Tampering | UI claims "voted" when the server has not recorded it | Success only after HTTP 200; offline keeps the vote pending and retries the idempotent call | E2E: offline → no "recorded", 0 votes; reconnect → exactly 1 | None |
+| DoS | Vote-endpoint spam | 60 requests/min per visitor; a person can cast only #categories votes | Covered by DB uniqueness; Phase 7 load test | Low |
+| Tampering (client) | XSS / style injection through catalog fields | React escaping, no `dangerouslySetInnerHTML`; CSP `script-src 'self'`; category colour is DB-validated hex set via CSSOM; image URLs are server-built `/uploads/<uuid>.webp` | Semgrep 0 findings; DB check tests | Low (`style-src 'unsafe-inline'`, R-3) |
+| Info disclosure (third party) | Cloudflare's auto-injected analytics beacon observes visitors | CSP blocks it | Seen and blocked in the live run | **Action:** disable Web Analytics in the Cloudflare dashboard |
+

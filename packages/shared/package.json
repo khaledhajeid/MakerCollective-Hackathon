@@ -8,6 +8,16 @@
       "types": "./src/index.ts",
       "development": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./digits": {
+      "types": "./src/digits.ts",
+      "development": "./src/digits.ts",
+      "default": "./dist/digits.js"
+    },
+    "./constants": {
+      "types": "./src/constants.ts",
+      "development": "./src/constants.ts",
+      "default": "./dist/constants.js"
     }
   },
   "scripts": {

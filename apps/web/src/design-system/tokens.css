@@ -49,7 +49,7 @@
 }
 
 @theme {
-  /* Brand palette */
+  /* Brand palette (guidelines p.07) */
   --color-navy: #00007b;
   --color-purple: #7f32d9;
   --color-royal: #4a68d8;
@@ -57,11 +57,19 @@
   --color-yellow: #f8d749;
   --color-crimson: #a52a3a;
 
-  /* Neutrals (tinted toward navy so greys feel on-brand) */
+  /* Depth + soft tints derived from the brand hues (never new brand colours) */
+  --color-navy-deep: #00004a;
+  --color-purple-soft: #f1e9fc;
+  --color-royal-soft: #e9edfb;
+  --color-turquoise-soft: #e1f7f4;
+  --color-yellow-soft: #fdf4cc;
+  --color-crimson-soft: #fbe8ea;
+
+  /* Neutrals tinted toward navy so greys feel on-brand. muted = 6.6:1 on canvas. */
   --color-ink: #0b0b3b;
-  --color-muted: #5a5a7a;
-  --color-line: #e3e3f0;
-  --color-canvas: #f7f7fc;
+  --color-muted: #55557a;
+  --color-line: #dcdcee;
+  --color-canvas: #f6f6fb;
   --color-surface: #ffffff;
 
   /* One stack for both scripts: Nexa has no Arabic glyphs, so Latin always renders in Nexa
@@ -69,6 +77,18 @@
   --font-sans:
     'Nexa', 'Helvetica Neue Arabic', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
 
-  --radius-card: 1.25rem;
-  --shadow-card: 0 1px 2px rgb(0 0 123 / 0.06), 0 8px 24px rgb(0 0 123 / 0.08);
+  --radius-card: 1.5rem;
+  --radius-control: 1.125rem;
+  --shadow-card: 0 1px 2px rgb(0 0 123 / 0.06), 0 10px 28px -6px rgb(0 0 123 / 0.12);
+  --shadow-raised: 0 2px 4px rgb(0 0 123 / 0.08), 0 16px 36px -8px rgb(0 0 123 / 0.22);
+  --shadow-sheet: 0 -12px 48px rgb(0 0 60 / 0.28);
+
+  /* Motion vocabulary: exponential ease-out for entrances, quick for press feedback. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Semantic z-index scale */
+  --z-sticky: 20;
+  --z-banner: 40;
+  --z-sheet: 60;
 }
