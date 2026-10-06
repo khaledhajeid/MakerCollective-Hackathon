@@ -16,9 +16,11 @@
    - Rejected requests receive `NOT_ON_VENUE_NETWORK`, and the UI shows the Wi-Fi name and password from the database.
 2. **Strict SMS OTP** (one verified phone number = one voter), see the master plan §1.1.
 3. **The client IP is resolved only through trusted hops.** No client-controlled header is ever believed directly:
-   - Caddy accepts `CF-Connecting-IP` / `X-Forwarded-For` only from the tunnel connectors' fixed addresses (172.28.0.11 and .12).
+   - Tunnel: an **ngrok static domain** (decision 2026-10-06), so the printed QR has a stable URL.
+   - Caddy trusts only the ngrok agent (fixed address 172.28.0.12), reads **only** `X-Forwarded-For`, and parses it strictly right to left, so the hop ngrok appended wins over anything the client pre-filled.
    - Caddy then *overwrites* `X-Forwarded-For` with the resolved IP.
    - Fastify's `trustProxy` is exactly Caddy's address (172.28.0.10).
+   - **Never** read `CF-Connecting-IP`, `X-Real-IP` or `True-Client-IP`: ngrok passes client headers through, so they are attacker-controlled. This was found and fixed in the Phase 1 review (S-7); `infra/tests/ip-spoof.sh` guards against regressions.
 4. Entry is a **static printed QR** at the entrance and booths.
 5. Access modes: `IP_ALLOWLIST` (event) or `OFF` (development and tests only, shown as a loud warning in admin).
 

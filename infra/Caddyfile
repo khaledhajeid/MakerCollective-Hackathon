@@ -1,13 +1,16 @@
-# Edge for the MC2026 stack. TLS is terminated by the tunnel (Cloudflare/ngrok);
+# Edge for the MC2026 stack. TLS is terminated by the ngrok tunnel (static domain);
 # Caddy listens on plain HTTP inside the Docker network only.
 {
 	admin off
 	servers {
-		# Only the tunnel connectors may tell us the real client IP.
-		# A direct request to Caddy cannot spoof it (critical for the venue IP allow-list).
-		trusted_proxies static 172.28.0.11 172.28.0.12
+		# Only the ngrok agent container may tell us the real client IP.
+		# - X-Forwarded-For ONLY: tunnels pass arbitrary client headers through, so a header like
+		#   CF-Connecting-IP would be attacker-controlled (Phase 1 review, finding S-7).
+		# - strict = parse right-to-left and take the first untrusted hop, i.e. the address ngrok
+		#   appended, ignoring anything the client pre-filled.
+		trusted_proxies static 172.28.0.12
 		trusted_proxies_strict
-		client_ip_headers Cf-Connecting-Ip X-Forwarded-For
+		client_ip_headers X-Forwarded-For
 	}
 }
 

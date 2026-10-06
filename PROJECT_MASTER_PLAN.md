@@ -365,9 +365,11 @@ No module moves forward until it passes this gate. Each gate's results are writt
 |---|---|---|
 | 1 | Timeline | 2 days. Code delivery and pitch on **Thu 8 Oct 2026 at 12:00** |
 | 2 | Vote mutability | **Votes are absolute and final.** No update endpoint exists; the DB unique constraint plus the absence of any UPDATE path enforce it |
-| 3 | SMS | **Twilio trial** for a real SMS on stage; console provider for dev and tests |
-| 4 | Hosting | **Local laptop + Cloudflare Tunnel** (ngrok as backup); no cloud cold starts |
+| 3 | SMS | **No paid vendor** (ADR-004): `demo-inbox` adapter (admin-only live SMS inbox) for the pitch, `console` for dev, generic `http` adapter so CPF connects its own gateway by config |
+| 4 | Hosting | **Local laptop + ngrok static domain** (stable URL for printed QR); no cloud cold starts |
 | 5 | Font | Nexa is cleared for web use |
 | 6 | Team | 3 people; all development and the demo run on your machine |
 | 7 | Access control | **Venue Wi-Fi IP allow-list + strict SMS OTP only.** GPS and the rotating QR are dropped (ADR-002); static printed QR at the entrance and booths |
 | 8 | New feature | **Blind Hour / Freeze toggle**, enforced server-side (ADR-003) |
+| 9 | Categories | Organisers have not given names, so generic seed categories; **no hard-coded count**: one vote per *active* category, full add/edit/archive from admin |
+| 10 | IPv6 | IPv4 allow-list is the baseline; venue IT to confirm IPv6 ranges (added via admin if they exist) |

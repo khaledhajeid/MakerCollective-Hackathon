@@ -9,6 +9,7 @@ import Fastify, { type FastifyRequest, type FastifyServerOptions } from 'fastify
 import type { Redis } from 'ioredis';
 import type { Env } from './config/env.js';
 import type { Database } from './db/client.js';
+import { catalogRoutes } from './modules/catalog/routes.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { errorsPlugin } from './plugins/errors.js';
 import { securityPlugin } from './plugins/security.js';
@@ -82,6 +83,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
+      await api.register(catalogRoutes);
     },
     { prefix: '/api' },
   );

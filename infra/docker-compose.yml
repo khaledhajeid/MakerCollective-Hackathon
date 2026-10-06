@@ -1,7 +1,7 @@
 # MC2026 voting stack.
 #   pnpm infra:up            -> postgres + redis only (for `pnpm dev`)
 #   pnpm stack:up            -> full stack: 2 stateless API replicas behind Caddy on http://localhost:8080
-#   add `--profile tunnel`   -> Cloudflare Tunnel for a public HTTPS URL (demo)
+#   add `--profile tunnel`   -> ngrok static domain: public HTTPS URL for the demo / printed QR
 name: mc2026
 
 x-api: &api
@@ -87,15 +87,17 @@ services:
     networks:
       backend: { ipv4_address: 172.28.0.10 }
 
-  cloudflared:
-    image: cloudflare/cloudflared:2026.7.3
+  ngrok:
+    image: ngrok/ngrok:3.39.11-alpine
     profiles: [tunnel]
     restart: unless-stopped
-    # Named tunnel (stable hostname for the printed QR) when a token is set; else a quick tunnel.
-    command: ${CLOUDFLARE_TUNNEL_TOKEN:+tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}}${CLOUDFLARE_TUNNEL_TOKEN:-tunnel --no-autoupdate --url http://caddy:80}
+    # Static ngrok domain => stable URL for the printed QR codes (random URL if NGROK_DOMAIN unset).
+    command: http ${NGROK_DOMAIN:+--url=${NGROK_DOMAIN}} http://caddy:80
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
     depends_on: [caddy]
     networks:
-      backend: { ipv4_address: 172.28.0.11 }
+      backend: { ipv4_address: 172.28.0.12 }
 
 volumes:
   pgdata:

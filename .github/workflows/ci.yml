@@ -17,6 +17,18 @@ jobs:
     name: Typecheck · Lint · Test · Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: mc
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: mc
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U mc" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://mc:ci-only-password@127.0.0.1:5432/mc_test
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4

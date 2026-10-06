@@ -36,3 +36,21 @@ Updated at the end of every phase. Residual risks are accepted only through an A
 | DoS | One replica crashes | 2 replicas, Caddy active health checks + retries | Chaos: kill api1 under load → 60/60 OK | Low (laptop = demo SPOF, accepted for the pitch) |
 | Elevation | Container breakout impact | API runs as the non-root `node` user; minimal Alpine image | Dockerfile | Low |
 | (clickjacking, XSS) | SPA framed or script injected | CSP `script-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'none'`; API CSP `default-src 'none'` | Live header check | Low (`style-src 'unsafe-inline'` kept for animation inline styles) |
+
+## Phase 1: Domain & data
+
+| STRIDE | Threat | Mitigation | Test / evidence | Residual |
+|---|---|---|---|---|
+| Spoofing | **Forged `CF-Connecting-IP` through the ngrok tunnel bypasses the venue allow-list** (S-7, High) | Caddy reads only `X-Forwarded-For`, strict right-to-left, from the ngrok agent IP only; Cloudflare path removed | `infra/tests/ip-spoof.sh`: 4 forged headers + pre-filled XFF → real IP resolved | Low |
+| Tampering | Double voting via races or retries across replicas | `UNIQUE(visitor_id, category_id)` in Postgres | 20 parallel inserts → exactly 1 vote | None |
+| Tampering | Vote for an exhibitor outside the category | Composite FK `(exhibitor_id, category_id) → exhibitor_categories` | Integration test | None |
+| Tampering | Changing or deleting cast votes (incl. by a buggy admin feature) | Trigger blocks UPDATE always; DELETE/TRUNCATE only with transaction-scoped `mc.allow_vote_reset` | Integration tests (incl. flag does not leak) | Low: a DB superuser can still bypass triggers (R-6) |
+| Repudiation | Admin actions denied after the fact | `audit_log` append-only (UPDATE/DELETE/TRUNCATE blocked) | Integration test | Low (same superuser caveat) |
+| Spoofing | One person, many identities via number formatting (`079…`, `+962…`, `٠٧٩…`) | E.164 normalisation incl. Arabic-Indic digits → HMAC → UNIQUE | 8 equivalent formats → 1 identity | Low (multiple real SIMs remain possible) |
+| Info disclosure | Visitor PII exposure on DB leak or backup | AES-256-GCM per field, random IV, AAD purpose binding, pinned 16-byte tag; phone lookup by keyed HMAC only | Crypto tests: tamper, wrong key, column swap rejected | Low |
+| Info disclosure | Catalog leaks internal fields | Response serialised through a Zod contract (allow-list) | Test asserts no internal or PII keys | None |
+| Tampering | Path traversal via the photo field | DB check: `photo_key` must be `<uuid>.webp` (server-generated) | Integration test with `../../etc/passwd` | None |
+| Tampering | Malformed venue ranges silently disable the check | `cidr[]` column type rejects invalid ranges and set host bits | Integration test | None |
+| Elevation | Dev seed silently turns the IP check off at the venue (S-8, Medium) | `--dev` explicit flag; refused in production | Manual check | None |
+| DoS / Info | Test harness wipes a real database (S-9, Medium) | Refuses any DB not named `*_test` | Verified refusal on `mc` | None |
+| Elevation | SMS pumping to premium/foreign numbers | Prefix allow-list (`+9627`) in the DB + mobile-type check | Phone tests | Low |

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Proves the venue allow-list can't be bypassed with forged client-IP headers.
+# Simulates a request arriving from the ngrok agent (172.28.0.12) where the attacker
+# pre-filled every common client-IP header and ngrok appended the true address.
+# Requires: `pnpm stack:up` running.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+REAL=198.51.100.77
+HEADERS=(-H 'CF-Connecting-IP: 203.0.113.50' -H 'X-Real-IP: 203.0.113.51' -H 'True-Client-IP: 203.0.113.52'
+  -H "X-Forwarded-For: 203.0.113.53, ${REAL}")
+if docker ps --format '{{.Names}}' | grep -q '^mc2026-ngrok-1$'; then
+  # Tunnel is up: send from the real ngrok container (its fixed IP is the trusted hop).
+  docker exec mc2026-ngrok-1 wget -q -O /dev/null \
+    --header 'CF-Connecting-IP: 203.0.113.50' --header 'X-Real-IP: 203.0.113.51' \
+    --header 'True-Client-IP: 203.0.113.52' --header "X-Forwarded-For: 203.0.113.53, ${REAL}" \
+    http://caddy/api/healthz
+else
+  # No tunnel: impersonate the ngrok hop with a throwaway container on its fixed IP.
+  docker run --rm --network mc2026_backend --ip 172.28.0.12 curlimages/curl:8.11.1 -s -o /dev/null \
+    "${HEADERS[@]}" http://caddy/api/healthz
+fi
+sleep 1
+SEEN=$(docker compose --env-file .env -f infra/docker-compose.yml --profile full logs api1 api2 --no-log-prefix 2>/dev/null \
+  | grep '"msg":"incoming request"' | grep -v '"ip":"172.28.0.10"\|"ip":"127.0.0.1"' | tail -1 | sed -E 's/.*"ip":"([^"]+)".*/\1/')
+if [[ "$SEEN" == "$REAL" ]]; then echo "PASS: API resolved $SEEN (all forged headers ignored)"; else echo "FAIL: API resolved $SEEN, expected $REAL"; exit 1; fi
