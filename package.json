@@ -1,0 +1,33 @@
+{
+  "name": "mc2026-voting",
+  "private": true,
+  "description": "Maker Collective 2026 digital voting system",
+  "type": "module",
+  "packageManager": "pnpm@11.14.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @mc/api --filter @mc/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r test",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
+    "infra:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d postgres redis",
+    "infra:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
+    "stack:up": "docker compose --env-file .env -f infra/docker-compose.yml --profile full up -d --build",
+    "stack:down": "docker compose --env-file .env -f infra/docker-compose.yml --profile full down"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.0"
+  }
+}

@@ -1,0 +1,74 @@
+/*
+ * MC2026 design tokens — sourced from "The Maker Collective Brand Guidelines" (p.07 colour scheme).
+ * Contrast rules (WCAG 2.2): yellow and turquoise are NEVER used as text on white;
+ * on those fills use navy text. Purple/royal/crimson pass AA with white text.
+ */
+
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/nexa-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/nexa-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/nexa-heavy.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Nexa';
+  src: url('/fonts/nexa-black.woff2') format('woff2');
+  font-weight: 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Helvetica Neue Arabic';
+  src: url('/fonts/helvetica-arabic-light.woff2') format('woff2');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Helvetica Neue Arabic';
+  src: url('/fonts/helvetica-arabic-roman.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Helvetica Neue Arabic';
+  src: url('/fonts/helvetica-arabic-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@theme {
+  /* Brand palette */
+  --color-navy: #00007b;
+  --color-purple: #7f32d9;
+  --color-royal: #4a68d8;
+  --color-turquoise: #74dccf;
+  --color-yellow: #f8d749;
+  --color-crimson: #a52a3a;
+
+  /* Neutrals (tinted toward navy so greys feel on-brand) */
+  --color-ink: #0b0b3b;
+  --color-muted: #5a5a7a;
+  --color-line: #e3e3f0;
+  --color-canvas: #f7f7fc;
+  --color-surface: #ffffff;
+
+  /* One stack for both scripts: Nexa has no Arabic glyphs, so Latin always renders in Nexa
+     and Arabic falls through to Helvetica Neue Arabic — correct for mixed AR/EN lines too. */
+  --font-sans:
+    'Nexa', 'Helvetica Neue Arabic', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(0 0 123 / 0.06), 0 8px 24px rgb(0 0 123 / 0.08);
+}

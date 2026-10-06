@@ -1,0 +1,107 @@
+# MC2026 voting stack.
+#   pnpm infra:up            -> postgres + redis only (for `pnpm dev`)
+#   pnpm stack:up            -> full stack: 2 stateless API replicas behind Caddy on http://localhost:8080
+#   add `--profile tunnel`   -> Cloudflare Tunnel for a public HTTPS URL (demo)
+name: mc2026
+
+x-api: &api
+  build: { context: .., dockerfile: infra/api.Dockerfile }
+  profiles: [full]
+  restart: unless-stopped
+  env_file: ../.env
+  environment:
+    NODE_ENV: ${STACK_NODE_ENV:-production}
+    PUBLIC_ORIGIN: ${STACK_PUBLIC_ORIGIN:-http://localhost:8080}
+    DATABASE_URL: postgres://mc:${POSTGRES_PASSWORD}@postgres:5432/mc
+    REDIS_URL: redis://redis:6379
+    TRUST_PROXY: 172.28.0.10
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+    redis: { condition: service_started } # optional dependency: API degrades without it
+  volumes:
+    - uploads:/data/uploads
+  networks: [backend]
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run node scripts/gen-env.mjs first}
+      POSTGRES_DB: mc
+    # Loopback only: the database is never reachable from the venue network.
+    ports: ['127.0.0.1:55432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mc -d mc']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Ephemeral by design: only rate-limit counters/cache live here.
+    command:
+      [
+        'redis-server',
+        '--save',
+        '',
+        '--appendonly',
+        'no',
+        '--maxmemory',
+        '64mb',
+        '--maxmemory-policy',
+        'allkeys-lru',
+      ]
+    ports: ['127.0.0.1:56379:6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+
+  migrate:
+    <<: *api
+    restart: 'no'
+    command: ['node', 'dist/db/migrate.js']
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api1:
+    <<: *api
+  api2:
+    <<: *api
+
+  caddy:
+    build: { context: .., dockerfile: infra/web.Dockerfile }
+    profiles: [full]
+    restart: unless-stopped
+    ports: ['127.0.0.1:8080:80']
+    volumes:
+      - uploads:/data/uploads:ro
+    depends_on: [api1, api2]
+    networks:
+      backend: { ipv4_address: 172.28.0.10 }
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.7.3
+    profiles: [tunnel]
+    restart: unless-stopped
+    # Named tunnel (stable hostname for the printed QR) when a token is set; else a quick tunnel.
+    command: ${CLOUDFLARE_TUNNEL_TOKEN:+tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}}${CLOUDFLARE_TUNNEL_TOKEN:-tunnel --no-autoupdate --url http://caddy:80}
+    depends_on: [caddy]
+    networks:
+      backend: { ipv4_address: 172.28.0.11 }
+
+volumes:
+  pgdata:
+  uploads:
+
+networks:
+  backend:
+    ipam:
+      config: [{ subnet: 172.28.0.0/24 }]

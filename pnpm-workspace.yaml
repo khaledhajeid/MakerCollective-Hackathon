@@ -1,0 +1,25 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Supply-chain hardening (Phase 0 security review):
+# - refuse versions published < 3 days ago (7 days is ideal; shortened only for the 2-day hackathon).
+#   Never add minimumReleaseAgeExclude entries — pin an older, vetted version instead.
+# - block transitive deps from git/tarball URLs; refuse packages whose trust evidence regresses.
+minimumReleaseAge: 4320
+blockExoticSubdeps: true
+trustPolicy: no-downgrade
+# Reviewed exceptions (exact versions only, with justification):
+# - semver@6.3.1: npm-CLI-team backport of the CVE-2022-25883 ReDoS fix, published after 7.5.x
+#   (which had provenance), so a date-based trust check misreads it as a downgrade. Verified publisher.
+trustPolicyExclude:
+  - semver@6.3.1
+
+allowBuilds:
+  esbuild: true
+  '@node-rs/argon2': true
+  sharp: true
+
+# GHSA-67mh-4wv8-2f99: drizzle-kit's legacy loader pins a vulnerable esbuild (dev-only). Force the patched line.
+overrides:
+  '@esbuild-kit/core-utils>esbuild': 0.25.12

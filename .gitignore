@@ -1,0 +1,31 @@
+# deps & builds
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# env & secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# runtime data
+infra/data/
+apps/api/uploads/
+playwright-report/
+test-results/
+infra/k6/results/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.playwright-mcp/
+
+# Source brand kit (40 MB PDF + full commercial font files) stays local; only web subsets are committed.
+Branding Guildine/

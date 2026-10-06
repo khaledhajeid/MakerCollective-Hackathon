@@ -1,0 +1,57 @@
+# Edge for the MC2026 stack. TLS is terminated by the tunnel (Cloudflare/ngrok);
+# Caddy listens on plain HTTP inside the Docker network only.
+{
+	admin off
+	servers {
+		# Only the tunnel connectors may tell us the real client IP.
+		# A direct request to Caddy cannot spoof it (critical for the venue IP allow-list).
+		trusted_proxies static 172.28.0.11 172.28.0.12
+		trusted_proxies_strict
+		client_ip_headers Cf-Connecting-Ip X-Forwarded-For
+	}
+}
+
+:80 {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api1:3000 api2:3000 {
+			lb_policy round_robin
+			lb_try_duration 3s
+			fail_duration 10s
+			health_uri /api/healthz
+			health_interval 5s
+			# Overwrite (not append) with the client IP Caddy resolved above;
+			# the API trusts X-Forwarded-For from Caddy's fixed address only.
+			header_up X-Forwarded-For {client_ip}
+			# SSE: stream immediately, never buffer.
+			flush_interval -1
+		}
+	}
+
+	handle /uploads/* {
+		root * /data
+		file_server
+		header Cache-Control "public, max-age=3600"
+		header X-Content-Type-Options nosniff
+	}
+
+	handle {
+		root * /srv
+		@assets path /assets/* /fonts/* /brand/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		file_server
+		@html not path /assets/* /fonts/* /brand/*
+		header @html Cache-Control "no-cache"
+	}
+
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+	}
+}

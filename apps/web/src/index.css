@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+@import './design-system/tokens.css';
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-royal);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
