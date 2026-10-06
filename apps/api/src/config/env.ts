@@ -104,7 +104,9 @@ const EnvSchema = z
 export type Env = z.infer<typeof EnvSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const parsed = EnvSchema.safeParse(source);
+  // `KEY=` lines (as generated into .env / .env.example) mean "unset", not "empty value".
+  const cleaned = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== ''));
+  const parsed = EnvSchema.safeParse(cleaned);
   if (!parsed.success) {
     // Print key names and reasons only — never echo values (they may be secrets).
     const problems = parsed.error.issues

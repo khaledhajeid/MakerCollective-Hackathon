@@ -42,8 +42,15 @@ export function compileCidrs(cidrs: readonly string[]): CidrMatcher {
   for (const entry of cidrs) {
     const [addr, prefixText, ...extra] = entry.trim().split('/');
     const parsed = parseIp(addr);
-    const prefix =
-      prefixText === undefined ? (parsed?.family === 4 ? 32 : 128) : Number(prefixText);
+    // A mapped range such as ::ffff:10.0.0.0/104 is an IPv4 range whose prefix counts the 96 mapped bits.
+    const isMapped = parsed?.family === 4 && (addr ?? '').includes(':');
+    const raw =
+      prefixText === undefined
+        ? parsed?.family === 4 && !isMapped
+          ? 32
+          : 128
+        : Number(prefixText);
+    const prefix = isMapped ? raw - 96 : raw;
     const max = parsed?.family === 4 ? 32 : 128;
     if (!parsed || extra.length || !Number.isInteger(prefix) || prefix < 0 || prefix > max) {
       rejected.push(entry);

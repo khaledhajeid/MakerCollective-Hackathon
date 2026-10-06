@@ -17,8 +17,9 @@ const DEVICE_RE = /^[A-Za-z0-9_-]{22}$/;
 const secure = (env: Env) => env.PUBLIC_ORIGIN.startsWith('https://');
 
 export function issueSession(reply: FastifyReply, env: Env, visitorId: string): void {
-  const exp = Math.floor(Date.now() / 1000) + SESSION_TTL_SEC;
-  reply.setCookie(SESSION_COOKIE, `${visitorId}.${exp}`, {
+  const now = Date.now();
+  const exp = Math.floor(now / 1000) + SESSION_TTL_SEC;
+  reply.setCookie(SESSION_COOKIE, `${visitorId}.${now}.${exp}`, {
     httpOnly: true,
     secure: secure(env),
     sameSite: 'lax',
@@ -39,16 +40,24 @@ export function clearSession(reply: FastifyReply, env: Env): void {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** Returns the visitor id from a valid, unexpired, correctly signed cookie — otherwise null. */
-export function readSession(request: FastifyRequest): string | null {
+/** Returns the visitor id + issue time from a valid, unexpired, correctly signed cookie — otherwise null. */
+export function readSession(request: FastifyRequest): { id: string; issuedAtMs: number } | null {
   const raw = request.cookies[SESSION_COOKIE];
   if (!raw) return null;
   const unsigned = request.unsignCookie(raw);
   if (!unsigned.valid || !unsigned.value) return null;
-  const [id, exp, ...rest] = unsigned.value.split('.');
-  if (rest.length || !id || !UUID_RE.test(id) || !exp || Number(exp) <= Date.now() / 1000)
+  const [id, iat, exp, ...rest] = unsigned.value.split('.');
+  if (
+    rest.length ||
+    !id ||
+    !UUID_RE.test(id) ||
+    !iat ||
+    !Number.isSafeInteger(Number(iat)) ||
+    !exp ||
+    Number(exp) <= Date.now() / 1000
+  )
     return null;
-  return id;
+  return { id, issuedAtMs: Number(iat) };
 }
 
 /**

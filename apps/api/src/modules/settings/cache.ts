@@ -9,6 +9,8 @@ import { loadSettings, type Settings } from './repository.js';
 export class SettingsCache {
   private value: { settings: Settings; at: number } | null = null;
   private loading: Promise<Settings> | null = null;
+  /** Bumped by invalidate(): a load that started before it must not overwrite fresher state. */
+  private generation = 0;
 
   constructor(
     private readonly db: Database,
@@ -18,9 +20,12 @@ export class SettingsCache {
 
   async get(): Promise<Settings> {
     if (this.value && this.now() - this.value.at < this.ttlMs) return this.value.settings;
+    const gen = this.generation;
     this.loading ??= loadSettings(this.db)
       .then((settings) => {
-        this.value = { settings, at: this.now() };
+        // If invalidate() ran while we were reading, this snapshot may predate the admin's write:
+        // serve it to the waiting callers but do not cache it.
+        if (gen === this.generation) this.value = { settings, at: this.now() };
         return settings;
       })
       .finally(() => {
@@ -31,6 +36,8 @@ export class SettingsCache {
 
   /** Admin writes call this so the writing replica sees its own change immediately. */
   invalidate(): void {
+    this.generation++;
+    this.loading = null;
     this.value = null;
   }
 }

@@ -84,6 +84,17 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
     ...overrides,
   }).withTypeProvider<ZodTypeProvider>();
 
+  // Browsers send `content-type: application/json` on body-less POSTs (logout…): treat an empty body as {}
+  // instead of failing validation. Malformed JSON is still a 400.
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    if (body === '') return done(null, {});
+    try {
+      done(null, JSON.parse(body as string));
+    } catch {
+      done(Object.assign(new Error('Malformed JSON body'), { statusCode: 400 }), undefined);
+    }
+  });
+
   app.decorate('deps', deps);
   const settings = new SettingsCache(deps.db);
   const limiter = new RateLimiter(deps.redis, (err) =>
@@ -91,7 +102,14 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   );
   const sms = deps.sms ?? createSmsProvider(deps.env, deps.db, app.log);
   app.decorate('settings', settings);
-  app.decorate('access', new AccessPolicy(() => settings.get()));
+  app.decorate(
+    'access',
+    new AccessPolicy(
+      () => settings.get(),
+      (rejected) =>
+        app.log.error({ rejected }, 'venue range(s) unusable and ignored — fix in settings'),
+    ),
+  );
   app.decorate('limiter', limiter);
   app.decorate('auth', new AuthService(deps.env, deps.db, settings, limiter, sms));
   if (deps.env.DEMO_MODE || deps.env.SMS_PROVIDER !== 'http')

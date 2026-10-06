@@ -17,11 +17,18 @@ export interface AccessDecision {
 export class AccessPolicy {
   private compiled: { key: string; matcher: CidrMatcher } | null = null;
 
-  constructor(private readonly getSettings: () => Promise<Settings>) {}
+  constructor(
+    private readonly getSettings: () => Promise<Settings>,
+    /** Called when a configured range cannot be used (it would silently never match). */
+    private readonly onRejected: (rejected: string[]) => void = () => undefined,
+  ) {}
 
   private matcherFor(cidrs: string[]): CidrMatcher {
     const key = cidrs.join(',');
-    if (this.compiled?.key !== key) this.compiled = { key, matcher: compileCidrs(cidrs) };
+    if (this.compiled?.key !== key) {
+      this.compiled = { key, matcher: compileCidrs(cidrs) };
+      if (this.compiled.matcher.rejected.length) this.onRejected(this.compiled.matcher.rejected);
+    }
     return this.compiled.matcher;
   }
 

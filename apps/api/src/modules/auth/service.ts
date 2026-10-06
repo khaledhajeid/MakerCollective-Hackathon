@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from 'node:crypto';
 import type { Locale } from '@mc/shared';
-import { and, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, ne, sql } from 'drizzle-orm';
 import type { Env } from '../../config/env.js';
 import type { Database } from '../../db/client.js';
 import { otpChallenges, visitors } from '../../db/schema.js';
@@ -108,20 +108,38 @@ export class AuthService {
 
     const phoneHash = hmacHex(this.env.PHONE_HASH_PEPPER, phone.e164);
 
-    // Cheapest, broadest limits first. Per-phone key is the HMAC, never the number.
-    await this.enforce('otp-global', 'all', {
-      limit: this.env.OTP_GLOBAL_PER_HOUR,
-      windowSec: 3_600,
-    });
-    await this.enforce('otp-req-ip', this.ipKey(ctx.ip), LIMITS.otpRequest.perIp);
-    await this.enforce('otp-req-dev', ctx.deviceId, LIMITS.otpRequest.perDevice);
-    // Impatient re-taps inside the cooldown are refused here WITHOUT spending the visitor's hourly quota.
+    // Blocked numbers get a decoy "sent" response: no SMS, no quota spent, and the caller cannot use this
+    // endpoint to learn which numbers are blocked (the real refusal happens after OTP proves ownership).
+    const [known] = await this.db
+      .select({ isBlocked: visitors.isBlocked })
+      .from(visitors)
+      .where(eq(visitors.phoneHash, phoneHash));
+    if (known?.isBlocked) {
+      return {
+        challengeId: randomUUID(),
+        maskedPhone: phone.masked,
+        expiresInSeconds: s.otpTtlSeconds,
+        resendAfterSeconds: s.otpResendCooldownSeconds,
+      };
+    }
+
+    // Quota is spent only by requests that will actually reach the SMS gateway. A request refused by the
+    // cooldown or a per-phone cap must NOT consume the shared venue-IP / global budget, otherwise one
+    // person looping on one number could exhaust it for the whole venue.
     const early = await this.cooldownRemaining(this.db, phoneHash, s.otpResendCooldownSeconds);
     if (early)
       throw new AppError(429, 'OTP_RESEND_TOO_SOON', 'Please wait before requesting a new code', {
         retryAfterSeconds: early,
       });
+    // Per-phone key is the HMAC, never the number.
     await this.enforce('otp-req-phone', phoneHash, LIMITS.otpRequest.perPhone);
+    // The device id is a client-held cookie (clearable): a convenience limit, not a security boundary.
+    await this.enforce('otp-req-dev', ctx.deviceId, LIMITS.otpRequest.perDevice);
+    await this.enforce('otp-req-ip', this.ipKey(ctx.ip), LIMITS.otpRequest.perIp);
+    await this.enforce('otp-global', 'all', {
+      limit: this.env.OTP_GLOBAL_PER_HOUR,
+      windowSec: 3_600,
+    });
 
     const id = randomUUID();
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -134,11 +152,6 @@ export class AuthService {
         throw new AppError(429, 'OTP_RESEND_TOO_SOON', 'Please wait before requesting a new code', {
           retryAfterSeconds: wait,
         });
-      // Only the newest code is valid: older live challenges for this phone are retired.
-      await tx
-        .update(otpChallenges)
-        .set({ consumedAt: sql`now()` })
-        .where(and(eq(otpChallenges.phoneHash, phoneHash), isNull(otpChallenges.consumedAt)));
       await tx.insert(otpChallenges).values({
         id,
         phoneHash,
@@ -161,15 +174,26 @@ export class AuthService {
         text: otpMessage(code, input.locale, s.otpTtlSeconds, new URL(this.env.PUBLIC_ORIGIN).host),
       });
     } catch (err) {
-      // Roll the challenge back so a gateway hiccup does not burn the visitor's cooldown.
+      // Drop only the NEW challenge: the visitor's earlier, still-valid code keeps working and the cooldown
+      // is not burned by a gateway hiccup.
       await this.db.delete(otpChallenges).where(eq(otpChallenges.id, id));
       throw Object.assign(
         new AppError(502, 'SMS_UNAVAILABLE', 'Could not send the SMS, try again'),
-        {
-          cause: err,
-        },
+        { cause: err },
       );
     }
+
+    // Delivery succeeded: now retire older live codes so only the newest is valid.
+    await this.db
+      .update(otpChallenges)
+      .set({ consumedAt: sql`now()` })
+      .where(
+        and(
+          eq(otpChallenges.phoneHash, phoneHash),
+          isNull(otpChallenges.consumedAt),
+          ne(otpChallenges.id, id),
+        ),
+      );
 
     return {
       challengeId: id,
@@ -221,46 +245,52 @@ export class AuthService {
       throw new AppError(400, 'OTP_INVALID', 'Invalid code', { attemptsRemaining: remaining });
     }
 
-    // Single use: only one concurrent verifier can flip consumed_at.
-    const [consumed] = await this.db
-      .update(otpChallenges)
-      .set({ consumedAt: sql`now()` })
-      .where(and(eq(otpChallenges.id, taken.id), isNull(otpChallenges.consumedAt)))
-      .returning({ id: otpChallenges.id });
-    if (!consumed)
-      throw new AppError(400, 'OTP_EXPIRED', 'This code has expired, request a new one');
+    // Consume the code and create/refresh the identity ATOMICALLY: a database blip between the two must not
+    // burn the visitor's code. Only one concurrent verifier can flip consumed_at (single use).
+    const visitor = await this.db.transaction(async (tx) => {
+      const [consumed] = await tx
+        .update(otpChallenges)
+        .set({ consumedAt: sql`now()` })
+        .where(and(eq(otpChallenges.id, taken.id), isNull(otpChallenges.consumedAt)))
+        .returning({ id: otpChallenges.id });
+      if (!consumed)
+        throw new AppError(400, 'OTP_EXPIRED', 'This code has expired, request a new one');
 
-    // One identity per real phone (UNIQUE phone_hash). Re-verification keeps the original name/phone
-    // ciphertext and consent timestamps; it refreshes locale, device and last-verified time.
-    const [visitor] = await this.db
-      .insert(visitors)
-      .values({
-        nameEnc: taken.nameEnc,
-        phoneEnc: taken.phoneEnc,
-        phoneHash: taken.phoneHash,
-        voteConsentAt: new Date(),
-        outreachConsentAt: taken.outreachConsent ? new Date() : null,
-        consentVersion: taken.consentVersion,
-        locale: taken.locale,
-        createdIp: ctx.ip,
-        deviceId: ctx.deviceId,
-      })
-      .onConflictDoUpdate({
-        target: visitors.phoneHash,
-        set: {
-          locale: taken.locale,
-          deviceId: ctx.deviceId,
+      // One identity per real phone (UNIQUE phone_hash). Re-verification keeps the original name/phone
+      // ciphertext; the visitor just re-accepted the CURRENT privacy notice, so consent version and its
+      // timestamp move together (the audit trail never pairs a new version with an old date).
+      const [row] = await tx
+        .insert(visitors)
+        .values({
+          nameEnc: taken.nameEnc,
+          phoneEnc: taken.phoneEnc,
+          phoneHash: taken.phoneHash,
+          voteConsentAt: new Date(),
+          outreachConsentAt: taken.outreachConsent ? new Date() : null,
           consentVersion: taken.consentVersion,
-          lastVerifiedAt: sql`now()`,
-          outreachConsentAt: sql`coalesce(${visitors.outreachConsentAt}, ${taken.outreachConsent ? sql`now()` : sql`null`})`,
-        },
-      })
-      .returning();
+          locale: taken.locale,
+          createdIp: ctx.ip,
+          deviceId: ctx.deviceId,
+        })
+        .onConflictDoUpdate({
+          target: visitors.phoneHash,
+          set: {
+            locale: taken.locale,
+            deviceId: ctx.deviceId,
+            consentVersion: taken.consentVersion,
+            voteConsentAt: sql`now()`,
+            lastVerifiedAt: sql`now()`,
+            outreachConsentAt: sql`coalesce(${visitors.outreachConsentAt}, ${taken.outreachConsent ? sql`now()` : sql`null`})`,
+          },
+        })
+        .returning();
+      return row!;
+    });
 
-    if (visitor!.isBlocked)
+    if (visitor.isBlocked)
       throw new AppError(403, 'VISITOR_BLOCKED', 'This number cannot be used for voting');
 
-    return this.profile(visitor!);
+    return this.profile(visitor);
   }
 
   profile(v: { nameEnc: string; phoneEnc: string; locale: string; id: string }) {
@@ -272,8 +302,19 @@ export class AuthService {
     };
   }
 
-  async visitorById(id: string) {
-    const [v] = await this.db.select().from(visitors).where(eq(visitors.id, id));
-    return v ?? null;
+  /** The visitor behind a session, or null if unknown, blocked, or the session predates a logout. */
+  async visitorForSession(session: { id: string; issuedAtMs: number }) {
+    const [v] = await this.db.select().from(visitors).where(eq(visitors.id, session.id));
+    if (!v || v.isBlocked) return null;
+    if (v.sessionsRevokedAt && session.issuedAtMs <= v.sessionsRevokedAt.getTime()) return null;
+    return v;
+  }
+
+  /** Logout = server-side revocation of every session issued so far (a captured cookie dies too). */
+  async revokeSessions(visitorId: string): Promise<void> {
+    await this.db
+      .update(visitors)
+      .set({ sessionsRevokedAt: sql`now()` })
+      .where(eq(visitors.id, visitorId));
   }
 }

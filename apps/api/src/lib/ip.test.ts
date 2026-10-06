@@ -42,6 +42,12 @@ describe('compileCidrs', () => {
   it('an empty list matches nothing (fail closed)', () => {
     expect(compileCidrs([]).has(parseIp('203.0.113.5')!)).toBe(false);
   });
+  it('accepts IPv4-mapped IPv6 notation for an IPv4 range', () => {
+    const m = compileCidrs(['::ffff:10.0.0.0/104']);
+    expect(m.rejected).toEqual([]);
+    expect(m.has(parseIp('10.1.2.3')!)).toBe(true);
+    expect(m.has(parseIp('11.0.0.1')!)).toBe(false);
+  });
   it('reports malformed entries instead of silently widening the range', () => {
     const m = compileCidrs(['203.0.113.0/33', 'banana', '10.0.0.0/8/9']);
     expect(m.rejected).toHaveLength(3);

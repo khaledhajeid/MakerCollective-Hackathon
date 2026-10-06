@@ -347,6 +347,51 @@ describe('OTP abuse resistance', () => {
     expect(sent).toHaveLength(5);
   });
 
+  it('requests refused by the cooldown never spend the shared venue/global budget', async () => {
+    const { call } = await makeApp({ OTP_GLOBAL_PER_HOUR: '10' });
+    await call('POST', '/api/auth/otp/request', { body: reg() });
+    for (let i = 0; i < 40; i++) {
+      const res = await call('POST', '/api/auth/otp/request', { body: reg() });
+      expect(res.json().error.code).toBe('OTP_RESEND_TOO_SOON');
+    }
+    // Another visitor on the same venue IP is unaffected.
+    const other = await call('POST', '/api/auth/otp/request', {
+      body: reg({ phone: '0797654321' }),
+    });
+    expect(other.statusCode).toBe(200);
+  });
+
+  it('a gateway failure keeps the visitor’s earlier valid code usable', async () => {
+    const { call } = await makeApp();
+    const first = await call('POST', '/api/auth/otp/request', { body: reg() });
+    const firstCode = lastCode();
+    await db.update(otpChallenges).set({ createdAt: new Date(Date.now() - 3_600_000) });
+    const failing: SmsProvider = {
+      name: 'http',
+      send: async () => {
+        throw new Error('gateway down');
+      },
+    };
+    const bad = await buildApp({
+      env: testEnv({ TRUST_PROXY: '172.28.0.10' }),
+      db,
+      redis: null,
+      sms: failing,
+    });
+    const res = await bad.inject({
+      method: 'POST',
+      url: '/api/auth/otp/request',
+      remoteAddress: '172.28.0.10',
+      headers: { 'x-forwarded-for': VENUE_IP },
+      payload: reg(),
+    });
+    expect(res.statusCode).toBe(502);
+    const v = await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: first.json().challengeId, code: firstCode },
+    });
+    expect(v.statusCode).toBe(200);
+  });
+
   it('applies the global hourly SMS ceiling (cost/pumping control)', async () => {
     const { call } = await makeApp({ OTP_GLOBAL_PER_HOUR: '10' });
     let ok = 0;
@@ -378,7 +423,7 @@ describe('visitor sessions', () => {
     expect((await call('GET', '/api/auth/session')).json().authenticated).toBe(false);
   });
 
-  it('refuses sign-in and kills existing sessions for a blocked visitor', async () => {
+  it('kills existing sessions of a blocked visitor and gives blocked numbers a silent decoy', async () => {
     const { call } = await makeApp();
     const r = await call('POST', '/api/auth/otp/request', { body: reg() });
     const v = await call('POST', '/api/auth/otp/verify', {
@@ -389,12 +434,77 @@ describe('visitor sessions', () => {
       (await call('GET', '/api/auth/session', { cookies: cookieJar(v) })).json().authenticated,
     ).toBe(false);
     await db.update(otpChallenges).set({ createdAt: new Date(Date.now() - 3_600_000) });
+    sent = [];
+    // Looks identical to success (no enumeration of blocked numbers) but nothing is sent or spent.
     const r2 = await call('POST', '/api/auth/otp/request', { body: reg() });
+    expect(r2.statusCode).toBe(200);
+    expect(sent).toHaveLength(0);
+    const v2 = await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: r2.json().challengeId, code: '123456' },
+    });
+    expect(v2.json().error.code).toBe('OTP_INVALID');
+  });
+
+  it('refuses a blocked visitor at sign-in if they were blocked between request and verify', async () => {
+    const { call } = await makeApp();
+    const r = await call('POST', '/api/auth/otp/request', { body: reg() });
+    const first = await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: r.json().challengeId, code: lastCode() },
+    });
+    expect(first.statusCode).toBe(200);
+    await db.update(otpChallenges).set({ createdAt: new Date(Date.now() - 3_600_000) });
+    const r2 = await call('POST', '/api/auth/otp/request', { body: reg() });
+    await db.update(visitors).set({ isBlocked: true });
     const v2 = await call('POST', '/api/auth/otp/verify', {
       body: { challengeId: r2.json().challengeId, code: lastCode() },
     });
     expect(v2.statusCode).toBe(403);
     expect(v2.json().error.code).toBe('VISITOR_BLOCKED');
+  });
+
+  it('logout revokes the session server-side: a captured cookie stops working', async () => {
+    const { call } = await makeApp();
+    const r = await call('POST', '/api/auth/otp/request', { body: reg() });
+    const v = await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: r.json().challengeId, code: lastCode() },
+    });
+    const captured = cookieJar(v);
+    expect(
+      (await call('GET', '/api/auth/session', { cookies: captured })).json().authenticated,
+    ).toBe(true);
+    await call('POST', '/api/auth/logout', { cookies: captured });
+    expect(
+      (await call('GET', '/api/auth/session', { cookies: captured })).json().authenticated,
+    ).toBe(false);
+    // Signing in again afterwards works (new session is newer than the revocation).
+    await db.update(otpChallenges).set({ createdAt: new Date(Date.now() - 3_600_000) });
+    const r2 = await call('POST', '/api/auth/otp/request', { body: reg() });
+    const v2 = await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: r2.json().challengeId, code: lastCode() },
+    });
+    expect(
+      (await call('GET', '/api/auth/session', { cookies: cookieJar(v2) })).json().authenticated,
+    ).toBe(true);
+  });
+
+  it('re-verification after a consent-version bump moves version and timestamp together', async () => {
+    const { app, call } = await makeApp();
+    const r = await call('POST', '/api/auth/otp/request', { body: reg() });
+    await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: r.json().challengeId, code: lastCode() },
+    });
+    const [before] = await db.select().from(visitors);
+    await new Promise((res) => setTimeout(res, 20));
+    await db.update(settings).set({ consentVersion: '2026-10-v2' });
+    app.settings.invalidate();
+    await db.update(otpChallenges).set({ createdAt: new Date(Date.now() - 3_600_000) });
+    const r2 = await call('POST', '/api/auth/otp/request', { body: reg() });
+    await call('POST', '/api/auth/otp/verify', {
+      body: { challengeId: r2.json().challengeId, code: lastCode() },
+    });
+    const [after] = await db.select().from(visitors);
+    expect(after!.consentVersion).toBe('2026-10-v2');
+    expect(after!.voteConsentAt.getTime()).toBeGreaterThan(before!.voteConsentAt.getTime());
   });
 
   it('sets Secure cookies when the public origin is https', async () => {
@@ -408,6 +518,26 @@ describe('visitor sessions', () => {
       secure: true,
       httpOnly: true,
     });
+  });
+
+  it('accepts a body-less POST that carries a JSON content-type (what browsers send for logout)', async () => {
+    const { call } = await makeApp();
+    const res = await call('POST', '/api/auth/logout', {
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('still rejects malformed JSON with a 400', async () => {
+    const { app } = await makeApp();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/otp/request',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': VENUE_IP },
+      remoteAddress: '172.28.0.10',
+      payload: '{nope',
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('logout clears the session cookie', async () => {

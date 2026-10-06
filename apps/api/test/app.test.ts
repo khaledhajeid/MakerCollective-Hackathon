@@ -95,6 +95,17 @@ describe('environment validation', () => {
     ).toThrow(/PII_ENCRYPTION_KEY: must be 32 bytes/);
   });
 
+  it('treats empty KEY= lines (as generated into .env) as unset', () => {
+    expect(() =>
+      testEnv({
+        SMS_HTTP_URL: '',
+        SMS_HTTP_AUTH_HEADER: '',
+        SMS_HTTP_BODY_TEMPLATE: '',
+        EXTRA_ORIGINS: '',
+      }),
+    ).not.toThrow();
+  });
+
   it('refuses OTP-exposing SMS providers in production unless DEMO_MODE is explicit', () => {
     for (const SMS_PROVIDER of ['console', 'demo-inbox']) {
       expect(() => testEnv({ NODE_ENV: 'production', SMS_PROVIDER })).toThrow(/DEMO_MODE=true/);

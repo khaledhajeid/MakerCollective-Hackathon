@@ -190,6 +190,8 @@ export const visitors = pgTable(
     createdIp: inet('created_ip'),
     deviceId: text('device_id'),
     isBlocked: boolean('is_blocked').notNull().default(false),
+    // Sessions issued at or before this instant are void (logout / admin force-sign-out).
+    sessionsRevokedAt: timestamp('sessions_revoked_at', { withTimezone: true }),
     createdAt: createdAt(),
     lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }).notNull().defaultNow(),
   },

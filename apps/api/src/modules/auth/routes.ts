@@ -60,9 +60,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   );
 
   app.get('/auth/session', { schema: { response: { 200: SessionSchema } } }, async (request) => {
-    const id = readSession(request);
-    const visitor = id ? await app.auth.visitorById(id) : null;
-    if (!visitor || visitor.isBlocked) return { authenticated: false, visitor: null };
+    const session = readSession(request);
+    const visitor = session ? await app.auth.visitorForSession(session) : null;
+    if (!visitor) return { authenticated: false, visitor: null };
     const p = app.auth.profile(visitor);
     return {
       authenticated: true,
@@ -73,7 +73,9 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
   app.post(
     '/auth/logout',
     { schema: { response: { 200: z.object({ ok: z.literal(true) }) } } },
-    async (_request, reply) => {
+    async (request, reply) => {
+      const session = readSession(request);
+      if (session) await app.auth.revokeSessions(session.id);
       clearSession(reply, env);
       return { ok: true as const };
     },
