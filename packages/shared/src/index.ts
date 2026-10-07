@@ -6,3 +6,4 @@ export * from './access.js';
 export * from './auth.js';
 export * from './votes.js';
 export * from './results.js';
+export * from './admin.js';

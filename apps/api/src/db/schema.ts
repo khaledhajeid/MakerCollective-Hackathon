@@ -9,6 +9,7 @@
  */
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   bigserial,
   boolean,
   check,
@@ -281,8 +282,15 @@ export const adminUsers = pgTable(
     username: text('username').notNull().unique(),
     passwordHash: text('password_hash').notNull(),
     role: adminRole('role').notNull().default('ADMIN'),
+    // AES-GCM envelope (purpose 'admin.totp'). Written at enrolment start; only trusted once mfa_enabled is true.
     totpSecretEnc: text('totp_secret_enc'),
     mfaEnabled: boolean('mfa_enabled').notNull().default(false),
+    // Last accepted TOTP time-step: a code can be used once (replay protection), atomically.
+    totpLastStep: bigint('totp_last_step', { mode: 'number' }),
+    // Operator-issued (temporary) password: it must be replaced at first sign-in, and it expires unused.
+    mustChangePassword: boolean('must_change_password').notNull().default(false),
+    credentialsExpireAt: timestamp('credentials_expire_at', { withTimezone: true }),
+    passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
     failedAttempts: integer('failed_attempts').notNull().default(0),
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
     isDisabled: boolean('is_disabled').notNull().default(false),
@@ -290,7 +298,14 @@ export const adminUsers = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [check('admin_users_username_format', sql`${t.username} ~ '^[a-z0-9._-]{3,32}$'`)],
+  (t) => [
+    check('admin_users_username_format', sql`${t.username} ~ '^[a-z0-9._-]{3,32}$'`),
+    // An account can never claim MFA without a secret to check it against.
+    check(
+      'admin_users_mfa_has_secret',
+      sql`${t.mfaEnabled} = false OR ${t.totpSecretEnc} IS NOT NULL`,
+    ),
+  ],
 );
 
 export const adminRecoveryCodes = pgTable(
@@ -304,7 +319,10 @@ export const adminRecoveryCodes = pgTable(
     usedAt: timestamp('used_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index('admin_recovery_codes_admin_idx').on(t.adminId)],
+  (t) => [
+    index('admin_recovery_codes_admin_idx').on(t.adminId),
+    unique('admin_recovery_codes_admin_hash_uq').on(t.adminId, t.codeHash),
+  ],
 );
 
 export const adminSessions = pgTable(
@@ -316,10 +334,12 @@ export const adminSessions = pgTable(
       .notNull()
       .references(() => adminUsers.id, { onDelete: 'cascade' }),
     csrfSecret: text('csrf_secret').notNull(),
+    // False = password accepted, second factor still pending: such a session can only reach the MFA routes.
     mfaVerified: boolean('mfa_verified').notNull().default(false),
     ip: inet('ip'),
     userAgent: text('user_agent'),
     createdAt: createdAt(),
+    // Idle timeout is measured from here; expires_at is the ABSOLUTE limit (it never slides).
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   },

@@ -22,6 +22,7 @@ Status legend: ⬜ planned · 🟨 in progress · ✅ done (with evidence)
 | NFR | Scale 1,000 users | 7 | stateless replicas, k6 | load report | ⬜ |
 | NFR | No SPOF / network drops | 0, 3, 4 | 2 replicas + LB health checks; idempotent vote retries with offline queue-and-retry (no false "recorded"); SSE resume (Phase 4) | offline E2E; chaos run in Phase 7 | 🟨 |
 | NFR | Portability | 0 | Docker Compose, loopback-bound data stores | `pnpm stack:up` | ✅ |
-| NFR | Stateless, documented code | all | ADRs 001–005, docs/ | — | 🟨 |
+| NFR | Stateless, documented code | all | ADRs 001–007, docs/ (admin sessions live in Postgres, any replica serves any request) | — | 🟨 |
 | NFR | All data/settings database-driven (§6) | 1 | `settings` singleton: window, CIDRs, Wi-Fi, OTP policy, visibility, prefixes | settings tests | 🟨 |
-| NFR | Privacy: admin-only PII | 1, 5, 6 | RBAC + masking + audit | tests | ⬜ |
+| NFR | Privacy: admin-only PII | 1, 5, 6 | RBAC (Phase 5: `/api/admin` guard, role table, audit) + masking and unmask/export gating (Phase 6) | Phase 5: route-table matrix, no-secrets-in-audit scan | 🟨 access control done; masking in 6 |
+| F-admin | Admin sign-in: username + password, MFA (§2.4) | 5, 6 | argon2id, mandatory TOTP + recovery codes, DB sessions, CSRF, lock-out, RBAC, audit (ADR-007); `pnpm stack:admin`; console screens in Phase 6 | 76 new tests (mutation-checked, 16/18 caught, 2 equivalent); live run through the tunnel (28 checks) | ✅ API · ⬜ screens (Phase 6) |

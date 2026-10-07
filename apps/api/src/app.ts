@@ -9,6 +9,12 @@ import Fastify, { type FastifyRequest, type FastifyServerOptions } from 'fastify
 import type { Redis } from 'ioredis';
 import type { Env } from './config/env.js';
 import type { Database } from './db/client.js';
+import { AdminAuthService } from './modules/admin/service.js';
+import { AdminSessions } from './modules/admin/sessions.js';
+import { AdminUserService } from './modules/admin/users.js';
+import { AuditReader } from './modules/admin/audit.js';
+import type { Access } from './modules/admin/permissions.js';
+import { adminRoutes } from './modules/admin/routes.js';
 import { AccessPolicy } from './modules/access/policy.js';
 import { accessRoutes } from './modules/access/routes.js';
 import { AuthService } from './modules/auth/service.js';
@@ -37,6 +43,8 @@ export interface AppDeps {
   sms?: SmsProvider;
   /** Test seam: faster coalescing / heartbeats for the results hub. */
   resultsHub?: Partial<HubOptions>;
+  /** Test seam: the clock admin sessions, lock-outs and TOTP windows are judged against. */
+  clock?: () => Date;
 }
 
 declare module 'fastify' {
@@ -50,6 +58,12 @@ declare module 'fastify' {
     results: ResultsService;
     resultsHub: ResultsHub;
     displays: DisplayTokenService;
+    adminSessions: AdminSessions;
+    adminAuth: AdminAuthService;
+    adminUsers: AdminUserService;
+    adminAudit: AuditReader;
+    /** Every /api/admin route and the access it declares (filled by the admin guard). */
+    adminRouteTable: Array<{ method: string; url: string; access: Access }>;
   }
 }
 
@@ -63,6 +77,13 @@ const LOG_REDACT_PATHS = [
   '*.code',
   '*.otp',
   '*.password',
+  '*.currentPassword',
+  '*.newPassword',
+  '*.temporaryPassword',
+  '*.recoveryCode',
+  '*.recoveryCodes',
+  '*.secret',
+  '*.csrfToken',
   '*.totp',
   '*.name',
 ];
@@ -129,6 +150,15 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   const displays = new DisplayTokenService(deps.db);
   app.decorate('results', results);
   app.decorate('displays', displays);
+  const adminSessions = new AdminSessions(deps.db, deps.clock);
+  app.decorate('adminSessions', adminSessions);
+  app.decorate('adminUsers', new AdminUserService(deps.db, adminSessions, deps.clock));
+  app.decorate('adminAudit', new AuditReader(deps.db));
+  app.decorate('adminRouteTable', []);
+  app.decorate(
+    'adminAuth',
+    new AdminAuthService(deps.env, deps.db, adminSessions, limiter, deps.clock),
+  );
   // Not started here: server.ts calls resultsHub.start() (opens the LISTEN connection). Unit tests never do.
   app.decorate(
     'resultsHub',
@@ -168,6 +198,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
       await api.register(authRoutes);
       await api.register(voteRoutes);
       await api.register(displayRoutes);
+      await api.register(adminRoutes);
     },
     { prefix: '/api' },
   );

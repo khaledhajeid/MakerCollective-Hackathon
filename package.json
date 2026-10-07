@@ -22,6 +22,7 @@
     "stack:down": "docker compose --env-file .env -f infra/docker-compose.yml --profile full --profile tunnel --profile tunnel-ngrok down",
     "stack:seed": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/db/seed.js",
     "stack:seed:dev": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/db/seed.js --dev",
+    "stack:admin": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/admin.js",
     "stack:display": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/display.js",
     "stack:results": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/results.js",
     "stack:tunnel": "node scripts/stack-tunnel.mjs",

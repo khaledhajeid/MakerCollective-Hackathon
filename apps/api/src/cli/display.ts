@@ -7,6 +7,7 @@
  */
 import { loadEnv } from '../config/env.js';
 import { createDb } from '../db/client.js';
+import { pgErrorCode } from '../lib/errors.js';
 import { DisplayTokenService } from '../modules/display/tokens.js';
 
 const actor = { adminId: null, label: 'cli:operator' };
@@ -39,7 +40,7 @@ try {
   }
 } catch (err) {
   // An operator mistyping an id at the event gets a sentence, not a stack trace.
-  const code = (err as { code?: string }).code;
+  const code = pgErrorCode(err);
   console.error(
     code === '22P02'
       ? 'That is not a valid display id. Copy it from `pnpm stack:display list`.'

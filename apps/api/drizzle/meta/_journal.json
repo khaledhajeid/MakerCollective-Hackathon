@@ -57,6 +57,13 @@
       "when": 1791334123905,
       "tag": "0007_display_notify_revocation_only",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791366062594,
+      "tag": "0008_admin_auth_core",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,7 @@ export const ERROR_CODES = [
   'EXHIBITOR_NOT_IN_CATEGORY',
   'CSRF_FAILED',
   'MFA_REQUIRED',
+  'PASSWORD_CHANGE_REQUIRED',
   'INTERNAL',
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
