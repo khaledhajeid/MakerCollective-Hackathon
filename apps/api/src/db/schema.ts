@@ -67,6 +67,10 @@ export const settings = pgTable(
     resultsVisibility: resultsVisibility('results_visibility').notNull().default('LIVE'),
     frozenSnapshot: jsonb('frozen_snapshot'),
     frozenAt: timestamp('frozen_at', { withTimezone: true }),
+    // REVEAL: categories announced so far, in order, each with the standings stored at that moment.
+    revealed: jsonb('revealed')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
 
     // Phone / OTP policy.
     allowedPhonePrefixes: text('allowed_phone_prefixes')

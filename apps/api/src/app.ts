@@ -13,6 +13,10 @@ import { AccessPolicy } from './modules/access/policy.js';
 import { accessRoutes } from './modules/access/routes.js';
 import { AuthService } from './modules/auth/service.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { DisplayTokenService } from './modules/display/tokens.js';
+import { displayRoutes } from './modules/display/routes.js';
+import { ResultsHub, type HubOptions } from './modules/results/hub.js';
+import { ResultsService } from './modules/results/service.js';
 import { VoteService } from './modules/votes/service.js';
 import { voteRoutes } from './modules/votes/routes.js';
 import { SettingsCache } from './modules/settings/cache.js';
@@ -31,6 +35,8 @@ export interface AppDeps {
   redis: Redis | null;
   /** Test seam: replaces the SMS adapter chosen by SMS_PROVIDER. */
   sms?: SmsProvider;
+  /** Test seam: faster coalescing / heartbeats for the results hub. */
+  resultsHub?: Partial<HubOptions>;
 }
 
 declare module 'fastify' {
@@ -41,6 +47,9 @@ declare module 'fastify' {
     limiter: RateLimiter;
     auth: AuthService;
     votes: VoteService;
+    results: ResultsService;
+    resultsHub: ResultsHub;
+    displays: DisplayTokenService;
   }
 }
 
@@ -116,6 +125,28 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   app.decorate('limiter', limiter);
   app.decorate('auth', new AuthService(deps.env, deps.db, settings, limiter, sms));
   app.decorate('votes', new VoteService(deps.db));
+  const results = new ResultsService(deps.db);
+  const displays = new DisplayTokenService(deps.db);
+  app.decorate('results', results);
+  app.decorate('displays', displays);
+  // Not started here: server.ts calls resultsHub.start() (opens the LISTEN connection). Unit tests never do.
+  app.decorate(
+    'resultsHub',
+    new ResultsHub(
+      {
+        service: results,
+        databaseUrl: deps.env.DATABASE_URL,
+        activeTokenIds: (ids) => displays.activeIds(ids),
+        log: app.log,
+      },
+      deps.resultsHub,
+    ),
+  );
+  // Fastify's server.close() waits for every open connection and runs BEFORE onClose hooks, so a TV stream
+  // would hang a restart until SIGKILL. preClose runs first: end the streams, then the server can drain.
+  app.addHook('preClose', async () => {
+    await app.resultsHub.close();
+  });
   if (deps.env.DEMO_MODE || deps.env.SMS_PROVIDER !== 'http')
     app.log.warn({ sms: sms.name }, 'DEMO/DEV SMS adapter active — OTPs are NOT sent to phones');
   app.setValidatorCompiler(validatorCompiler);
@@ -136,6 +167,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
       await api.register(accessRoutes);
       await api.register(authRoutes);
       await api.register(voteRoutes);
+      await api.register(displayRoutes);
     },
     { prefix: '/api' },
   );

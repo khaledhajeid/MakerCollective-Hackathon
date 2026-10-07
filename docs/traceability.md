@@ -10,15 +10,15 @@ Status legend: ⬜ planned · 🟨 in progress · ✅ done (with evidence)
 | F4 | Mobile-friendly, QR access | 0, 3, 8 | mobile-first SPA, 48 px targets, RTL; static QR printed in Phase 8 | Lighthouse 97 / 100 / 100; E2E on 390 px and 360 px | 🟨 (printable QR in Phase 8) |
 | F5 | Name + phone, no password | 2 | `POST /api/auth/otp/request`, visitor upsert on verify | auth/OTP integration suite | ✅ |
 | F6 | SMS OTP before vote accepted | 2, 3 | `AuthService` + SMS adapters (console / demo-inbox / http, ADR-004); signed visitor session; `POST /api/votes` requires the session | brute-force, replay, cooldown, expiry tests; vote-without-session 401; live flow via tunnel | ✅ |
-| F7 | Live per-category leaderboard | 4 | NOTIFY → coalescer → SSE | ≤1 s latency test | ⬜ |
-| F8 | Big-screen layout | 4 | live surface | 1080p screenshot | ⬜ |
+| F7 | Live per-category leaderboard | 4 | DB triggers → `LISTEN` → coalescing `ResultsHub` → SSE (ADR-006) | Vote → frame in well under 1 s through Caddy and the Cloudflare tunnel; burst coalescing test | ✅ |
+| F8 | Big-screen layout | 4 | `/live`: Stage & rail on a 1920×1080 artboard, bilingual, RTL | 1080p screenshots of every state; axe scan; scaling to 4K / 1366×768 / 5:4 | ✅ |
 | F9 | Exhibitor management + photos | 6 | admin CRUD + media | E2E | ⬜ |
 | F10 | Open/close voting | 6 | settings + window check at vote time | tests | ⬜ |
 | F11 | Venue IP restriction | 0, 2 | trusted-IP chain (Caddy/tunnel → Fastify) + IPv4/IPv6 CIDR gate + `GET /api/access/status` | spoof tests; **verified through the real Cloudflare tunnel** (ADR-002) | ✅ (vote gate in Phase 3) |
 | F12 | Duplicate-vote prevention via OTP'd phone | 1, 2 | E.164 (+ Arabic digits) → HMAC → UNIQUE `phone_hash`; identity created only after OTP | 4 formats → 1 visitor (integration) | ✅ |
 | F13 | Results export | 6 | CSV (formula-injection safe) | test | ⬜ |
 | F14 | Secure visitor PII storage | 1, 2 | AES-256-GCM fields (AAD-bound), HMAC index, separate vote/outreach consent + version | crypto tests; ciphertext-at-rest and log-leak checks | ✅ |
-| — | Blind Hour / Freeze (ADR-003) | 4, 6 | server-enforced `results_visibility` | frozen-payload test | ⬜ |
+| — | Blind Hour / Freeze (ADR-003) | 4, 6 | server-enforced `results_visibility` (`buildFrame`), snapshots, per-category reveal | Raw event stream recorded in a browser during a freeze contains no new counts; live reader never called when sealed | 🟨 server + TV done (4); admin toggle UI in 6 |
 | NFR | Scale 1,000 users | 7 | stateless replicas, k6 | load report | ⬜ |
 | NFR | No SPOF / network drops | 0, 3, 4 | 2 replicas + LB health checks; idempotent vote retries with offline queue-and-retry (no false "recorded"); SSE resume (Phase 4) | offline E2E; chaos run in Phase 7 | 🟨 |
 | NFR | Portability | 0 | Docker Compose, loopback-bound data stores | `pnpm stack:up` | ✅ |

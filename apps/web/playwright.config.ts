@@ -47,13 +47,21 @@ export default defineConfig({
   projects: [
     {
       name: 'iphone-ar',
+      testIgnore: /live\.spec/,
       use: { ...devices['iPhone 14'], browserName: 'chromium', locale: 'ar-JO' },
       metadata: { locale: 'ar' },
     },
     {
       name: 'android-en',
+      testIgnore: /live\.spec/,
       use: { ...devices['Pixel 7'], viewport: { width: 360, height: 760 }, locale: 'en-GB' },
       metadata: { locale: 'en' },
+    },
+    {
+      // The hall TV: 1080p, Arabic.
+      name: 'tv-1080p',
+      testMatch: /live\.spec/,
+      use: { browserName: 'chromium', viewport: { width: 1920, height: 1080 }, locale: 'ar-JO' },
     },
   ],
   webServer: [

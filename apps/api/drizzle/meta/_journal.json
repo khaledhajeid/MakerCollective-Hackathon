@@ -36,6 +36,20 @@
       "when": 1791309571909,
       "tag": "0004_visitor_session_revocation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791328630480,
+      "tag": "0005_results_reveal",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791328630899,
+      "tag": "0006_results_notify",
+      "breakpoints": true
     }
   ]
 }

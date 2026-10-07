@@ -11,7 +11,7 @@ export function photoUrl(photoKey: string | null): string | null {
  * Active categories with their active exhibitors, in one query (no N+1).
  * Categories with no active exhibitors are still returned so the UI can show an empty state.
  */
-export async function loadCatalog(db: Database): Promise<CatalogCategory[]> {
+export async function loadCatalog(db: Pick<Database, 'select'>): Promise<CatalogCategory[]> {
   const rows = await db
     .select({ category: categories, exhibitor: exhibitors })
     .from(categories)

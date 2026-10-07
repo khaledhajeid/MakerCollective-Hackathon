@@ -22,6 +22,8 @@ app.addHook('onClose', async () => {
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
     app.log.info({ signal }, 'shutting down');
+    // Docker sends SIGKILL after 10 s. Leave on our own terms if a stray connection keeps close() waiting.
+    setTimeout(() => process.exit(1), 8_000).unref();
     app.close().then(
       () => process.exit(0),
       () => process.exit(1),
@@ -30,3 +32,5 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
 }
 
 await app.listen({ host: env.HOST, port: env.PORT });
+// After listen: a TV may connect immediately, and the hub resyncs from the database as soon as it is listening.
+await app.resultsHub.start();

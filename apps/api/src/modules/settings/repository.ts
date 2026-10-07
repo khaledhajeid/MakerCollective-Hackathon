@@ -4,7 +4,7 @@ import { settings } from '../../db/schema.js';
 
 export type Settings = typeof settings.$inferSelect;
 
-export async function loadSettings(db: Database): Promise<Settings> {
+export async function loadSettings(db: Pick<Database, 'select'>): Promise<Settings> {
   const [row] = await db.select().from(settings).where(eq(settings.id, 1));
   // The migration inserts the singleton; its absence means the DB was not migrated.
   if (!row) throw new Error('settings row missing — run migrations');

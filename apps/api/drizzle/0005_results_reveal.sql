@@ -1,0 +1,1 @@
+ALTER TABLE "settings" ADD COLUMN "revealed" jsonb DEFAULT '[]'::jsonb NOT NULL;

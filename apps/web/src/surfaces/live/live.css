@@ -1,0 +1,147 @@
+/*
+ * Live TV (/live). A fixed 1920x1080 artboard scaled to the screen, so every size below is a design pixel.
+ * Only transform and opacity are animated (a modest laptop drives the TV); every animation has a reduced-motion
+ * alternative at the bottom of the file and in the global rule in index.css.
+ */
+
+.tv-ground {
+  background:
+    radial-gradient(70% 60% at 100% 0%, rgb(127 50 217 / 0.34) 0%, transparent 62%),
+    radial-gradient(60% 55% at 0% 100%, rgb(74 104 216 / 0.3) 0%, transparent 60%),
+    var(--color-navy-deep);
+}
+
+/* Anti burn-in: the whole picture wanders a few pixels over minutes, too slowly to notice. */
+.tv-burnin {
+  animation: tv-burnin 240s ease-in-out infinite alternate;
+}
+@keyframes tv-burnin {
+  from {
+    transform: translate3d(-7px, -5px, 0);
+  }
+  to {
+    transform: translate3d(7px, 5px, 0);
+  }
+}
+
+/* Stage change: the whole category enters, then its rows cascade. */
+.tv-stage-in {
+  animation: tv-fade 0.5s var(--ease-out-quart) both;
+}
+.tv-row-in {
+  animation: tv-rise 0.75s var(--ease-out-expo) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+@keyframes tv-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes tv-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+}
+
+/* A vote lands: the count nudges and settles. */
+.tv-bump {
+  display: inline-block;
+  animation: tv-bump 0.9s var(--ease-out-expo);
+}
+@keyframes tv-bump {
+  30% {
+    transform: scale(1.09);
+  }
+}
+
+/* Dwell progress on the active rail chip and its segment. */
+.tv-dwell {
+  transform-origin: right center;
+  animation: tv-dwell linear both;
+}
+@keyframes tv-dwell {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.tv-pulse {
+  animation: tv-pulse 2.2s ease-in-out infinite;
+}
+@keyframes tv-pulse {
+  50% {
+    transform: scale(1.6);
+    opacity: 0.35;
+  }
+}
+
+.tv-turn {
+  animation: tv-turn 40s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes tv-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.tv-turn-rev {
+  animation: tv-turn 70s linear infinite reverse;
+  transform-origin: 50% 50%;
+}
+
+/* ── Winner ceremony. Stages are timed by --d (seconds); the component ends it after CEREMONY_MS. ── */
+.cer {
+  animation: tv-fade 0.7s var(--ease-out-quart) both;
+}
+.cer-leave {
+  animation: cer-leave 0.6s var(--ease-out-quart) both;
+}
+@keyframes cer-leave {
+  to {
+    opacity: 0;
+  }
+}
+.cer-in {
+  animation: cer-in 1s var(--ease-out-expo) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes cer-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 36px, 0) scale(0.94);
+  }
+}
+.cer-glow {
+  animation: cer-glow 1.4s var(--ease-out-expo) both;
+  animation-delay: 1.5s;
+}
+@keyframes cer-glow {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion: everything is simply there, with no staged delays. */
+@media (prefers-reduced-motion: reduce) {
+  .cer-in,
+  .cer-glow,
+  .tv-row-in {
+    animation-delay: 0s !important;
+  }
+  .tv-burnin {
+    animation: none;
+  }
+  /* Dwell progress would snap to "full" and look finished from the first frame: show only the active segment. */
+  .tv-dwell-chip {
+    display: none;
+  }
+}

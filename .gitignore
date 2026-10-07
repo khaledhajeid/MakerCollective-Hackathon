@@ -32,3 +32,11 @@ Branding Guildine/
 .vitest/
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Impeccable (design tooling) working files: screenshots and build state are local; the surface briefs are kept.
+.impeccable/review/
+.impeccable/mocks/
+.impeccable/build/
+apps/web/.impeccable/review/
+apps/web/.impeccable/mocks/
+apps/web/.impeccable/build/

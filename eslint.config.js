@@ -31,7 +31,12 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['apps/api/src/db/migrate.ts', 'apps/api/src/db/seed.ts', 'scripts/**'],
+    files: [
+      'apps/api/src/db/migrate.ts',
+      'apps/api/src/db/seed.ts',
+      'apps/api/src/cli/**',
+      'scripts/**',
+    ],
     rules: { 'no-console': 'off' },
   },
   {

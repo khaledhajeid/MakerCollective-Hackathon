@@ -163,13 +163,17 @@ export function MotifTile({
   seed,
   label,
   className = '',
+  noYellow = false,
 }: {
   seed: string;
   label: string;
   className?: string;
+  /** Skip the yellow-ground tile (a surface that reserves yellow for something else, e.g. the TV leader row). */
+  noYellow?: boolean;
 }) {
   const h = hash(seed);
-  const tone = TONES[h % TONES.length]!;
+  const pool = noYellow ? TONES.filter((t) => t.bg !== '#f8d749') : TONES;
+  const tone = pool[h % pool.length]!;
   const layout = (h >>> 5) % 3;
   const initial = [...label.trim()][0] ?? '·';
   // Rings (the brand's spiral motif) quietly fill the tile; one confident accent shape carries the identity.

@@ -16,3 +16,7 @@ Organisers want suspense before the winner announcement. The TVs must freeze or 
 ## Consequences
 - Switching modes notifies all replicas through `NOTIFY`, so every TV changes state within ≤ 1 s.
 - Tests must assert that, while frozen, the SSE payload equals the frozen snapshot even after new votes arrive.
+
+## Implementation notes (Phase 4)
+Built as specified; details and the reasoning behind them are in [ADR-006](006-live-results-and-tv-displays.md). Two refinements to the decision above: `REVEAL` stores a per-category snapshot at the moment each category is announced (so a late vote cannot change an announced winner), and entering `FROZEN` snapshots **every** active category, including empty ones.
+
