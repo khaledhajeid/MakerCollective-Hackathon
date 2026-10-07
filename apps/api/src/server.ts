@@ -21,7 +21,7 @@ void connectedAsPrivilegedRole(pool)
   .catch(() => undefined);
 
 if (redis) {
-  redis.on('error', (err) => app.log.warn({ err: err.message }, 'redis unavailable — degrading'));
+  redis.on('error', (err) => app.log.warn({ err }, 'redis unavailable — degrading'));
   redis.connect().catch(() => undefined);
 }
 

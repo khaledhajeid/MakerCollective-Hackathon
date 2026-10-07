@@ -25,6 +25,16 @@ describe('least-privilege application role (ADR-009)', () => {
     expect(rows[0].u).toBe(TEST_APP_ROLE);
   });
 
+  it('notices a role that was quietly made privileged through membership', async () => {
+    await owner.query(`GRANT pg_write_all_data TO ${TEST_APP_ROLE}`);
+    try {
+      expect(await connectedAsPrivilegedRole(appPool)).toBe(true);
+    } finally {
+      await owner.query(`REVOKE pg_write_all_data FROM ${TEST_APP_ROLE}`);
+    }
+    expect(await connectedAsPrivilegedRole(appPool)).toBe(false);
+  });
+
   it('cannot change the schema, switch the triggers off or empty a table (42501 = insufficient privilege)', async () => {
     await reset();
     expect(await denied('ALTER TABLE votes DISABLE TRIGGER ALL')).toBe('42501');

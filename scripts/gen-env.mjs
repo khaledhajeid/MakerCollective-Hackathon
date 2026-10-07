@@ -1,15 +1,25 @@
 #!/usr/bin/env node
-// Creates a local .env with freshly generated secrets. Never overwrites an existing file.
+// Creates a local .env with freshly generated secrets. Never overwrites an existing file (it only adds
+// APP_DB_PASSWORD to an older one that lacks it).
 // Usage: node scripts/gen-env.mjs
 import { randomBytes } from 'node:crypto';
-import { existsSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const target = new URL('../.env', import.meta.url);
 if (existsSync(target)) {
-  console.error(
-    '.env already exists — refusing to overwrite. Delete it first if you really want new secrets.',
+  // An older .env is never regenerated (that would rotate the keys that protect stored data), but a value
+  // introduced later can be added to it.
+  const current = readFileSync(target, 'utf8');
+  if (/^APP_DB_PASSWORD=./m.test(current)) {
+    console.error('.env already exists and is complete — nothing to do.');
+    process.exit(1);
+  }
+  appendFileSync(
+    target,
+    `${current.endsWith('\n') ? '' : '\n'}# Least-privilege role the API connects as (created by the migrate step, ADR-009).\nAPP_DB_PASSWORD=${randomBytes(24).toString('hex')}\n`,
   );
-  process.exit(1);
+  console.log('Added APP_DB_PASSWORD to the existing .env (nothing else was changed).');
+  process.exit(0);
 }
 
 const hex = (n) => randomBytes(n).toString('hex');

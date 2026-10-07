@@ -14,10 +14,21 @@ import { evaluate, exitCode, type Snapshot } from '../ops/preflight.js';
 import { votingState } from '../modules/votes/window.js';
 
 const offline = process.argv.includes('--offline');
-const env = loadEnv();
+
+// A configuration the API itself would refuse to boot with is the most basic failure of all: report it as one.
+let env: ReturnType<typeof loadEnv>;
+try {
+  env = loadEnv();
+} catch (err) {
+  console.log(`\n[ FAIL ] Configuration             ${err instanceof Error ? err.message : err}\n`);
+  console.log('NOT READY: fix the environment above (see .env), then run this again.\n');
+  process.exit(1);
+}
 const { pool } = createDb(env.DATABASE_URL, 2);
-const one = async <T extends Record<string, unknown>>(sql: string): Promise<T> =>
-  (await pool.query<T>(sql)).rows[0]!;
+const one = async <T extends Record<string, unknown>>(
+  sql: string,
+  params: unknown[] = [],
+): Promise<T> => (await pool.query<T>(sql, params)).rows[0]!;
 
 async function appRoleStatus(): Promise<Snapshot['appRole']> {
   const password = process.env.APP_DB_PASSWORD;
@@ -61,10 +72,13 @@ async function publicChecks(): Promise<
   const get = (path: string) => fetch(base + path, { signal: AbortSignal.timeout(6000) });
   try {
     const health = await get('/api/healthz');
+    // An error page from the tunnel (530, 502…) says nothing about our edge: judge the rest only when it answers.
+    if (!health.ok)
+      return { publicHealth: 'unreachable', readyzBlocked: null, analyticsBeacon: null };
     const ready = await get('/api/readyz');
     const html = await (await get('/')).text();
     return {
-      publicHealth: health.ok ? 'ok' : 'unreachable',
+      publicHealth: 'ok',
       readyzBlocked: ready.status === 404,
       analyticsBeacon: /cloudflareinsights\.com/i.test(html),
     };
@@ -101,11 +115,9 @@ try {
   );
   const ex = await one<{ nophoto: number; demo: number }>(
     `SELECT count(*) FILTER (WHERE photo_key IS NULL)::int AS nophoto,
-            count(*) FILTER (WHERE name_en = ANY($1))::int AS demo
-       FROM exhibitors WHERE is_active`.replace(
-      '$1',
-      `ARRAY[${SEED_EXHIBITORS.map((e) => `'${e.nameEn.replace(/'/g, "''")}'`).join(',')}]::text[]`,
-    ),
+            count(*) FILTER (WHERE name_en = ANY($1::text[]))::int AS demo
+       FROM exhibitors WHERE is_active`,
+    [SEED_EXHIBITORS.map((e) => e.nameEn)],
   );
   const displays = await one<{ n: number }>(
     `SELECT count(*)::int AS n FROM display_tokens WHERE revoked_at IS NULL`,

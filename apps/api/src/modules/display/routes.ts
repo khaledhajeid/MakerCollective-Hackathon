@@ -127,7 +127,7 @@ export const displayRoutes: FastifyPluginAsyncZod = async (app) => {
       // The TV may have gone away while the first frame was being computed.
       if (res.destroyed || res.writableEnded) unsubscribe();
     } catch (err) {
-      request.log.warn({ err: String(err) }, 'display stream refused');
+      request.log.warn({ err }, 'display stream refused');
       client.close();
     }
   });

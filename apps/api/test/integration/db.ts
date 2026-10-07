@@ -8,8 +8,11 @@ import { testDatabaseUrl } from './global-setup.js';
  * owner, for test set-up that the application itself must never be able to do.
  */
 export function openTestDb() {
+  // No fallback to the owner: a suite that quietly ran as the owner would prove nothing about least privilege.
+  const appUrl = process.env.TEST_APP_DATABASE_URL;
+  if (!appUrl) throw new Error('TEST_APP_DATABASE_URL is not set (global-setup provisions it)');
   const pool = new pg.Pool({
-    connectionString: process.env.TEST_APP_DATABASE_URL ?? testDatabaseUrl(),
+    connectionString: appUrl,
     max: 10,
   });
   const owner = new pg.Pool({ connectionString: testDatabaseUrl(), max: 2 });

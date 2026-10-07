@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-07
 - **Scope:** least-privilege database role, container hardening, log scrubbing, edge changes, the two event-day operator commands (`stack:preflight`, `stack:reset-event`), the k6 load harness, the 1,000-visitor load and replica-kill runs, the NOTIFY benchmark, dependency audit. ADR-009, `docs/load-test-report.md`, `docs/runbooks/event-day.md`.
-- **Verdict:** ✅ Built and verified. Four load scenarios pass with every visitor completing, every confirmed vote present exactly once and no duplicates. `pnpm check` is clean (API 358 tests, web 46, shared 2). Awaiting your `/code-review` and `/security-review`, then your go for Phase 8.
+- **Verdict:** ✅ Built and verified. Four load scenarios pass with every visitor completing, every confirmed vote present exactly once and no duplicates. `pnpm check` is clean (API 361 tests, web 46, shared 2). Awaiting your `/code-review` and `/security-review`, then your go for Phase 8.
 
 ## 1. Plan acceptance criteria (plan §6, Phase 7: "load report written; zero open Critical/High findings")
 
@@ -17,7 +17,7 @@
 | `impeccable` polish pass | ⬜ **Not done in this phase.** The voter and console UIs were checked in the browser in Phases 3, 4 and 6 (axe clean). A polish pass now is a risk to a frozen build; I suggest only doing it on screenshots you flag. |
 
 ## 2. Automated checks
-- `pnpm check`: typecheck, lint, format, **API 358 tests** (23 files; 38 new: 6 for the database role, 3 for the log scrubber, 29 for the preflight rules), web 46, shared 2. All pass.
+- `pnpm check`: typecheck, lint, format, **API 361 tests** (23 files; 41 new: 7 for the database role, 5 for the log scrubber, 29 for the preflight rules), web 46, shared 2. All pass.
 - The **whole API integration suite now runs as the restricted role** (`mc_app_test`), so any query that needs more than the allow-list fails a test. The six tests that exercise the schema's own triggers and constraints connect as the owner on purpose.
 - `pnpm audit` (all and `--prod`): no known vulnerabilities. Caddyfile validated with Caddy itself.
 - Stack rebuilt (`pnpm stack:up`): migrate provisions the role; the API runs as `node` on a read-only filesystem; Caddy as uid 1000; `/api/readyz` answers 404 through the edge and 200 inside; the API container environment contains no tunnel token, no owner password.
@@ -59,3 +59,17 @@ Threat model section "Phase 7" has the table. In short:
 
 ## 7. Test map
 `provision.test.ts` (privilege boundary), `log-scrub.test.ts`, `ops/preflight.test.ts`, existing integration suite as the restricted role, `load/` for scale and failure evidence (summaries in `load/results/`).
+
+## 8. `/code-review` round (10 findings: all addressed)
+| # | Finding | Resolution |
+|---|---|---|
+| 1 | The load runner had no `try/finally`: a failure left the stack on the demo-SMS build and the throw-away database, with the real hostname pointing at it | The whole run is in a `try`; the `finally` always stops helpers and the k6 container and puts the real stack back |
+| 2 | `reset-event` only refused while voting was OPEN: after a finished event it could erase every real vote; the state was read outside the transaction | Default run is a report that changes nothing. Deleting needs the confirmation word **and** `--expect-votes=<exact current count>` (a recalled command fails); state and count are re-checked inside the transaction with the settings row locked |
+| 3 | An old `.env` could not satisfy the new `APP_DB_PASSWORD`, and `gen-env.mjs` refused to touch it | `gen-env.mjs` now appends just that line to an existing file and leaves every other key alone |
+| 4 | The preflight built its demo-name query by string replacement | Parameterised (`= ANY($1::text[])`) |
+| 5 | Role rebuild did not reset sequences or schema `CREATE`; "no DDL" depended on the PostgreSQL 15+ default | `REVOKE ALL` on schema and sequences, `REVOKE CREATE ON SCHEMA public FROM PUBLIC`, then the allow-list |
+| 6 | A bad environment crashed the preflight with a stack trace instead of a report | The configuration error is reported as a FAIL line (key names and reasons, no values) |
+| 7 | A tunnel error page (530/502) was reported as "readiness reachable from outside" | Edge checks run only when `/api/healthz` answers |
+| 8 | The test pool fell back to the owner role if `TEST_APP_DATABASE_URL` was missing, so the suite could pass without testing least privilege | It throws instead |
+| 9 | Log serializer: callers passing strings lost detail, PostgreSQL's own quoted values and `AggregateError` members were not handled | Callers pass the error object; quoted values in driver messages are masked (constraint names kept); `AggregateError` members kept; string messages cut at `params:`. 2 new tests |
+| 10 | "Privileged role" check missed role membership and createdb/replication, and looked up `votes` in any schema | Uses `pg_has_role` for the table owner and PostgreSQL's all-data / server-file / server-program roles, `public.votes` explicitly; new test grants and revokes a predefined role |

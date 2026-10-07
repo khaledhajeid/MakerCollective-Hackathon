@@ -145,7 +145,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   app.decorate('deps', deps);
   const settings = new SettingsCache(deps.db);
   const limiter = new RateLimiter(deps.redis, (err) =>
-    app.log.warn({ err: String(err) }, 'redis rate-limit unavailable — using per-process counters'),
+    app.log.warn({ err }, 'redis rate-limit unavailable — using per-process counters'),
   );
   const sms = deps.sms ?? createSmsProvider(deps.env, deps.db, app.log);
   app.decorate('settings', settings);

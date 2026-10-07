@@ -60,8 +60,14 @@ export async function provisionAppRole(
     );
     await c.query(grant.rows[0]!.stmt);
     await c.query(`ALTER ROLE ${r} SET idle_in_transaction_session_timeout = '30s'`);
+    // Reset everything the role could hold, then grant only the allow-list. CREATE on the schema is removed from
+    // everyone (it is already absent on a fresh PostgreSQL 15+, but a database upgraded from an older version
+    // keeps the old default that lets any role create objects).
+    await c.query('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
+    await c.query(`REVOKE ALL ON SCHEMA public FROM ${r}`);
     await c.query(`GRANT USAGE ON SCHEMA public TO ${r}`);
     await c.query(`REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${r}`);
+    await c.query(`REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${r}`);
     await c.query(`GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA public TO ${r}`);
     for (const t of MAY_UPDATE) await c.query(`GRANT UPDATE ON public.${t} TO ${r}`);
     for (const t of MAY_DELETE) await c.query(`GRANT DELETE ON public.${t} TO ${r}`);
@@ -75,11 +81,20 @@ export async function provisionAppRole(
   }
 }
 
-/** True when the connection's own role could bypass the triggers (superuser) or rebuild the schema (owner). */
+/**
+ * True when the connection's role could bypass the triggers or rebuild the schema: superuser, role/database
+ * creation, replication, RLS bypass, being (or being a member of) the table owner, or holding one of PostgreSQL's
+ * predefined all-data / server-file / server-program roles.
+ */
 export async function connectedAsPrivilegedRole(pool: pg.Pool): Promise<boolean> {
   const { rows } = await pool.query<{ priv: boolean }>(
-    `SELECT (r.rolsuper OR r.rolcreaterole OR r.rolbypassrls
-             OR EXISTS (SELECT 1 FROM pg_class WHERE relname = 'votes' AND relowner = r.oid)) AS priv
+    `SELECT (r.rolsuper OR r.rolcreaterole OR r.rolcreatedb OR r.rolreplication OR r.rolbypassrls
+             OR pg_has_role(current_user, (SELECT relowner FROM pg_class WHERE oid = 'public.votes'::regclass), 'USAGE')
+             OR pg_has_role(current_user, 'pg_write_all_data', 'USAGE')
+             OR pg_has_role(current_user, 'pg_read_all_data', 'USAGE')
+             OR pg_has_role(current_user, 'pg_execute_server_program', 'USAGE')
+             OR pg_has_role(current_user, 'pg_read_server_files', 'USAGE')
+             OR pg_has_role(current_user, 'pg_write_server_files', 'USAGE')) AS priv
        FROM pg_roles r WHERE r.rolname = current_user`,
   );
   return rows[0]?.priv ?? true;

@@ -17,6 +17,8 @@ const KEEP = [
 const FRAME = /\n\s+at /;
 
 const header = (message: string) => message.split(/\n\s*params:/)[0]!.slice(0, 600);
+/** PostgreSQL quotes the offending value in some messages (`invalid input syntax for type uuid: "…"`). */
+const withoutQuotedValues = (message: string) => message.replace(/(: )"[^"]*"/g, '$1"…"');
 
 export interface ScrubbedError {
   [key: string]: unknown;
@@ -29,15 +31,18 @@ export function scrubError(err: unknown, depth = 0): ScrubbedError {
   if (!(err instanceof Error))
     return {
       type: 'NonError',
-      message: typeof err === 'string' ? err.slice(0, 200) : '[non-error value]',
+      message: typeof err === 'string' ? header(err).slice(0, 200) : '[non-error value]',
       stack: '',
     };
   const e = err as Error & Record<string, unknown>;
-  const message = header(e.message);
+  const isPg = typeof e.severity === 'string'; // a driver error: its message comes from the server
+  const message = header(isPg ? withoutQuotedValues(e.message) : e.message);
   const frames = (e.stack ?? '').split(FRAME).slice(1);
   const out: ScrubbedError = { type: e.name, message, stack: '' };
   for (const k of KEEP) if (typeof e[k] === 'string' || typeof e[k] === 'number') out[k] = e[k];
   out.stack = [`${e.name}: ${message}`, ...frames.map((f) => `    at ${f}`)].join('\n');
   if (e.cause && depth < 3) out.cause = scrubError(e.cause, depth + 1);
+  if (e instanceof AggregateError && depth < 2)
+    out.errors = e.errors.slice(0, 5).map((x) => scrubError(x, depth + 1));
   return out;
 }

@@ -206,7 +206,7 @@ export class ResultsHub {
         // The failed read must not be forgotten: re-arm so the throttle retries in about a second, instead of
         // waiting for the next resync while a change (a freeze, say) is still unseen.
         this.dirty = true;
-        this.deps.log.error({ err: String(err) }, 'results frame failed — retrying');
+        this.deps.log.error({ err }, 'results frame failed — retrying');
       } finally {
         this.running = null;
         if (this.dirty && !this.closed) {
@@ -240,7 +240,7 @@ export class ResultsHub {
         }
       }
     } catch (err) {
-      this.deps.log.warn({ err: String(err) }, 'display revocation check failed — retrying');
+      this.deps.log.warn({ err }, 'display revocation check failed — retrying');
     }
   }
 
