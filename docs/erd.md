@@ -1,6 +1,6 @@
 # Data model (ERD)
 
-PostgreSQL 17, schema in `apps/api/src/db/schema.ts`, migrations in `apps/api/drizzle/` (0000–0009). The design rule: **the database enforces what must never be wrong**; the application translates database outcomes into friendly answers.
+PostgreSQL 17, schema in `apps/api/src/db/schema.ts`, migrations in `apps/api/drizzle/` (0000–0010). The design rule: **the database enforces what must never be wrong**; the application translates database outcomes into friendly answers.
 
 ## 1. Entity-relationship diagram
 
@@ -129,6 +129,7 @@ erDiagram
     text token_hash UK "SHA-256"
     uuid created_by FK
     timestamptz revoked_at
+    timestamptz removed_at "hidden from the admin list; the row is never deleted"
   }
   audit_log {
     bigserial id PK

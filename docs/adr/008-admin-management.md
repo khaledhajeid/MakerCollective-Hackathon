@@ -37,3 +37,8 @@ React in the existing staff bundle (lazy-loaded: the voter's JavaScript is untou
 - `/uploads` (Caddy file server, shared volume) is removed; photos are `/api/photos/<key>`.
 - Voter-facing change: none, except that `photoUrl` now points at `/api/photos/…`.
 - The console is reachable wherever `/admin` is (R-A2 in the threat model still stands: restricting it to the venue network remains a Phase 7 option).
+
+## Later additions (2026-10-08)
+- **Bulk exhibitors.** `POST /admin/exhibitors/bulk` (`content.manage`) takes up to 300 exhibitors in one request (body limit 1 MB, the rest of the API keeps 64 KB). The console reads the CSV in the browser and checks every row with the same `ExhibitorCreateSchema` the server uses, so what the preview calls *Ready* is what the server accepts; the server re-validates everything, adds all rows or none in one transaction and writes one audit entry (`exhibitor.bulk_create`, the count).
+- **Audit export.** `GET /admin/audit/export` (`audit.read`, SUPER_ADMIN) returns the newest 100,000 entries oldest first as CSV through the same formula-safe writer as the other exports; the download is audited as `export.run` (`kind: audit`).
+- **Removing a display.** `POST /admin/displays/:id/remove` (`displays.manage`). The application role may not `DELETE` from `display_tokens` (ADR-009), so the row gets a `removed_at` marker (migration 0010) and is revoked in the same step if it was active; lists and the CLI hide removed rows. Audited as `display.remove`.

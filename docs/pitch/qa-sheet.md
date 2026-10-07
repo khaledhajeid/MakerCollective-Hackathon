@@ -120,4 +120,4 @@ Cloudflare Access on the console, a standby Postgres and a second host, a CDN fo
 Everything is containers and environment variables: the SMS gateway is a config block (`SMS_HTTP_*`), the venue ranges and Wi-Fi are rows edited in the console, runbooks cover the event day and admin accounts, and `stack:preflight` says whether it is safe to open.
 
 **Test counts?**
-API 361 tests (all running as the restricted database role), web 46, shared 2, plus browser end-to-end and accessibility scans, and the load harness.
+API 367 tests (all running as the restricted database role), web 76, shared 2, plus browser end-to-end and accessibility scans, and the load harness.

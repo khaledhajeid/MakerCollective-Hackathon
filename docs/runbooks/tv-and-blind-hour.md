@@ -12,6 +12,7 @@ It prints a link ending in `/live#t=…`. **It is shown only once** (only a hash
 - List screens and when each was last seen: `pnpm stack:display list`
 - A screen was lost, or must stop showing results now: `pnpm stack:display revoke <id>` (the TV returns to the pairing screen within about 5 seconds).
 - Several TVs: create one display per screen so each can be revoked on its own.
+- In the console, **TV displays → Remove** revokes a screen and takes it off the list in one step (the CLI `list` then no longer shows it either). The token row is kept, only hidden.
 
 ## Run the Blind Hour
 ```

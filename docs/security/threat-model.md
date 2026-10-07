@@ -176,6 +176,14 @@ Assets added: exhibitor photos, the event settings an organiser can change live,
 - **R-C2 export by ADMIN (owner decision):** see above; revisit if the export is ever used outside the organising team.
 - **R-C3 the demo SMS inbox shows OTPs** to SUPER_ADMINs. It exists only while `SMS_PROVIDER=demo-inbox` (pre-event checklist: switch to `http`).
 
+## Later console additions (2026-10-08)
+
+| STRIDE | Threat | Mitigation | Test / evidence | Residual |
+|---|---|---|---|---|
+| Tampering / DoS | **A huge or hostile CSV** pushed through the bulk exhibitor import | The browser checks each row, but the server never trusts it: the same Zod schema per row, at most 300 rows, a 1 MB body limit on that one route only, all-or-none in one transaction, `content.manage` only, audited | Integration tests: 300 pass, 301 refused, one bad row or unknown category adds nothing | None known |
+| Info disclosure / Injection | **The audit log leaves the system** as a file, or a hostile value in it runs as a spreadsheet formula | SUPER_ADMIN only (`audit.read`); the same formula-safe CSV writer as the other exports; the download is itself audited (`export.run`, row count) | Integration tests: ADMIN gets 403, ordering and format, a leading `=` is neutralised, the export is logged | Low: whoever holds the file holds the log, as with any export |
+| Repudiation | A TV is removed to hide that it was ever paired | The API role cannot delete `display_tokens`; removal only sets `removed_at` and revokes, and is audited as `display.remove` with the label | Integration test: rows kept, token no longer pairs, audit entries exist | None |
+
 ## Phase 7: Hardening and event operations
 
 Assets added: none. New operator tools: `stack:preflight`, `stack:reset-event`, the load harness (`load/`, test machine only). Changes to the trust boundary: the API's database identity, the container privileges, the edge's public surface (ADR-009).

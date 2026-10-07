@@ -367,7 +367,8 @@ Soft and generous: controls 18px (1.125rem), cards 24px (1.5rem), exhibitor phot
 
 ### Fields
 - **Style:** label above the control (not floating), white fill, 1.5px inset ring in line colour, 56px min height, text 1.0625rem (never under 16px).
-- **Focus:** ring thickens to 2.5px and turns purple. **Error:** crimson ring and a bold crimson message with an alert icon that says what to do next. Hint is muted small text; placeholders use Muted Slate (`text-muted`, 4.5:1 or better).
+- **One piece:** the control is a single rounded box (`FieldControl`): a leading badge, the input, and a turquoise tick that takes no room until the value is valid. The name field's badge shows a person icon, then the first letter of the name; the phone field's badge is the readable `+962` pill at the inline start, with the number in an LTR input. Tapping anywhere in the box focuses the input.
+- **Focus:** ring thickens to 2.5px and turns purple, with a soft purple lift shadow; the badge warms to purple. In forced-colours mode a real outline replaces the ring. **Error:** crimson ring on a faint crimson fill and a bold crimson message with an alert icon that says what to do next. Hint is muted small text; placeholders use Muted Slate (`text-muted`, 4.5:1 or better).
 - **OTP:** six visual cells over one real input (autofill, paste, numeric keyboard work); active cell purple ring, filled cells scale 1.03, invalid crimson on crimson-soft. Always LTR. Checkbox rows are 48px tall, whole-row targets.
 
 ### Category and exhibitor cards

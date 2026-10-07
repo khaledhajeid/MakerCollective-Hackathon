@@ -5,9 +5,10 @@ For the organiser. Open `https://<your-domain>/admin` on a laptop or a phone. Ev
 ## Before the event (one-off)
 1. **Two super admins.** Sign in, open **Organisers**, add a second super admin, give them their temporary password in person. One lost phone must not lock the team out. Each person saves their ten recovery codes.
 2. **Content.** **Categories & exhibitors**: add the final categories (English and Arabic names), then each exhibitor with a photo (drag a photo in, drag it to frame it, "Use this photo") and the categories it competes in. The amber notice lists exhibitors that are in no category or have no photo.
+   - **Many exhibitors at once:** **Import from file**. Press *Download template*, fill it in Excel, Numbers or Google Sheets, save as **CSV** (not .xlsx), and choose the file. The preview marks every row *Ready*, *Problem* (with the reason), *Already there* or *Repeated*; nothing is saved until you press **Add N exhibitors**, and only the *Ready* rows are added, all or none, up to 300 at a time. Categories are matched by English name, Arabic name or slug (several separated by `;`). Photos are added afterwards, per exhibitor.
 3. **Venue network.** **Settings → Venue network**. On a laptop that is **on the venue Wi-Fi**, open Settings and press **Find my address**, then **Add**. Then open `/api/access/status` on a phone on the same Wi-Fi: if its address differs (IPv6), add that range too. Set "Who may vote" to *Only people on the venue network*. The Overview shows a red notice while no network is set and an amber one while the check is OFF.
 4. **Schedule.** Settings → Voting schedule (Jordan time), or just use the Open / Closed switch on the day.
-5. **TVs.** **TV displays → Add a display**, scan the QR or open the link on each TV (shown once). The Overview shows how many TVs are online.
+5. **TVs.** **TV displays → Add a display**, scan the QR or open the link on each TV (shown once). The Overview shows how many TVs are online. **Switch off** blanks a screen and keeps it in the list as switched off; **Remove** does the same if it was still on and also takes it off the list (the audit log keeps the record).
 6. **Switch off demo shortcuts.** SMS provider set to the real gateway (not `demo-inbox`), voting status and the gate checked on the Overview.
 
 ## During the event
@@ -21,7 +22,7 @@ For the organiser. Open `https://<your-domain>/admin` on a laptop or a phone. Ev
 
 ## After
 - **Export** → (the results and vote files only while the results are Live; during a Blind Hour or reveal use "Who is ahead") results, the anonymous vote ledger, and the contact list of people who agreed to be contacted (personal data: use it for that purpose only, then delete the file).
-- **Audit log** (super admin) shows every change, who made it and from where.
+- **Audit log** (super admin) shows every change, who made it and from where. **Download CSV** saves the newest 100,000 entries, oldest first (the download is itself logged).
 
 ## If something goes wrong
 - Locked out: another super admin presses **Unlock**; or `pnpm stack:admin unlock <name>` at the laptop.

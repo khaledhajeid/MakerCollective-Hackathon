@@ -123,7 +123,7 @@ Export is open to ADMIN by the organiser's decision (2026-10-07); every export i
 3. **Application:** per-route guards, zod validation, origin and CSRF checks, rate limits, error mapping with no internals.
 4. **Database:** unique, foreign-key, check and trigger constraints that hold even if the application is wrong; the application role cannot change the schema or rewrite votes ([ADR-009](adr/009-hardening-and-event-operations.md)).
 5. **Data at rest:** PII encrypted, phone and codes hashed (see §6).
-6. **Evidence:** append-only audit log, log scrubbing, 361 API tests (all run as the restricted role), mutation-checked admin tests.
+6. **Evidence:** append-only audit log, log scrubbing, 367 API tests (all run as the restricted role), mutation-checked admin tests.
 
 ## 6. Visitor data protection
 
