@@ -802,6 +802,15 @@ describe('visitors', () => {
     expect(found.visitors[0].outreachConsent).toBe(true);
     expect((await call('GET', '/api/admin/visitors?phone=banana')).statusCode).toBe(400);
     expect((await call('GET', '/api/admin/visitors?after=nonsense')).statusCode).toBe(400);
+    // Right shape, but not a real id: a clear 400, not a database error.
+    expect(
+      (
+        await call(
+          'GET',
+          `/api/admin/visitors?after=${encodeURIComponent('2026-10-07T10:00:00.123456Z|zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz')}`,
+        )
+      ).statusCode,
+    ).toBe(400);
   });
 
   it('pages through visitors created within the same millisecond, without skipping any', async () => {

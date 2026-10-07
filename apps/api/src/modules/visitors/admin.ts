@@ -24,7 +24,8 @@ export function maskName(name: string): string {
 }
 
 // Postgres keeps microseconds; a JS Date only milliseconds, so the cursor is formatted by the database itself.
-const CURSOR = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\|([0-9a-f-]{36})$/;
+const CURSOR =
+  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\|([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
 /**
  * What organisers may do about visitors. The list shows masked names and phones only; reading a real name and number

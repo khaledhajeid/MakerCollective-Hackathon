@@ -87,5 +87,13 @@ Killed include: EXIF/ICC/unknown-chunk rules, CSV guard and phone rule, ADMIN ga
 | 9 | Preview blob URL and decoded `ImageBitmap` of every photo kept alive | Released on replace / close | typecheck |
 | 10 | ICC chunk rules looser than documented (after `ALPH`, or promised but absent) | ICC must come before alpha data, once, and a header that flags a profile must carry it | Integration: 3 new refusal cases |
 
-## 10. `/security-review` round
-_Pending: run `/security-review`._
+## 10. `/security-review` round (run on the final code, after §9's fixes)
+**Result: no findings at or above the reporting bar (confidence ≥ 8 of 10).** Examined: the photo parser and the public photo route (bounds, padding, trailing bytes, ICC placement, content type, `nosniff`, key format, parameterised lookup); every new route's access declaration and the ADMIN / SUPER_ADMIN split; mass-assignment through strict schemas; every raw `sql` fragment (cursor, slug `LIKE`, aggregates); the Blind Hour through the overview, exports and live read; CSV neutralisation and the download filename; the venue-CIDR path and its cache; PII in the visitor list, unmask, logs and audit; the pairing link; and the React console (no `dangerouslySetInnerHTML`, CSRF token in memory, cache wiped at sign-out).
+
+Notes from the reviewer, judged below the bar and handled as follows:
+| Note | Handling |
+|---|---|
+| A cursor with the right shape but a non-UUID id would reach the database and answer 500 | Fixed: the cursor must be a real UUID (400 otherwise); one test case added |
+| `hasVotes` booleans and 409 messages reveal that an exhibitor has *at least one* vote | Accepted: no count or ranking; needed to explain why delete is refused |
+| ADMIN can widen or switch off the venue gate, or return the TVs to Live | By design (`settings.manage`, `results.control`): audited, and the Overview warns |
+| An organiser can store opaque bytes (≤ 350 KB) inside a structurally valid WebP | Served as `image/webp` with `nosniff` and CSP `default-src 'none'`: cannot execute (threat model row 1) |
