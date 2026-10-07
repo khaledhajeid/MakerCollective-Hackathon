@@ -277,6 +277,66 @@
       "tv-count": {
         "displayName": "TV Count",
         "purpose": "Vote counts, Nexa Black tabular; 72px, leader 96px, ceremony 240px."
+      },
+      "control-text": {
+        "displayName": "Control Text",
+        "purpose": "Input and button text, 1.0625rem (buttons bold)."
+      },
+      "code-digit": {
+        "displayName": "Code Digit",
+        "purpose": "OTP digits and system-screen titles, 1.75rem."
+      },
+      "display-ar": {
+        "displayName": "Display (Arabic)",
+        "purpose": "Arabic display, 2.125rem Bold: the top weight Arabic ships."
+      },
+      "tile-initial": {
+        "displayName": "Tile Initial",
+        "purpose": "Initial on the no-photo tile, 3.25rem; Arabic initials use Bold."
+      },
+      "tv-caption": {
+        "displayName": "TV Caption",
+        "purpose": "Leader row English line, 42px."
+      },
+      "tv-caption-lg": {
+        "displayName": "TV Caption Large",
+        "purpose": "Ceremony category English and pairing body, 44px."
+      },
+      "tv-subhead": {
+        "displayName": "TV Subhead",
+        "purpose": "Secondary headlines and the votes label, 48px."
+      },
+      "tv-stat": {
+        "displayName": "TV Stat",
+        "purpose": "Header numerals, 52px Nexa Black."
+      },
+      "tv-leader-name": {
+        "displayName": "TV Leader Name",
+        "purpose": "Leader row Arabic name, 60px."
+      },
+      "tv-card-name": {
+        "displayName": "TV Card Name",
+        "purpose": "Ceremony joint-winner card names, 64px."
+      },
+      "tv-title": {
+        "displayName": "TV Title",
+        "purpose": "Connecting and empty-state titles, 80px."
+      },
+      "tv-display": {
+        "displayName": "TV Display",
+        "purpose": "Leader count and pairing title, 96px."
+      },
+      "tv-hero-name": {
+        "displayName": "TV Hero Name",
+        "purpose": "Ceremony solo winner name and waiting title, 104px."
+      },
+      "tv-headline": {
+        "displayName": "TV Headline",
+        "purpose": "Sealed-screen headline, 120px."
+      },
+      "tv-poster-count": {
+        "displayName": "TV Poster Count",
+        "purpose": "Ceremony solo winner count, 240px Nexa Black."
       }
     },
     "shadows": [

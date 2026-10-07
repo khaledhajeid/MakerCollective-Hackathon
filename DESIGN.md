@@ -69,6 +69,81 @@ typography:
     fontSize: "72px"
     fontWeight: 900
     lineHeight: 1
+  control-text:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 400
+    lineHeight: 1.3
+  code-digit:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "1.75rem"
+    fontWeight: 700
+    lineHeight: 1.1
+  display-ar:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "2.125rem"
+    fontWeight: 700
+    lineHeight: 1.35
+  tile-initial:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "3.25rem"
+    fontWeight: 900
+    lineHeight: 1
+  tv-caption:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "42px"
+    fontWeight: 400
+    lineHeight: 1.1
+  tv-caption-lg:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "44px"
+    fontWeight: 400
+    lineHeight: 1.2
+  tv-subhead:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "48px"
+    fontWeight: 700
+    lineHeight: 1.2
+  tv-stat:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "52px"
+    fontWeight: 900
+    lineHeight: 1
+  tv-leader-name:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "60px"
+    fontWeight: 700
+    lineHeight: 1.2
+  tv-card-name:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "64px"
+    fontWeight: 700
+    lineHeight: 1.25
+  tv-title:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "80px"
+    fontWeight: 700
+    lineHeight: 1.2
+  tv-display:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "96px"
+    fontWeight: 900
+    lineHeight: 1
+  tv-hero-name:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "104px"
+    fontWeight: 700
+    lineHeight: 1.2
+  tv-headline:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "120px"
+    fontWeight: 700
+    lineHeight: 1.2
+  tv-poster-count:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "240px"
+    fontWeight: 900
+    lineHeight: 1
 rounded:
   control: "1.125rem"
   card: "1.5rem"
@@ -77,6 +152,7 @@ rounded:
   pill: "9999px"
   tv-row: "32px"
   tv-chip: "28px"
+  focus: "6px"
 spacing:
   xs: "8px"
   sm: "12px"
@@ -209,6 +285,8 @@ A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and
 - **Names**: Arabic Bold 56px (leader 60px; sealed headline 120px; waiting 104px; ceremony solo 104px), English beneath Regular 40px (leader 42px) in Dim (`{colors.dim}`, white at 72%).
 - **Chrome text**: header, pills, rail category: 40px minimum; rail leader name and count 56px.
 - Nothing on the TV is below 40px.
+- **Every TV size step** (design px): 40 secondary and chrome, 42 leader English, 44 category English and body, 48 secondary headlines, 52 header numerals, 56 names, 60 leader name, 64 joint-winner names, 72 ranked counts, 80 empty-state titles, 96 leader count and pairing title, 104 solo-winner name and waiting title, 120 sealed headline, 240 solo-winner count. The scale is deliberately wide: it is read from 3 to 25 metres, so each size answers one distance and role.
+- **Voter sizes outside the six-step ramp:** control text 1.0625rem, OTP digit and system titles 1.75rem, Arabic display 2.125rem, and the no-photo tile initial 3.25rem.
 
 ### Named Rules
 **The Both-Scripts Rule.** Arabic letter-spacing is always 0 (it breaks joining) and Arabic lines get more leading than Latin; Arabic display and title drop to Bold because that is its top weight.

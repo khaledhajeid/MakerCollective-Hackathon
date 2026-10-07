@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "helvetica",
+        "createdAt": "2026-10-07T01:29:55.183Z",
+        "reason": "Brand guidelines (owner-supplied brand kit) specify Helvetica Neue LT Arabic for Arabic text; the detector matches the 'Helvetica' substring of that licensed face"
+      }
+    ]
+  }
+}
