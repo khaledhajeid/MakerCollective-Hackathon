@@ -13,6 +13,12 @@ import { AdminAuthService } from './modules/admin/service.js';
 import { AdminSessions } from './modules/admin/sessions.js';
 import { AdminUserService } from './modules/admin/users.js';
 import { AuditReader } from './modules/admin/audit.js';
+import { OverviewService } from './modules/admin/overview.js';
+import { ContentService } from './modules/content/service.js';
+import { ExportService } from './modules/export/service.js';
+import { SettingsAdminService } from './modules/settings/admin.js';
+import { VisitorAdminService } from './modules/visitors/admin.js';
+import { photoRoutes } from './modules/content/routes.js';
 import type { Access } from './modules/admin/permissions.js';
 import { adminRoutes } from './modules/admin/routes.js';
 import { AccessPolicy } from './modules/access/policy.js';
@@ -62,6 +68,11 @@ declare module 'fastify' {
     adminAuth: AdminAuthService;
     adminUsers: AdminUserService;
     adminAudit: AuditReader;
+    content: ContentService;
+    settingsAdmin: SettingsAdminService;
+    visitorsAdmin: VisitorAdminService;
+    overview: OverviewService;
+    exporter: ExportService;
     /** Every /api/admin route and the access it declares (filled by the admin guard). */
     adminRouteTable: Array<{ method: string; url: string; access: Access }>;
   }
@@ -154,6 +165,11 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
   app.decorate('adminSessions', adminSessions);
   app.decorate('adminUsers', new AdminUserService(deps.db, adminSessions, deps.clock));
   app.decorate('adminAudit', new AuditReader(deps.db));
+  app.decorate('content', new ContentService(deps.db));
+  app.decorate('settingsAdmin', new SettingsAdminService(deps.db, settings));
+  app.decorate('visitorsAdmin', new VisitorAdminService(env, deps.db, settings, limiter));
+  app.decorate('overview', new OverviewService(deps.db));
+  app.decorate('exporter', new ExportService(env, deps.db));
   app.decorate('adminRouteTable', []);
   app.decorate(
     'adminAuth',
@@ -194,6 +210,7 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
     async (api) => {
       await api.register(healthRoutes);
       await api.register(catalogRoutes);
+      await api.register(photoRoutes);
       await api.register(accessRoutes);
       await api.register(authRoutes);
       await api.register(voteRoutes);

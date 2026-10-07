@@ -46,6 +46,18 @@ export class RateLimiter {
     return this.hitLocal(k, limit, windowSec);
   }
 
+  /** Forgets one counter (an organiser clearing a visitor's OTP throttle). Other replicas' local counters expire on their own. */
+  async reset(bucket: string, key: string): Promise<void> {
+    const k = `rl:${bucket}:${key}`;
+    this.local.delete(k);
+    if (!this.redis) return;
+    try {
+      await this.redis.del(k);
+    } catch (err) {
+      this.onFallback(err);
+    }
+  }
+
   private hitLocal(k: string, limit: number, windowSec: number): LimitResult {
     const t = this.now();
     let entry = this.local.get(k);

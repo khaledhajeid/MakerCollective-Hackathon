@@ -13,6 +13,7 @@ import {
   bigserial,
   boolean,
   check,
+  customType,
   cidr,
   foreignKey,
   index,
@@ -29,6 +30,9 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { ACCESS_MODES, ADMIN_ROLES, RESULTS_VISIBILITY, VOTING_STATUS } from '@mc/shared';
+
+/** Binary column (node-postgres maps `bytea` to Buffer). */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
 
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () =>
@@ -130,6 +134,27 @@ export const categories = pgTable(
   ],
 );
 
+/**
+ * Exhibitor photos live in Postgres, not on a disk: both API replicas serve every photo with no shared volume, a
+ * restarted or replaced replica loses nothing, and the backup is one dump. A photo is a few dozen KB, immutable
+ * (a new upload gets a new key) and cached for a year by the browser and the CDN, so the table is read rarely.
+ * Only the validated, metadata-free WebP the API accepted is stored (modules/content/photo.ts).
+ */
+export const exhibitorPhotos = pgTable(
+  'exhibitor_photos',
+  {
+    key: text('key').primaryKey(),
+    data: bytea('data').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('exhibitor_photos_key_format', sql`${t.key} ~ '^[a-f0-9-]{36}\\.webp$'`),
+    check('exhibitor_photos_size', sql`octet_length(${t.data}) BETWEEN 1 AND 358400`),
+  ],
+);
+
 export const exhibitors = pgTable(
   'exhibitors',
   {
@@ -141,7 +166,7 @@ export const exhibitors = pgTable(
     descriptionEn: text('description_en'),
     descriptionAr: text('description_ar'),
     booth: text('booth'),
-    photoKey: text('photo_key'),
+    photoKey: text('photo_key').references(() => exhibitorPhotos.key, { onDelete: 'set null' }),
     isActive: boolean('is_active').notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

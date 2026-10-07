@@ -43,7 +43,7 @@ async function makeApp(over: Record<string, string> = {}) {
   const appEnv = over && Object.keys(over).length ? testEnv(over) : env;
   const app = await buildApp({ env: appEnv, db, redis: null, clock: () => clock });
   const call = (
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     url: string,
     o: {
       cookie?: string;
@@ -1141,10 +1141,14 @@ describe('authorisation (RBAC)', () => {
       const url = route.url.replace(':id', id);
       for (const p of PRINCIPALS) {
         const who = await principal(p);
-        const res = await ctx.call(route.method as 'GET' | 'POST' | 'PATCH', url, {
-          ...who,
-          body: route.method === 'GET' ? undefined : {},
-        });
+        const res = await ctx.call(
+          route.method as 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+          url,
+          {
+            ...who,
+            body: route.method === 'GET' ? undefined : {},
+          },
+        );
         const want = expected(route.access, p);
         const label = `${route.method} ${route.url} as ${p}`;
         if (want.allowed) {
@@ -1170,11 +1174,15 @@ describe('authorisation (RBAC)', () => {
         ip: null,
         userAgent: null,
       });
-      const res = await ctx.call(r.method as 'GET' | 'POST' | 'PATCH', r.url.replace(':id', a.id), {
-        cookie: pending.token,
-        csrf: pending.csrfToken,
-        body: r.method === 'GET' ? undefined : {},
-      });
+      const res = await ctx.call(
+        r.method as 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+        r.url.replace(':id', a.id),
+        {
+          cookie: pending.token,
+          csrf: pending.csrfToken,
+          body: r.method === 'GET' ? undefined : {},
+        },
+      );
       const blocked = res.statusCode === 403 && res.json().error.code === 'MFA_REQUIRED';
       if (!blocked && r.access !== 'public' && r.access !== 'pending') open.push([r.method, r.url]);
     }

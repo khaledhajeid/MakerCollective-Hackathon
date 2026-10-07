@@ -33,13 +33,6 @@
 		}
 	}
 
-	handle /uploads/* {
-		root * /data
-		file_server
-		header Cache-Control "public, max-age=3600"
-		header X-Content-Type-Options nosniff
-	}
-
 	handle {
 		root * /srv
 		@assets path /assets/* /fonts/* /brand/*

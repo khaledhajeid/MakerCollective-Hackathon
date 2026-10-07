@@ -10,9 +10,22 @@ import type { AdminRole } from '@mc/shared';
  * read the results frame, and never reach `/api/admin` at all (ADR-006, ADR-007).
  */
 export const PERMISSIONS = {
+  // Accounts, the audit trail, real visitor identities and the demo SMS inbox (which shows one-time codes): SUPER_ADMIN.
   'admins.read': ['SUPER_ADMIN'],
   'admins.manage': ['SUPER_ADMIN'],
   'audit.read': ['SUPER_ADMIN'],
+  'visitors.unmask': ['SUPER_ADMIN'],
+  'sms.inbox': ['SUPER_ADMIN'],
+  // Running the event (ADR-008). Export is open to ADMIN too by the organiser's decision of 2026-10-07: every export is audited.
+  'overview.read': ['SUPER_ADMIN', 'ADMIN'],
+  'content.manage': ['SUPER_ADMIN', 'ADMIN'],
+  'settings.manage': ['SUPER_ADMIN', 'ADMIN'],
+  'results.control': ['SUPER_ADMIN', 'ADMIN'],
+  'results.live': ['SUPER_ADMIN', 'ADMIN'],
+  'displays.manage': ['SUPER_ADMIN', 'ADMIN'],
+  'visitors.read': ['SUPER_ADMIN', 'ADMIN'],
+  'visitors.manage': ['SUPER_ADMIN', 'ADMIN'],
+  'export.run': ['SUPER_ADMIN', 'ADMIN'],
 } as const satisfies Record<string, readonly AdminRole[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

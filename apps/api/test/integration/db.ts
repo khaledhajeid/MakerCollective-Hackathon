@@ -16,7 +16,7 @@ export function openTestDb() {
         // SET LOCAL is transaction-scoped: even if TRUNCATE fails, triggers are restored on ROLLBACK.
         await client.query('BEGIN');
         await client.query('SET LOCAL session_replication_role = replica');
-        await client.query(`TRUNCATE votes, exhibitor_categories, exhibitors, categories, otp_challenges, visitors,
+        await client.query(`TRUNCATE votes, exhibitor_categories, exhibitors, exhibitor_photos, categories, otp_challenges, visitors,
                  sms_outbox, admin_sessions, admin_recovery_codes, display_tokens, audit_log, admin_users`);
         await client.query('DELETE FROM settings');
         await client.query('INSERT INTO settings (id) VALUES (1)');

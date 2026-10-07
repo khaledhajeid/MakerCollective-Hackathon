@@ -28,6 +28,26 @@ export async function writeAudit(executor: Database | Tx, r: AuditRecord): Promi
   });
 }
 
+/**
+ * What changed between two versions of a record, for the audit trail: only the fields that differ, each as
+ * `{from, to}`, long text clipped. Secrets are never passed here (callers list the fields they want compared).
+ */
+export function changes<T extends Record<string, unknown>>(
+  before: T,
+  after: Partial<T>,
+  fields: readonly (keyof T)[],
+): Record<string, { from: unknown; to: unknown }> {
+  const clip = (v: unknown) =>
+    typeof v === 'string' && v.length > 120 ? `${v.slice(0, 120)}…` : v;
+  const out: Record<string, { from: unknown; to: unknown }> = {};
+  for (const f of fields) {
+    if (after[f] === undefined) continue;
+    if (JSON.stringify(before[f]) === JSON.stringify(after[f])) continue;
+    out[String(f)] = { from: clip(before[f]), to: clip(after[f]) };
+  }
+  return out;
+}
+
 export class AuditReader {
   constructor(private readonly db: Database) {}
 

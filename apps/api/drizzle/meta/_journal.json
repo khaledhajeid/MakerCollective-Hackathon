@@ -64,6 +64,13 @@
       "when": 1791366062594,
       "tag": "0008_admin_auth_core",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791372249225,
+      "tag": "0009_content_management",
+      "breakpoints": true
     }
   ]
 }

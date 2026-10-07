@@ -131,7 +131,7 @@ export type AuditEntry = z.infer<typeof AuditEntrySchema>;
 export const AuditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   /** Keyset cursor: return entries with an id below this one. */
-  before: z.coerce.number().int().positive().optional(),
+  before: z.coerce.number().int().positive().max(1e12).optional(),
 });
 export const AuditPageSchema = z.object({
   entries: z.array(AuditEntrySchema),

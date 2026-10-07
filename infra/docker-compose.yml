@@ -19,8 +19,6 @@ x-api: &api
   depends_on:
     migrate: { condition: service_completed_successfully }
     redis: { condition: service_started } # optional dependency: API degrades without it
-  volumes:
-    - uploads:/data/uploads
   networks: [backend]
 
 services:
@@ -82,8 +80,6 @@ services:
     profiles: [full]
     restart: unless-stopped
     ports: ['127.0.0.1:8080:80']
-    volumes:
-      - uploads:/data/uploads:ro
     depends_on: [api1, api2]
     networks:
       backend: { ipv4_address: 172.28.0.10 }
@@ -117,7 +113,6 @@ services:
 
 volumes:
   pgdata:
-  uploads:
 
 networks:
   backend:

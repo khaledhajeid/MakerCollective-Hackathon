@@ -4,7 +4,7 @@ import type { Database } from '../../db/client.js';
 import { categories, exhibitorCategories, exhibitors } from '../../db/schema.js';
 
 export function photoUrl(photoKey: string | null): string | null {
-  return photoKey ? `/uploads/${photoKey}` : null;
+  return photoKey ? `/api/photos/${photoKey}` : null;
 }
 
 /**

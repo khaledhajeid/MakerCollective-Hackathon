@@ -18,6 +18,11 @@
       "types": "./src/constants.ts",
       "development": "./src/constants.ts",
       "default": "./dist/constants.js"
+    },
+    "./manage": {
+      "types": "./src/manage.ts",
+      "development": "./src/manage.ts",
+      "default": "./dist/manage.js"
     }
   },
   "scripts": {

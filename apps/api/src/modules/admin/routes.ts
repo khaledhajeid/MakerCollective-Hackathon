@@ -18,6 +18,7 @@ import {
 } from '@mc/shared';
 import type { FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { manageRoutes } from './manage-routes.js';
 import {
   actorOf,
   adminCookie,
@@ -40,6 +41,7 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   const publicOrigin = app.deps.env.PUBLIC_ORIGIN;
   const { name: cookieName } = adminCookie(publicOrigin);
   await app.register(adminGuard);
+  await app.register(manageRoutes);
 
   /* ───────────── sign-in ───────────── */
 
