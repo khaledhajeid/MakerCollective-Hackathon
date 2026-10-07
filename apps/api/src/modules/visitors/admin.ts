@@ -23,7 +23,8 @@ export function maskName(name: string): string {
   );
 }
 
-const CURSOR = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\|([0-9a-f-]{36})$/;
+// Postgres keeps microseconds; a JS Date only milliseconds, so the cursor is formatted by the database itself.
+const CURSOR = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z)\|([0-9a-f-]{36})$/;
 
 /**
  * What organisers may do about visitors. The list shows masked names and phones only; reading a real name and number
@@ -57,15 +58,16 @@ export class VisitorAdminService {
     } else if (opts.after) {
       const m = CURSOR.exec(opts.after);
       if (!m) throw new AppError(400, 'VALIDATION_FAILED', 'Bad page cursor');
-      const at = new Date(m[1]!);
+      const at = sql`${m[1]!}::timestamptz`;
       where = or(
-        lt(visitors.createdAt, at),
-        and(eq(visitors.createdAt, at), lt(visitors.id, m[2]!)),
+        sql`${visitors.createdAt} < ${at}`,
+        and(sql`${visitors.createdAt} = ${at}`, lt(visitors.id, m[2]!)),
       );
     }
     const rows = await this.db
       .select({
         v: visitors,
+        cursorAt: sql<string>`to_char(${visitors.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
         votes: sql<number>`(SELECT count(*)::int FROM votes WHERE votes.visitor_id = "visitors"."id")`,
       })
       .from(visitors)
@@ -86,10 +88,10 @@ export class VisitorAdminService {
       device: v.deviceId ? v.deviceId.slice(0, 6) : null,
       createdAt: v.createdAt.toISOString(),
     }));
-    const last = page[page.length - 1]?.v;
+    const last = page[page.length - 1];
     return {
       visitors: out,
-      nextAfter: more && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
+      nextAfter: more && last ? `${last.cursorAt}|${last.v.id}` : null,
       total,
     };
   }

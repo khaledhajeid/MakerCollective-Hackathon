@@ -107,7 +107,7 @@ function webp(
   height = 600,
   o: {
     extraChunk?: [string, number];
-    beforeImage?: [string, number];
+    beforeImage?: Array<[string, number]>;
     flags?: number;
     trailing?: number;
     riffDelta?: number;
@@ -130,7 +130,7 @@ function webp(
     x.writeUIntLE(height - 1, 7, 3);
     parts.push(chunk('VP8X', x));
   }
-  if (o.beforeImage) parts.push(chunk(o.beforeImage[0], Buffer.alloc(o.beforeImage[1], 1)));
+  for (const [id, size] of o.beforeImage ?? []) parts.push(chunk(id, Buffer.alloc(size, 1)));
   parts.push(chunk('VP8L', vp8l));
   if (o.extraChunk) parts.push(chunk(o.extraChunk[0], Buffer.alloc(o.extraChunk[1], 1)));
   const body = Buffer.concat([Buffer.from('WEBP', 'latin1'), ...parts]);
@@ -244,6 +244,18 @@ describe('categories', () => {
       (await call('PATCH', `/api/admin/categories/${randomUUID()}`, { body: { nameEn: 'x' } }))
         .statusCode,
     ).toBe(404);
+  });
+
+  it('an empty edit is a clear 400, not a crash', async () => {
+    const call = ctx.as(await admin());
+    const c = await category();
+    const e = await exhibitor([c.id]);
+    expect((await call('PATCH', `/api/admin/categories/${c.id}`, { body: {} })).statusCode).toBe(
+      400,
+    );
+    expect((await call('PATCH', `/api/admin/exhibitors/${e.id}`, { body: {} })).statusCode).toBe(
+      400,
+    );
   });
 
   it('reorders only with the complete, current list', async () => {
@@ -423,12 +435,33 @@ describe('exhibitor photos', () => {
       ['an HTML file', Buffer.from('<script>alert(1)</script>'.padEnd(80, ' '))],
       ['an EXIF chunk', webp(800, 600, { extraChunk: ['EXIF', 40] })],
       ['an XMP chunk', webp(800, 600, { extraChunk: ['XMP ', 40] })],
-      ['an ICC chunk with no flag', webp(800, 600, { beforeImage: ['ICCP', 40] })],
+      [
+        'alpha data before the colour profile',
+        webp(800, 600, {
+          flags: 0x30,
+          beforeImage: [
+            ['ALPH', 10],
+            ['ICCP', 40],
+          ],
+        }),
+      ],
+      ['a header that promises a profile and has none', webp(800, 600, { flags: 0x20 })],
+      [
+        'two colour profiles',
+        webp(800, 600, {
+          flags: 0x20,
+          beforeImage: [
+            ['ICCP', 40],
+            ['ICCP', 40],
+          ],
+        }),
+      ],
+      ['an ICC chunk with no flag', webp(800, 600, { beforeImage: [['ICCP', 40]] })],
       ['an ICC chunk after the image', webp(800, 600, { flags: 0x20, extraChunk: ['ICCP', 40] })],
-      ['an enormous ICC chunk', webp(800, 600, { flags: 0x20, beforeImage: ['ICCP', 20_000] })],
+      ['an enormous ICC chunk', webp(800, 600, { flags: 0x20, beforeImage: [['ICCP', 20_000]] })],
       [
         'EXIF hidden behind an ICC flag',
-        webp(800, 600, { flags: 0x20, beforeImage: ['EXIF', 40] }),
+        webp(800, 600, { flags: 0x20, beforeImage: [['EXIF', 40]] }),
       ],
       ['an unknown chunk', webp(800, 600, { extraChunk: ['EVIL', 8] })],
       ['animation flag', webp(800, 600, { flags: 0x02 })],
@@ -451,7 +484,7 @@ describe('exhibitor photos', () => {
     expect(await db.$count(exhibitorPhotos)).toBe(0);
     // What a browser really produces: a header, its small colour profile, then the image.
     expect(
-      (await put(webp(640, 480, { flags: 0x20, beforeImage: ['ICCP', 456] }))).statusCode,
+      (await put(webp(640, 480, { flags: 0x20, beforeImage: [['ICCP', 456]] }))).statusCode,
     ).toBe(200);
     // A plain alpha-flag WebP (VP8X + VP8L) is fine.
     expect((await put(webp(640, 480, { flags: 0x10 }))).statusCode).toBe(200);
@@ -771,6 +804,29 @@ describe('visitors', () => {
     expect((await call('GET', '/api/admin/visitors?after=nonsense')).statusCode).toBe(400);
   });
 
+  it('pages through visitors created within the same millisecond, without skipping any', async () => {
+    const call = ctx.as(await admin());
+    const ids: string[] = [];
+    for (const t of ['.123900', '.123456', '.123400', '.123000', '.122999']) {
+      const v = await visitor();
+      await pool.query(
+        `UPDATE visitors SET created_at = '2026-10-07 10:00:00${t}+00' WHERE id = $1`,
+        [v.id],
+      );
+      ids.push(v.id);
+    }
+    const seen: string[] = [];
+    let after: string | null = null;
+    for (let i = 0; i < 10; i++) {
+      const q: string = `/api/admin/visitors?limit=1${after ? `&after=${encodeURIComponent(after)}` : ''}`;
+      const page = (await call('GET', q)).json();
+      seen.push(...page.visitors.map((v: { id: string }) => v.id));
+      after = page.nextAfter;
+      if (!after) break;
+    }
+    expect(seen).toEqual(ids);
+  });
+
   it("blocking ends the visitor's sessions and refuses their votes; unblocking restores them", async () => {
     const call = ctx.as(await admin());
     await call('PATCH', '/api/admin/settings', {
@@ -980,6 +1036,24 @@ describe('export', () => {
       .slice(1)
       .map((l) => l.split(',')[0]!);
     for (const n of names) expect(n).toMatch(/^"?'/);
+  });
+
+  it('refuses the files that carry per-exhibitor counts while the results are sealed', async () => {
+    await world();
+    const boss = ctx.as(await admin('SUPER_ADMIN'));
+    for (const mode of ['FROZEN', 'HIDDEN', 'REVEAL']) {
+      await boss('POST', '/api/admin/results/mode', { body: { mode } });
+      for (const kind of ['results', 'votes']) {
+        const r = await boss('GET', `/api/admin/export/${kind}`);
+        expect(r.statusCode, `${kind} in ${mode}`).toBe(409);
+        expect(r.body).not.toMatch(/Atlas/);
+      }
+      // The contact list carries no standings.
+      expect((await boss('GET', '/api/admin/export/outreach')).statusCode).toBe(200);
+    }
+    await boss('POST', '/api/admin/results/mode', { body: { mode: 'LIVE' } });
+    expect((await boss('GET', '/api/admin/export/results')).statusCode).toBe(200);
+    expect(await audit('export.run')).toHaveLength(4);
   });
 
   it('is available to ADMIN and SUPER_ADMIN, refuses a bad kind, and needs a session', async () => {

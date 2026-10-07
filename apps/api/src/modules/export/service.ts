@@ -4,7 +4,9 @@ import type { Env } from '../../config/env.js';
 import type { Database } from '../../db/client.js';
 import { categories, exhibitorCategories, exhibitors, visitors, votes } from '../../db/schema.js';
 import { FieldCipher, hmacHex } from '../../lib/crypto.js';
+import { AppError } from '../../lib/errors.js';
 import { writeAudit } from '../admin/audit.js';
+import { loadSettings } from '../settings/repository.js';
 import type { Actor } from '../results/service.js';
 import { toCsv, type Cell } from './csv.js';
 
@@ -18,8 +20,8 @@ const stamp = (d: Date) => d.toISOString().slice(0, 16).replace(/[-:]/g, '').rep
 
 /**
  * Exports (F13). Three files, each with a different privacy footprint:
- *  - `results`   per category, every exhibitor with its vote count and rank (the counts the TV shows after the reveal)
- *  - `votes`     the vote ledger with NO identity: a stable per-voter reference lets an auditor check "one vote per
+ *  - `results`   per category, every exhibitor with its vote count and rank (only while the results are Live)
+ *  - `votes`     (only while Live) the vote ledger with NO identity: a stable per-voter reference lets an auditor check "one vote per
  *                category" without learning who anyone is
  *  - `outreach`  name and phone of visitors who agreed to be contacted (PDPL: only with that consent, never blocked ones)
  * Every export is audited with its kind and row count, and the totals can be reconciled with the database.
@@ -35,6 +37,14 @@ export class ExportService {
   }
 
   async run(kind: ExportKind, actor: Actor, now: Date = new Date()): Promise<CsvFile> {
+    // `results` and `votes` carry per-exhibitor counts (the vote ledger can be tallied). While the TVs are not showing
+    // the standings they are not available as a file either: the one audited way to look is `/results/live` (ADR-003).
+    if (kind !== 'outreach' && (await loadSettings(this.db)).resultsVisibility !== 'LIVE')
+      throw new AppError(
+        409,
+        'CONFLICT',
+        'The standings are sealed on the TVs right now, so this file is not available. Read them under "Who is ahead" on the Overview (that is recorded), or switch the results back to Live.',
+      );
     const file = await this.build(kind, now);
     await writeAudit(this.db, {
       adminId: actor.adminId,

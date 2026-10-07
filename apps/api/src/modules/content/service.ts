@@ -208,7 +208,8 @@ export class ContentService {
         .where(eq(categories.id, id))
         .for('update');
       if (!before) throw new AppError(404, 'NOT_FOUND', 'No such category');
-      await tx.update(categories).set(patch).where(eq(categories.id, id));
+      if (Object.keys(patch).length)
+        await tx.update(categories).set(patch).where(eq(categories.id, id));
       await writeAudit(tx, {
         adminId: actor.adminId,
         label: actor.label,

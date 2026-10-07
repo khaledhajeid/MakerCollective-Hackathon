@@ -3,7 +3,8 @@ import type { AdminRole } from '@mc/shared';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router';
 import { Logo } from '../../design-system/Logo';
-import { adminApi, setCsrf } from './api';
+import { adminApi } from './api';
+import { endSession } from './session';
 import { AIcon, type AIconName } from './icons';
 import { Btn, Dialog } from './ui';
 
@@ -54,11 +55,7 @@ export function Shell({
   }, [current, location.pathname]);
 
   const signOut = () => {
-    void adminApi.logout().finally(() => {
-      setCsrf('');
-      qc.clear();
-      qc.setQueryData(['admin', 'session'], { authenticated: false });
-    });
+    void adminApi.logout().finally(() => endSession(qc));
   };
 
   const nav = (

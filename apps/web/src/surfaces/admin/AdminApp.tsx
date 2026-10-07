@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Navigate, Route, Routes } from 'react-router';
 import { Logo } from '../../design-system/Logo';
 import { adminApi, setCsrf } from './api';
+import { SESSION_KEY } from './session';
 import { EnrollScreen, MfaScreen, PasswordScreen, SignIn } from './AuthScreens';
 import { Shell } from './Shell';
 import { Account } from './screens/Account';
@@ -22,7 +23,7 @@ import { Btn, ToastHost } from './ui';
  */
 export function AdminApp() {
   const session = useQuery({
-    queryKey: ['admin', 'session'],
+    queryKey: SESSION_KEY,
     queryFn: async () => {
       const s = await adminApi.session();
       if (s.authenticated) setCsrf(s.csrfToken);
@@ -36,7 +37,7 @@ export function AdminApp() {
     <ToastHost>
       {session.isPending ? (
         <Loading />
-      ) : session.error ? (
+      ) : session.error && !session.data ? (
         <main
           className="grid min-h-dvh place-items-center gap-4 p-6 text-center"
           lang="en"
@@ -49,7 +50,7 @@ export function AdminApp() {
             </Btn>
           </div>
         </main>
-      ) : !session.data.authenticated ? (
+      ) : !session.data?.authenticated ? (
         <SignIn />
       ) : session.data.stage === 'mfa' ? (
         <MfaScreen />

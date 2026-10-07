@@ -6,7 +6,7 @@ import type {
   CategoryCreate,
   ExhibitorCreate,
 } from '@mc/shared/manage';
-import { useMemo, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
 import { adminApi, explain } from '../api';
 import { AIcon } from '../icons';
 import {
@@ -540,6 +540,13 @@ function ExhibitorForm({
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
   const [chosen, setChosen] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
+  // The preview's temporary address is released when it is replaced and when the form closes.
+  useEffect(() => {
+    const url = photo?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [photo]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
@@ -611,7 +618,6 @@ function ExhibitorForm({
         file={chosen}
         onCancel={() => setChosen(null)}
         onDone={(blob) => {
-          if (photo) URL.revokeObjectURL(photo.url);
           setPhoto({ blob, url: URL.createObjectURL(blob) });
           setRemovePhoto(false);
           setChosen(null);

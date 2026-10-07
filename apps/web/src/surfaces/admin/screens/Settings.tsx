@@ -94,6 +94,9 @@ function SettingsForm({ server }: { server: AdminSettings }) {
   const patch = diff(server, f);
   const dirty = Object.keys(patch).length > 1;
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((cur) => ({ ...cur, [k]: v }));
+  // Text typed into an address box but not added to its list yet: saving now would silently leave it out.
+  const [pending, setPending] = useState({ ranges: false, prefixes: false });
+  const unadded = pending.ranges || pending.prefixes;
 
   const save = useMutation({
     mutationFn: () => adminApi.updateSettings(patch),
@@ -119,7 +122,7 @@ function SettingsForm({ server }: { server: AdminSettings }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (dirty && !closesBeforeOpens) save.mutate();
+        if (dirty && !closesBeforeOpens && !unadded) save.mutate();
       }}
       className="space-y-4 pb-28"
     >
@@ -181,7 +184,11 @@ function SettingsForm({ server }: { server: AdminSettings }) {
               below.
             </Notice>
           )}
-          <Ranges value={f.venueCidrs} onChange={(v) => set('venueCidrs', v)} />
+          <Ranges
+            value={f.venueCidrs}
+            onChange={(v) => set('venueCidrs', v)}
+            onPending={(p) => setPending((c) => ({ ...c, ranges: p }))}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
               label="Wi-Fi network name"
@@ -212,6 +219,7 @@ function SettingsForm({ server }: { server: AdminSettings }) {
             placeholder="+9627"
             pattern={/^\+[1-9]\d{0,6}$/}
             invalidText="Start with + and the country code, for example +9627."
+            onPending={(p) => setPending((c) => ({ ...c, prefixes: p }))}
           />
           <div className="grid gap-4 sm:grid-cols-3">
             <Input
@@ -273,9 +281,11 @@ function SettingsForm({ server }: { server: AdminSettings }) {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(0_0_60/0.25)] backdrop-blur-sm lg:start-[17rem]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 sm:px-4">
           <p className="text-sm text-muted" aria-live="polite">
-            {dirty
-              ? `${Object.keys(patch).length - 1} unsaved change${Object.keys(patch).length > 2 ? 's' : ''}`
-              : 'Everything is saved.'}
+            {unadded
+              ? 'You typed an address that is not added yet. Press Add (or Enter) first.'
+              : dirty
+                ? `${Object.keys(patch).length - 1} unsaved change${Object.keys(patch).length > 2 ? 's' : ''}`
+                : 'Everything is saved.'}
           </p>
           <div className="flex gap-2">
             <Btn onClick={() => setF(toForm(server))} disabled={!dirty || save.isPending}>
@@ -284,7 +294,7 @@ function SettingsForm({ server }: { server: AdminSettings }) {
             <Btn
               type="submit"
               variant="primary"
-              disabled={!dirty || !!closesBeforeOpens}
+              disabled={!dirty || !!closesBeforeOpens || unadded}
               loading={save.isPending}
             >
               Save changes
@@ -298,7 +308,15 @@ function SettingsForm({ server }: { server: AdminSettings }) {
 
 /* ───────────── venue ranges ───────────── */
 
-function Ranges({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+function Ranges({
+  value,
+  onChange,
+  onPending,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  onPending: (pending: boolean) => void;
+}) {
   const [me, setMe] = useState<Awaited<ReturnType<typeof adminApi.networkMe>> | null>(null);
   const find = useMutation({ mutationFn: adminApi.networkMe, onSuccess: setMe });
   return (
@@ -312,6 +330,7 @@ function Ranges({ value, onChange }: { value: string[]; onChange: (v: string[]) 
         pattern={/^[0-9a-fA-F:.]{2,45}(\/\d{1,3})?$/}
         invalidText="That is not an address. Use something like 203.0.113.5 or 203.0.113.0/24."
         mono
+        onPending={onPending}
       />
       <div className="rounded-xl bg-royal-soft/60 p-4 ring-1 ring-inset ring-royal/15">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -373,6 +392,7 @@ function Tags({
   pattern,
   invalidText,
   mono,
+  onPending,
 }: {
   label: string;
   hint: string;
@@ -382,9 +402,16 @@ function Tags({
   pattern: RegExp;
   invalidText: string;
   mono?: boolean;
+  /** Told whether the box holds text that has not been added to the list yet (Save must wait for it). */
+  onPending: (pending: boolean) => void;
 }) {
   const [text, setText] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const edit = (t: string) => {
+    setText(t);
+    setErr(null);
+    onPending(t.trim().length > 0);
+  };
   const add = () => {
     const items = text
       .split(/[\s,]+/)
@@ -394,8 +421,7 @@ function Tags({
     const bad = items.find((t) => !pattern.test(t));
     if (bad) return setErr(invalidText);
     onChange([...new Set([...value, ...items])]);
-    setText('');
-    setErr(null);
+    edit('');
   };
   return (
     <div className="space-y-2">
@@ -405,10 +431,9 @@ function Tags({
         error={err}
         value={text}
         placeholder={placeholder}
-        onChange={(e) => {
-          setText(e.target.value);
-          setErr(null);
-        }}
+        onChange={(e) => edit(e.target.value)}
+        // Leaving the box adds what is in it, so clicking Save straight after typing cannot lose the address.
+        onBlur={add}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();

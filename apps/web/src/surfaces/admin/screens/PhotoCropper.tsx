@@ -35,8 +35,14 @@ export function PhotoCropper({
 
   useEffect(() => {
     let alive = true;
+    let opened: ImageBitmap | null = null;
     createImageBitmap(file, { imageOrientation: 'from-image' })
-      .then((b) => alive && setBmp(b))
+      .then((b) => {
+        // A full-resolution decoded picture is large: release it as soon as this screen goes away.
+        if (!alive) return b.close();
+        opened = b;
+        setBmp(b);
+      })
       .catch(
         () =>
           alive &&
@@ -46,6 +52,7 @@ export function PhotoCropper({
       );
     return () => {
       alive = false;
+      opened?.close();
     };
   }, [file]);
 

@@ -17,7 +17,7 @@ const FLAGS_REFUSED = 0x02 | 0x04 | 0x08;
 /**
  * The one extra a browser always adds: a small colour profile (Chrome writes its 456-byte sRGB profile into every WebP a
  * canvas exports). It describes colours, not the person or the place, so it is allowed, but only in its place (right
- * after the header), only when the header says so, and only if it is small.
+ * after the header, before any alpha data), only when the header says so, and only if it is small.
  */
 const ICC_MAX_BYTES = 8 * 1024;
 
@@ -38,9 +38,10 @@ export function inspectWebp(buf: Buffer): WebpInfo {
   let off = 12;
   let canvas: WebpInfo | null = null;
   let image: WebpInfo | null = null;
-  let sawAlpha = false;
+  let alphChunka = false;
   let iccAllowed = false;
   let sawIcc = false;
+  let alphChunk = false;
 
   while (off < buf.length) {
     if (off + 8 > buf.length) return reject('the file is damaged');
@@ -59,17 +60,18 @@ export function inspectWebp(buf: Buffer): WebpInfo {
           width: 1 + buf.readUIntLE(start + 4, 3),
           height: 1 + buf.readUIntLE(start + 7, 3),
         };
-        sawAlpha = !!(flags & FLAG_ALPHA);
+        alphChunka = !!(flags & FLAG_ALPHA);
         iccAllowed = !!(flags & FLAG_ICC);
         break;
       }
       case 'ICCP':
-        if (!canvas || !iccAllowed || sawIcc || image || size > ICC_MAX_BYTES)
+        if (!canvas || !iccAllowed || sawIcc || alphChunk || image || size > ICC_MAX_BYTES)
           return reject('animation and metadata are not allowed');
         sawIcc = true;
         break;
       case 'ALPH':
-        if (!canvas || !sawAlpha || image) return reject('the file is damaged');
+        if (!canvas || !alphChunka || alphChunk || image) return reject('the file is damaged');
+        alphChunk = true;
         break;
       case 'VP8 ': {
         if (image || size < 10) return reject('the file is damaged');
@@ -100,6 +102,8 @@ export function inspectWebp(buf: Buffer): WebpInfo {
   }
 
   if (off !== buf.length || !image) return reject('the file is damaged');
+  // A header that promises a colour profile must deliver it, in its place: the layout is exactly what we documented.
+  if (iccAllowed && !sawIcc) return reject('the file is damaged');
   if (canvas && (canvas.width !== image.width || canvas.height !== image.height))
     return reject('the file is damaged');
   const { width, height } = image;

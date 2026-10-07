@@ -1,14 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ExportKind } from '@mc/shared/manage';
 import { adminApi, ApiError, explain } from '../api';
-import { Btn, PageHeader, Panel, useToast } from '../ui';
+import { Btn, Notice, PageHeader, Panel, saveFile, useToast } from '../ui';
 
 const FILES: Array<{ kind: ExportKind; title: string; text: string; note: string }> = [
   {
     kind: 'results',
     title: 'Results',
     text: 'Every exhibitor in every category with its vote count and rank.',
-    note: 'Shows the real standings, even during the Blind Hour. Keep it to yourself until the reveal.',
+    note: 'Only while the results are Live: the file shows the real standings.',
   },
   {
     kind: 'votes',
@@ -42,16 +43,15 @@ async function download(kind: ExportKind) {
   const name =
     /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ??
     `mc2026-${kind}.csv`;
-  const url = URL.createObjectURL(await res.blob());
-  const a = Object.assign(document.createElement('a'), { href: url, download: name });
-  a.click();
-  URL.revokeObjectURL(url);
+  saveFile(await res.blob(), name);
   return name;
 }
 
 export function Export() {
   const toast = useToast();
   const [busy, setBusy] = useState<ExportKind | null>(null);
+  const overview = useQuery({ queryKey: ['admin', 'overview'], queryFn: adminApi.overview });
+  const sealed = !!overview.data && overview.data.results.mode !== 'LIVE';
   const run = async (kind: ExportKind) => {
     setBusy(kind);
     try {
@@ -68,6 +68,17 @@ export function Export() {
         title="Export"
         lead="CSV files that open in Excel, Numbers and Google Sheets. Every download is recorded in the audit log."
       />
+      {sealed && (
+        <Notice tone="warn" className="mb-4">
+          <p className="font-bold">
+            The results are sealed on the TVs, so the results and vote files are not available.
+          </p>
+          <p>
+            To read the standings, use &quot;Who is ahead&quot; on the Overview (that is recorded),
+            or switch the results back to Live.
+          </p>
+        </Notice>
+      )}
       <div className="grid gap-4 lg:grid-cols-3">
         {FILES.map((f) => (
           <Panel key={f.kind} title={f.title} className="flex flex-col">
@@ -79,7 +90,7 @@ export function Export() {
                 variant="primary"
                 icon="download"
                 loading={busy === f.kind}
-                disabled={busy !== null}
+                disabled={busy !== null || (sealed && f.kind !== 'outreach')}
                 onClick={() => void run(f.kind)}
               >
                 Download CSV

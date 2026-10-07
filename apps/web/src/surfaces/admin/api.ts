@@ -92,7 +92,7 @@ async function request<T>(
   }
   if (!code && (res.status === 502 || res.status === 503 || res.status === 504))
     throw new ApiError(res.status, 'NETWORK');
-  const err = new ApiError(res.status, code ?? 'INTERNAL', details);
+  const err = Object.assign(new ApiError(res.status, code ?? 'INTERNAL', details), { path });
   // The server's sentence is written for organisers ("This category already has votes…"); keep it.
   err.message = message || err.message;
   throw err;

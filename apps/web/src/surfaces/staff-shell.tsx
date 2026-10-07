@@ -4,11 +4,20 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router/dom';
 import { ApiError } from '../lib/api';
 import { router } from '../router';
+import { endSession, SESSION_KEY } from './admin/session';
 
-/** A 401 from any call means the session ended (idle, expired, signed out elsewhere): show the sign-in screen. */
+/**
+ * A 401 from a console call means the session ended (idle, expired, signed out elsewhere): wipe everything cached and
+ * show the sign-in screen. The sign-in steps themselves also answer 401 for a WRONG password or code, which must stay
+ * on that screen with its message; for those the server is asked who is signed in (an expired half-signed-in session
+ * then sends the browser back to the start, a plain typo does not).
+ */
 const onApiError = (err: unknown) => {
-  if (err instanceof ApiError && err.status === 401 && err.code === 'UNAUTHENTICATED')
-    queryClient.setQueryData(['admin', 'session'], { authenticated: false });
+  if (!(err instanceof ApiError) || err.status !== 401 || err.code !== 'UNAUTHENTICATED') return;
+  const path = (err as { path?: string }).path ?? '';
+  if (path.startsWith('/auth/') && path !== '/auth/session')
+    void queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+  else endSession(queryClient);
 };
 
 const queryClient: QueryClient = new QueryClient({

@@ -632,6 +632,20 @@ export function fmtTime(iso: string | null, opts: Intl.DateTimeFormatOptions = {
   }).format(new Date(iso));
 }
 
+/**
+ * Hands a generated file to the browser's download. The link is attached to the page while it is clicked (Safari and older
+ * Firefox ignore a detached one) and the temporary address is kept alive for a while: revoking it at once can cancel a
+ * download that has not started yet, and for recovery codes this is the only copy.
+ */
+export function saveFile(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), { href: url, download: name, hidden: true });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export function CopyBtn({ text, label = 'Copy' }: { text: string; label?: string }) {
   const toast = useToast();
   return (

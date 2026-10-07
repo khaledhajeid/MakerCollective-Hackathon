@@ -20,7 +20,7 @@ For the organiser. Open `https://<your-domain>/admin` on a laptop or a phone. Ev
 - **Signals** on the Overview: SMS codes confirmed (a low percentage means phones are not receiving SMS), TVs online, phones sharing one device.
 
 ## After
-- **Export** → results, the anonymous vote ledger, and the contact list of people who agreed to be contacted (personal data: use it for that purpose only, then delete the file).
+- **Export** → (the results and vote files only while the results are Live; during a Blind Hour or reveal use "Who is ahead") results, the anonymous vote ledger, and the contact list of people who agreed to be contacted (personal data: use it for that purpose only, then delete the file).
 - **Audit log** (super admin) shows every change, who made it and from where.
 
 ## If something goes wrong

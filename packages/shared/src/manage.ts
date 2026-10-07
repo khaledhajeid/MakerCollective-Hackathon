@@ -48,7 +48,11 @@ export const CategoryCreateSchema = z.object({
   ...categoryFields,
   isActive: categoryFields.isActive.optional(),
 });
-export const CategoryPatchSchema = z.object(categoryFields).partial().strict();
+export const CategoryPatchSchema = z
+  .object(categoryFields)
+  .partial()
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, 'nothing to change');
 export type CategoryCreate = z.infer<typeof CategoryCreateSchema>;
 export type CategoryPatch = z.infer<typeof CategoryPatchSchema>;
 
@@ -90,7 +94,11 @@ export const ExhibitorCreateSchema = z.object({
   ...exhibitorFields,
   isActive: exhibitorFields.isActive.optional(),
 });
-export const ExhibitorPatchSchema = z.object(exhibitorFields).partial().strict();
+export const ExhibitorPatchSchema = z
+  .object(exhibitorFields)
+  .partial()
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, 'nothing to change');
 export type ExhibitorCreate = z.infer<typeof ExhibitorCreateSchema>;
 export type ExhibitorPatch = z.infer<typeof ExhibitorPatchSchema>;
 

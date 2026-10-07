@@ -5,7 +5,8 @@ import qrcode from 'qrcode-generator';
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Logo } from '../../design-system/Logo';
 import { adminApi, ApiError, explain, setCsrf } from './api';
-import { Btn, CopyBtn, Check, Input, Notice, useToast } from './ui';
+import { endSession, SESSION_KEY } from './session';
+import { Btn, CopyBtn, Check, Input, Notice, saveFile, useToast } from './ui';
 
 /** The one door into the console: navy brand ground, a single card, one task per screen. */
 function Frame({
@@ -40,7 +41,7 @@ function useSessionSetter() {
   const qc = useQueryClient();
   return (s: AdminSessionInfo) => {
     if (s.authenticated) setCsrf(s.csrfToken);
-    qc.setQueryData(['admin', 'session'], s);
+    qc.setQueryData(SESSION_KEY, s);
   };
 }
 
@@ -51,10 +52,7 @@ function SignOutLink() {
       type="button"
       className="mx-auto block min-h-11 px-3 text-sm font-bold text-royal hover:underline"
       onClick={() => {
-        void adminApi.logout().finally(() => {
-          setCsrf('');
-          qc.setQueryData(['admin', 'session'], { authenticated: false });
-        });
+        void adminApi.logout().finally(() => endSession(qc));
       }}
     >
       Cancel and sign out
@@ -235,15 +233,9 @@ export function RecoveryCodeList({ codes }: { codes: string[] }) {
         <Btn
           small
           icon="download"
-          onClick={() => {
-            const url = URL.createObjectURL(new Blob([`${text}\n`], { type: 'text/plain' }));
-            const a = Object.assign(document.createElement('a'), {
-              href: url,
-              download: 'mc2026-recovery-codes.txt',
-            });
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
+          onClick={() =>
+            saveFile(new Blob([`${text}\n`], { type: 'text/plain' }), 'mc2026-recovery-codes.txt')
+          }
         >
           Download
         </Btn>

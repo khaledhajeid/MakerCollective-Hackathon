@@ -20,7 +20,7 @@
 
 | Check | Result |
 |---|---|
-| `pnpm check` (typecheck, lint, format, all tests) | ✅ API **317** tests (281 before; +36 for Phase 6), web **46** (+3), shared 2 |
+| `pnpm check` (typecheck, lint, format, all tests) | ✅ API **320** tests (281 before; +39 for Phase 6), web **46** (+3), shared 2 |
 | Real browser, real stack (Playwright against Caddy → 2 replicas → Postgres) | ✅ sign-in → authenticator → recovery codes → password change; category and exhibitor created; **photo cropped in the browser, uploaded, served `image/webp` immutable, visible in the voter catalog**; Blind Hour confirm → audited live read → Reveal (typed word) → Live; display created (QR + link shown once) and revoked; CSV downloaded; audit entries present; **0 console errors** |
 | axe-core, WCAG 2.2 A/AA, 10 screens × laptop and phone | ✅ 0 violations (after fixing 3: a `dl` with a stray `p`, a 4.2:1 badge colour, a scroll region that could not take focus) |
 | Voter bundle | ✅ unchanged (admin and its 30 KB gzipped of code are a lazy chunk; `@mc/shared/manage` is a separate entry so its schemas never reach the voter) |
@@ -68,12 +68,24 @@ Killed include: EXIF/ICC/unknown-chunk rules, CSV guard and phone rule, ADMIN ga
 2. **Do you want the console's browser test kept in the repo** (Playwright, needs a seeded admin and an authenticator secret in CI)? Recommended yes, small.
 
 ## 8. Test map
-- `apps/api/test/integration/admin-manage.test.ts` (36): categories (4), exhibitors (4), photos (4), settings (5), results control and overview (4), displays (1), visitors (4), export (6), SMS inbox and role split (3), plus the existing RBAC sweep over the new routes.
+- `apps/api/test/integration/admin-manage.test.ts` (39): categories (4), exhibitors (4), photos (4), settings (5), results control and overview (4), displays (1), visitors (4), export (6), SMS inbox and role split (3), plus the existing RBAC sweep over the new routes.
 - `apps/web/src/surfaces/admin/time.test.ts` (3): Jordan time conversion.
 - Browser run and axe: scripts in the session scratch space (not committed).
 
-## 9. `/code-review` round
-_Pending: run `/code-review` and I will address the findings._
+## 9. `/code-review` round (10 findings: all addressed)
+
+| # | Finding | Fix | Evidence |
+|---|---|---|---|
+| 1 | A wrong MFA code, recovery code or password (a 401) was treated as "session ended", bouncing the organiser back to sign-in without the message | The console remembers which endpoint failed. Sign-in steps ask the server who is signed in (typo: stay and show the message; expired half-signed-in session: back to the start); every other 401 ends the session | Real browser: wrong code keeps the screen and the message; deleting the cookie then clicking returns to sign-in |
+| 2 | `invalidateQueries(['admin'])` also refreshed the session query, and a failed refresh replaced the whole console with "cannot reach the server" | Session query has its own key; the full-page error is shown only when there is no session data at all | typecheck + browser |
+| 3 | **`results` export and the vote ledger gave the standings to any ADMIN during the Blind Hour** (bypassing ADR-003) | Both answer 409 unless the results are LIVE (contact list unaffected); the Export screen explains and disables them; ADR-008, threat model and runbook updated | Integration: FROZEN, HIDDEN and REVEAL refuse, Live allows, 4 audited downloads |
+| 4 | `PATCH` category with `{}` reached drizzle's empty `.set()` and returned 500 | Empty edits are a 400 (schema refine) and the service guards it | Integration |
+| 5 | Visitor "Show more" could skip rows: the cursor went through a millisecond JS Date, Postgres keeps microseconds | The cursor is formatted by Postgres with microseconds and compared as `timestamptz` | Integration: five visitors inside one millisecond are paged one at a time in order |
+| 6 | Text typed in an address box but not added (no Enter) was silently left out of Save, with "Everything is saved" shown | Leaving the box adds it; Save is disabled and the footer says "press Add" while text is pending | Real browser: typed address is kept and saved |
+| 7 | Blob URL revoked at once after `click()` on a detached link (can cancel the download; recovery codes are shown once) | One `saveFile` helper: link attached while clicked, address kept for a minute | typecheck + browser (download event) |
+| 8 | Sign-out and session expiry left the audit log, SMS inbox (with OTPs) and user list in the browser cache for the next person | One `endSession` wipes every cached answer and the CSRF token, used by all three paths (a first version used `clear()` and would have hidden the sign-in screen: caught in the browser) | Real browser: no audit text on the page after sign-out |
+| 9 | Preview blob URL and decoded `ImageBitmap` of every photo kept alive | Released on replace / close | typecheck |
+| 10 | ICC chunk rules looser than documented (after `ALPH`, or promised but absent) | ICC must come before alpha data, once, and a header that flags a profile must carry it | Integration: 3 new refusal cases |
 
 ## 10. `/security-review` round
 _Pending: run `/security-review`._
