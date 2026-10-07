@@ -100,6 +100,14 @@ export const ExhibitorPatchSchema = z
   .strict()
   .refine((v) => Object.keys(v).length > 0, 'nothing to change');
 export type ExhibitorCreate = z.infer<typeof ExhibitorCreateSchema>;
+
+/** Bulk import: the console reads a spreadsheet and sends the rows; all of them are added, or none (one transaction). */
+export const BULK_EXHIBITORS_MAX = 300;
+export const ExhibitorBulkSchema = z.object({
+  exhibitors: z.array(ExhibitorCreateSchema).min(1).max(BULK_EXHIBITORS_MAX),
+});
+export const ExhibitorBulkResultSchema = z.object({ created: z.number().int() });
+export type ExhibitorBulk = z.infer<typeof ExhibitorBulkSchema>;
 export type ExhibitorPatch = z.infer<typeof ExhibitorPatchSchema>;
 
 export const AdminExhibitorSchema = z.object({

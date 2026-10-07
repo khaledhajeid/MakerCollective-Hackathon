@@ -336,6 +336,79 @@ describe('exhibitors', () => {
     expect(await db.$count(exhibitors)).toBe(0);
   });
 
+  it('adds a whole spreadsheet at once: every row with its categories, one audit entry', async () => {
+    const call = ctx.as(await admin());
+    const [c1, c2] = [
+      await category({ nameEn: 'Best Robot' }),
+      await category({ nameEn: 'Best App' }),
+    ];
+    const res = await call('POST', '/api/admin/exhibitors/bulk', {
+      body: {
+        exhibitors: [
+          { nameEn: ' Atlas ', nameAr: 'أطلس', booth: 'A1', categoryIds: [c1.id, c2.id] },
+          { nameEn: 'Zeta', isActive: false, categoryIds: [c1.id] },
+          { nameEn: 'Loose', categoryIds: [] },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ created: 3 });
+    const list = (await call('GET', '/api/admin/content')).json().exhibitors;
+    const by = (n: string) => list.find((e: { nameEn: string }) => e.nameEn === n);
+    expect(by('Atlas')).toMatchObject({ nameAr: 'أطلس', booth: 'A1', isActive: true });
+    expect(by('Atlas').categoryIds.sort()).toEqual([c1.id, c2.id].sort());
+    expect(by('Zeta')).toMatchObject({ isActive: false, categoryIds: [c1.id] });
+    expect(by('Loose').categoryIds).toEqual([]);
+    const entries = await db
+      .select()
+      .from(auditLog)
+      .where(eq(auditLog.action, 'exhibitor.bulk_create'));
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.details).toEqual({ count: 3 });
+  });
+
+  it('adds all of the rows or none: one bad row or unknown category changes nothing', async () => {
+    const call = ctx.as(await admin());
+    const c = await category();
+    for (const rows of [
+      [
+        { nameEn: 'Good', categoryIds: [c.id] },
+        { nameEn: 'Bad', categoryIds: [randomUUID()] },
+      ],
+      [
+        { nameEn: 'Good', categoryIds: [c.id] },
+        { nameEn: 'x'.repeat(121), categoryIds: [] },
+      ],
+      [],
+    ]) {
+      const res = await call('POST', '/api/admin/exhibitors/bulk', { body: { exhibitors: rows } });
+      expect(res.statusCode).toBe(400);
+    }
+    expect(await db.$count(exhibitors)).toBe(0);
+    expect(await db.$count(auditLog, eq(auditLog.action, 'exhibitor.bulk_create'))).toBe(0);
+  });
+
+  it('takes 300 full-size rows (far past the 64 KB default) but not 301', async () => {
+    const call = ctx.as(await admin());
+    const c = await category();
+    const row = (i: number) => ({
+      nameEn: `Team ${i}`,
+      descriptionEn: 'd'.repeat(600),
+      descriptionAr: 'و'.repeat(600),
+      categoryIds: [c.id],
+    });
+    const ok = await call('POST', '/api/admin/exhibitors/bulk', {
+      body: { exhibitors: Array.from({ length: 300 }, (_, i) => row(i)) },
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(await db.$count(exhibitors)).toBe(300);
+    const tooMany = await call('POST', '/api/admin/exhibitors/bulk', {
+      body: { exhibitors: Array.from({ length: 301 }, (_, i) => row(i + 1000)) },
+    });
+    expect(tooMany.statusCode).toBe(400);
+    expect(await db.$count(exhibitors)).toBe(300);
+  });
+
   it('changes categories, but cannot remove one the exhibitor already has votes in', async () => {
     const call = ctx.as(await admin());
     const [a, b, c] = [await category(), await category(), await category()];
@@ -1069,6 +1142,46 @@ describe('export', () => {
     expect((await download('results', 'SUPER_ADMIN')).res.statusCode).toBe(200);
     expect((await download('everything')).res.statusCode).toBe(400);
     expect((await ctx.anon('GET', '/api/admin/export/results')).statusCode).toBe(401);
+  });
+
+  it('audit log: only a SUPER_ADMIN, oldest first, details as JSON, formulas neutralised, and the download is recorded', async () => {
+    await db.insert(auditLog).values([
+      {
+        actorLabel: 'admin:=cmd|calc',
+        action: 'a.first',
+        details: { n: 1, note: 'x,y' },
+        ip: '10.0.0.1',
+      },
+      { actorLabel: 'system', action: 'a.second', entity: 'thing', entityId: 'abc' },
+    ]);
+    const asAdmin = await ctx.as(await admin('ADMIN'))('GET', '/api/admin/audit/export');
+    expect(asAdmin.statusCode).toBe(403);
+    expect((await ctx.anon('GET', '/api/admin/audit/export')).statusCode).toBe(401);
+
+    const res = await ctx.as(await admin('SUPER_ADMIN'))('GET', '/api/admin/audit/export');
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('text/csv');
+    expect(res.headers['content-disposition']).toMatch(/filename="mc2026-audit-\d{8}-\d{4}\.csv"/);
+    const lines = res.body
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\r\n');
+    expect(lines[0]).toBe('id,at,who,action,entity,entity_id,details,ip');
+    const first = lines.findIndex((l) => l.includes('a.first'));
+    const second = lines.findIndex((l) => l.includes('a.second'));
+    expect(first).toBeGreaterThan(0);
+    expect(second).toBeGreaterThan(first);
+    expect(lines[first]).toContain('admin:=cmd|calc');
+    expect(lines[first]).toContain('"{""n"":1,""note"":""x,y""}"');
+    expect(lines[first]).toContain('10.0.0.1');
+    const recorded = await db.select().from(auditLog).where(eq(auditLog.action, 'export.run'));
+    expect(recorded.find((r) => r.entityId === 'audit')?.details).toMatchObject({ kind: 'audit' });
+  });
+
+  it('audit log: a name that starts like a formula gets a leading apostrophe', async () => {
+    await db.insert(auditLog).values({ actorLabel: '=1+1', action: 'a.formula' });
+    const res = await ctx.as(await admin('SUPER_ADMIN'))('GET', '/api/admin/audit/export');
+    expect(res.body).toContain("'=1+1,a.formula");
   });
 
   it('csv cells: formulas, quotes, numbers and phones', () => {

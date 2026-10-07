@@ -298,6 +298,36 @@ export class ContentService {
     return this.exhibitor(id);
   }
 
+  /** Many exhibitors from one spreadsheet: every row is added in one transaction, or none is. One audit entry. */
+  async createExhibitors(inputs: ExhibitorCreate[], actor: Actor): Promise<{ created: number }> {
+    await this.write(async (tx) => {
+      await this.requireCategories(tx, [...new Set(inputs.flatMap((i) => i.categoryIds))]);
+      const rows = await tx
+        .insert(exhibitors)
+        .values(
+          inputs.map(({ categoryIds: _categoryIds, ...fields }) => ({
+            ...fields,
+            isActive: fields.isActive ?? true,
+          })),
+        )
+        .returning({ id: exhibitors.id });
+      // `returning` keeps the order of the inserted rows.
+      const links = rows.flatMap((row, i) =>
+        inputs[i]!.categoryIds.map((categoryId) => ({ exhibitorId: row.id, categoryId })),
+      );
+      if (links.length) await tx.insert(exhibitorCategories).values(links);
+      await writeAudit(tx, {
+        adminId: actor.adminId,
+        label: actor.label,
+        action: 'exhibitor.bulk_create',
+        entity: 'exhibitor',
+        details: { count: rows.length },
+        ip: actor.ip,
+      });
+    });
+    return { created: inputs.length };
+  }
+
   async updateExhibitor(id: string, patch: ExhibitorPatch, actor: Actor): Promise<AdminExhibitor> {
     await this.write(async (tx) => {
       const [before] = await tx

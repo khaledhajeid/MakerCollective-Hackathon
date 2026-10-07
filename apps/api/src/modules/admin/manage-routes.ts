@@ -8,6 +8,8 @@ import {
   ContentSchema,
   DisplayCreateSchema,
   DisplayCreatedSchema,
+  ExhibitorBulkSchema,
+  ExhibitorBulkResultSchema,
   ExhibitorCreateSchema,
   ExhibitorPatchSchema,
   ExportParamsSchema,
@@ -143,6 +145,17 @@ export const manageRoutes: FastifyPluginAsyncZod = async (app) => {
       schema: { body: ExhibitorCreateSchema, response: { 200: AdminExhibitorSchema } },
     },
     async (request) => app.content.createExhibitor(request.body, actorOf(request)),
+  );
+
+  // A spreadsheet of up to 300 rows is far larger than the 64 KB default, so this one route has its own limit.
+  app.post(
+    '/admin/exhibitors/bulk',
+    {
+      config: { access: 'content.manage' },
+      bodyLimit: 1024 * 1024,
+      schema: { body: ExhibitorBulkSchema, response: { 200: ExhibitorBulkResultSchema } },
+    },
+    async (request) => app.content.createExhibitors(request.body.exhibitors, actorOf(request)),
   );
 
   app.patch(
@@ -346,6 +359,15 @@ export const manageRoutes: FastifyPluginAsyncZod = async (app) => {
         .send(file.body);
     },
   );
+
+  // The audit trail as a spreadsheet. SUPER_ADMIN only, like reading it on screen; the download is itself audited.
+  app.get('/admin/audit/export', { config: { access: 'audit.read' } }, async (request, reply) => {
+    const file = await app.exporter.auditLog(actorOf(request));
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition', `attachment; filename="${file.filename}"`)
+      .send(file.body);
+  });
 
   app.get(
     '/admin/sms-inbox',

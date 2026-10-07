@@ -27,6 +27,7 @@ import {
   TextArea,
   useToast,
 } from '../ui';
+import { BulkExhibitors } from './BulkExhibitors';
 import { PhotoCropper } from './PhotoCropper';
 
 const SWATCHES = [
@@ -363,6 +364,7 @@ function Exhibitors({ data }: { data: AdminContent }) {
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [editing, setEditing] = useState<AdminExhibitor | 'new' | null>(null);
+  const [importing, setImporting] = useState(false);
   const catName = useMemo(() => new Map(data.categories.map((c) => [c.id, c])), [data.categories]);
   const list = data.exhibitors.filter((e) => {
     const s = search.trim().toLowerCase();
@@ -384,14 +386,23 @@ function Exhibitors({ data }: { data: AdminContent }) {
     <Panel
       title="Exhibitors"
       action={
-        <Btn
-          variant="primary"
-          icon="plus"
-          onClick={() => setEditing('new')}
-          disabled={data.categories.length === 0}
-        >
-          Add exhibitor
-        </Btn>
+        <div className="flex flex-wrap gap-2">
+          <Btn
+            icon="upload"
+            onClick={() => setImporting(true)}
+            disabled={data.categories.length === 0}
+          >
+            Import from file
+          </Btn>
+          <Btn
+            variant="primary"
+            icon="plus"
+            onClick={() => setEditing('new')}
+            disabled={data.categories.length === 0}
+          >
+            Add exhibitor
+          </Btn>
+        </div>
       }
       pad={false}
     >
@@ -476,6 +487,12 @@ function Exhibitors({ data }: { data: AdminContent }) {
           ))}
         </ul>
       )}
+      <BulkExhibitors
+        open={importing}
+        onClose={() => setImporting(false)}
+        categories={data.categories}
+        exhibitors={data.exhibitors}
+      />
       <Dialog
         open={editing !== null}
         onClose={() => setEditing(null)}

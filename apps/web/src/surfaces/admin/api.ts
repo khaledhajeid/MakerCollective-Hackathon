@@ -132,6 +132,8 @@ export const adminApi = {
     send<{ categories: AdminCategory[] }>('PUT', '/categories/order', { ids }),
   deleteCategory: (id: string) => send<{ ok: true }>('DELETE', `/categories/${id}`),
   createExhibitor: (b: ExhibitorCreate) => send<AdminExhibitor>('POST', '/exhibitors', b),
+  bulkCreateExhibitors: (exhibitors: ExhibitorCreate[]) =>
+    send<{ created: number }>('POST', '/exhibitors/bulk', { exhibitors }),
   updateExhibitor: (id: string, b: ExhibitorPatch) =>
     send<AdminExhibitor>('PATCH', `/exhibitors/${id}`, b),
   deleteExhibitor: (id: string) => send<{ ok: true }>('DELETE', `/exhibitors/${id}`),
@@ -169,6 +171,7 @@ export const adminApi = {
 
   /* export, inbox */
   exportUrl: (kind: ExportKind) => `/api/admin/export/${kind}`,
+  auditExportUrl: '/api/admin/audit/export',
   smsInbox: () => get<SmsInbox>('/sms-inbox'),
 
   /* accounts, audit (SUPER_ADMIN) */

@@ -2,7 +2,14 @@ import type { ExportKind } from '@mc/shared/manage';
 import { and, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import type { Env } from '../../config/env.js';
 import type { Database } from '../../db/client.js';
-import { categories, exhibitorCategories, exhibitors, visitors, votes } from '../../db/schema.js';
+import {
+  auditLog,
+  categories,
+  exhibitorCategories,
+  exhibitors,
+  visitors,
+  votes,
+} from '../../db/schema.js';
 import { FieldCipher, hmacHex } from '../../lib/crypto.js';
 import { AppError } from '../../lib/errors.js';
 import { writeAudit } from '../admin/audit.js';
@@ -15,6 +22,9 @@ export interface CsvFile {
   body: string;
   rows: number;
 }
+
+/** The audit export holds at most this many (the newest) entries. */
+export const AUDIT_EXPORT_MAX = 100_000;
 
 const stamp = (d: Date) => d.toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
 
@@ -56,6 +66,45 @@ export class ExportService {
       ip: actor.ip,
     });
     return file;
+  }
+
+  /**
+   * The audit trail, oldest first, as a spreadsheet: when, who, what, which record, the details (as JSON) and the
+   * address it came from. The log never holds passwords, codes or phone numbers, so the file does not either. At most
+   * the newest AUDIT_EXPORT_MAX entries; the download is recorded after the file is built (so it is not in itself).
+   */
+  async auditLog(actor: Actor, now: Date = new Date()): Promise<CsvFile> {
+    const newest = await this.db
+      .select()
+      .from(auditLog)
+      .orderBy(desc(auditLog.id))
+      .limit(AUDIT_EXPORT_MAX);
+    const out = newest
+      .reverse()
+      .map((r) => [
+        r.id,
+        r.at.toISOString(),
+        r.actorLabel,
+        r.action,
+        r.entity,
+        r.entityId,
+        r.details ? JSON.stringify(r.details) : '',
+        r.ip,
+      ]);
+    await writeAudit(this.db, {
+      adminId: actor.adminId,
+      label: actor.label,
+      action: 'export.run',
+      entity: 'export',
+      entityId: 'audit',
+      details: { kind: 'audit', rows: out.length },
+      ip: actor.ip,
+    });
+    return {
+      filename: `mc2026-audit-${stamp(now)}.csv`,
+      body: toCsv(['id', 'at', 'who', 'action', 'entity', 'entity_id', 'details', 'ip'], out),
+      rows: out.length,
+    };
   }
 
   private async build(kind: ExportKind, now: Date): Promise<CsvFile> {

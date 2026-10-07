@@ -25,10 +25,11 @@ const FILES: Array<{ kind: ExportKind; title: string; text: string; note: string
   },
 ];
 
-async function download(kind: ExportKind) {
+/** Fetch a CSV from the API and hand it to the browser as a download; returns the file name. */
+export async function downloadCsv(url: string, fallbackName: string) {
   let res: Response;
   try {
-    res = await fetch(adminApi.exportUrl(kind), { credentials: 'same-origin' });
+    res = await fetch(url, { credentials: 'same-origin' });
   } catch {
     throw new ApiError(0, 'NETWORK');
   }
@@ -41,11 +42,12 @@ async function download(kind: ExportKind) {
     throw err;
   }
   const name =
-    /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ??
-    `mc2026-${kind}.csv`;
+    /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? fallbackName;
   saveFile(await res.blob(), name);
   return name;
 }
+
+const download = (kind: ExportKind) => downloadCsv(adminApi.exportUrl(kind), `mc2026-${kind}.csv`);
 
 export function Export() {
   const toast = useToast();

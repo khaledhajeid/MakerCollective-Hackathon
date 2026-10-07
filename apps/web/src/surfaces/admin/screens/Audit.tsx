@@ -2,7 +2,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import type { AdminRole } from '@mc/shared';
 import { useState } from 'react';
 import { adminApi, explain } from '../api';
-import { Btn, Empty, fmtTime, Input, Notice, PageHeader, Panel, Skeleton } from '../ui';
+import { Btn, Empty, fmtTime, Input, Notice, PageHeader, Panel, Skeleton, useToast } from '../ui';
+import { downloadCsv } from './Export';
 
 export function NoAccess() {
   return (
@@ -24,6 +25,18 @@ const detailText = (d: unknown): string => {
 
 export function Audit({ role }: { role: AdminRole }) {
   const [filter, setFilter] = useState('');
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+  const save = async () => {
+    setSaving(true);
+    try {
+      toast('good', `Saved ${await downloadCsv(adminApi.auditExportUrl, 'mc2026-audit.csv')}`);
+    } catch (e) {
+      toast('bad', explain(e));
+    } finally {
+      setSaving(false);
+    }
+  };
   const q = useInfiniteQuery({
     queryKey: ['admin', 'audit'],
     queryFn: ({ pageParam }) => adminApi.audit(pageParam),
@@ -46,11 +59,16 @@ export function Audit({ role }: { role: AdminRole }) {
     <>
       <PageHeader
         title="Audit log"
-        lead="Who did what, newest first. Entries cannot be edited or deleted. No passwords, codes or phone numbers are ever written here."
+        lead="Who did what, newest first. Entries cannot be edited or deleted. No passwords, codes or phone numbers are ever written here. The CSV holds the newest 100,000 entries, oldest first."
         actions={
-          <Btn icon="refresh" onClick={() => void q.refetch()} loading={q.isRefetching}>
-            Refresh
-          </Btn>
+          <>
+            <Btn icon="download" onClick={() => void save()} loading={saving}>
+              Download CSV
+            </Btn>
+            <Btn icon="refresh" onClick={() => void q.refetch()} loading={q.isRefetching}>
+              Refresh
+            </Btn>
+          </>
         }
       />
       <Panel pad={false}>
