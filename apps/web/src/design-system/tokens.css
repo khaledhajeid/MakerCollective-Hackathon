@@ -71,6 +71,14 @@
   --color-line: #dcdcee;
   --color-canvas: #f6f6fb;
   --color-surface: #ffffff;
+  /* Non-text UI boundaries (checkbox ring, "forward" chevron): 3.3:1 on white, the 3:1 floor for UI components. */
+  --color-faint: #8b8bab;
+  /* Loading placeholder: halfway between the line and canvas tints. */
+  --color-skeleton: color-mix(in oklab, var(--color-line) 55%, var(--color-canvas));
+  /* TV secondary (English) lines on navy: white at 72%, 11:1 on navy-deep. One value, used everywhere. */
+  --color-dim: rgb(255 255 255 / 0.72);
+  /* The same idea on a yellow leader row: navy at 75%. */
+  --color-navy-dim: rgb(0 0 123 / 0.75);
 
   /* One stack for both scripts: Nexa has no Arabic glyphs, so Latin always renders in Nexa
      and Arabic falls through to Helvetica Neue Arabic — correct for mixed AR/EN lines too. */

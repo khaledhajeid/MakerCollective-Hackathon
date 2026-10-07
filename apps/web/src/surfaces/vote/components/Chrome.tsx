@@ -15,7 +15,7 @@ export function LanguageToggle({ onDark = false }: { onDark?: boolean }) {
       type="button"
       lang={target}
       onClick={() => setLocale(target)}
-      className={`min-h-11 rounded-full px-4 text-sm font-bold ring-[1.5px] ring-inset transition-transform active:scale-95 ${
+      className={`min-h-12 rounded-full px-4 text-sm font-bold ring-[1.5px] ring-inset transition-transform active:scale-95 ${
         onDark ? 'bg-white/10 text-white ring-white/30' : 'bg-surface text-navy ring-line'
       }`}
     >
@@ -31,7 +31,7 @@ export function BackButton({ fallback, onDark = false }: { fallback: string; onD
       type="button"
       aria-label={d.common.back}
       onClick={() => goBack(fallback)}
-      className={`grid size-11 place-items-center rounded-full ring-[1.5px] ring-inset transition-transform active:scale-90 ${
+      className={`grid size-12 place-items-center rounded-full ring-[1.5px] ring-inset transition-transform active:scale-90 ${
         onDark ? 'bg-white/10 text-white ring-white/30' : 'bg-surface text-navy ring-line'
       }`}
     >

@@ -8,7 +8,7 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'onDark';
 
 const STYLES: Record<Variant, string> = {
   primary:
-    'bg-purple text-white shadow-[0_10px_22px_-8px_rgb(127_50_217/0.7),inset_0_1px_0_rgb(255_255_255/0.22)] disabled:bg-[#b9a3e0] disabled:shadow-none',
+    'bg-purple text-white shadow-[0_10px_22px_-8px_rgb(127_50_217/0.7),inset_0_1px_0_rgb(255_255_255/0.22)] disabled:bg-purple/45 disabled:shadow-none',
   secondary:
     'bg-surface text-navy ring-[1.5px] ring-inset ring-line shadow-[0_2px_6px_-2px_rgb(0_0_123/0.18)] disabled:text-muted',
   ghost: 'bg-transparent text-royal',

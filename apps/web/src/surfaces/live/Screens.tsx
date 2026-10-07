@@ -24,7 +24,7 @@ export function SealedScreen() {
         <Bi
           k="announceSoon"
           arClass="text-[56px] font-bold leading-[1.25] text-white"
-          enClass="text-[40px] leading-[1.15] text-white/72"
+          enClass="text-[40px] leading-[1.15] text-dim"
         />
       </div>
       <SlowGear size={560} className="relative z-10 me-[80px] text-white/85" />
@@ -52,7 +52,7 @@ export function WaitingScreen() {
         <Bi
           k="waitingBody"
           arClass="text-[56px] font-bold leading-[1.25] text-white"
-          enClass="text-[40px] leading-[1.15] text-white/72"
+          enClass="text-[40px] leading-[1.15] text-dim"
         />
       </div>
       <div className="relative z-10 me-[96px] flex items-center justify-center">

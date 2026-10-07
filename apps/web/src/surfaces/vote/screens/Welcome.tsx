@@ -24,7 +24,7 @@ export function Welcome() {
           aria-hidden="true"
         >
           <svg viewBox="0 0 44.6 51.4" className="drift absolute start-2 top-3 w-9">
-            <path d={TRIANGLE} fill="#f8d749" />
+            <path d={TRIANGLE} className="fill-yellow" />
           </svg>
           <span className="drift-slow absolute start-1/2 top-0 size-9 rounded-full bg-turquoise" />
           <Gear

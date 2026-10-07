@@ -46,13 +46,13 @@ export function Pairing({
         <Bi
           k="pairBody"
           arClass="text-[44px] font-normal leading-[1.4] text-white/90"
-          enClass="text-[40px] leading-[1.2] text-white/72"
+          enClass="text-[40px] leading-[1.2] text-dim"
         />
         <form onSubmit={submit} className="flex items-end gap-[24px]">
           <label className="flex flex-1 flex-col gap-[10px]">
             <span className="text-[40px] font-bold leading-[1.2]">
               {A.pairLabel}{' '}
-              <bdi lang="en" className="font-normal text-white/72">
+              <bdi lang="en" className="font-normal text-dim">
                 {E.pairLabel}
               </bdi>
             </span>
@@ -66,7 +66,7 @@ export function Pairing({
               autoCapitalize="off"
               spellCheck={false}
               aria-invalid={issue === 'invalid' || undefined}
-              className="h-[96px] rounded-[28px] border-[3px] border-white/40 bg-white/10 px-[32px] text-[40px] text-white outline-none placeholder:text-white/50 focus:border-turquoise"
+              className="h-[96px] rounded-[28px] border-[3px] border-white/40 bg-white/10 px-[32px] text-[40px] text-white outline-none placeholder:text-dim focus:border-turquoise"
               placeholder="mcd_…"
             />
           </label>

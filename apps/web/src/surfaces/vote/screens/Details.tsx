@@ -147,7 +147,7 @@ export function Details() {
         </div>
 
         <details className="group rounded-[var(--radius-control)] px-1">
-          <summary className="t-small flex min-h-11 cursor-pointer list-none items-center gap-2 font-bold text-royal [&::-webkit-details-marker]:hidden">
+          <summary className="t-small flex min-h-12 cursor-pointer list-none items-center gap-2 font-bold text-royal [&::-webkit-details-marker]:hidden">
             <Icon name="shield" size={18} />
             {d.details.dataTitle}
             <Icon

@@ -19,6 +19,10 @@ colors:
   line: "#dcdcee"
   canvas: "#f6f6fb"
   surface: "#ffffff"
+  faint: "#8b8bab"
+  skeleton: "color-mix(in oklab, #dcdcee 55%, #f6f6fb)"
+  dim: "rgb(255 255 255 / 0.72)"
+  navy-dim: "rgb(0 0 123 / 0.75)"
 typography:
   display:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
@@ -170,6 +174,10 @@ A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and
 - **Ink** (`{colors.ink}`): default body text on light surfaces.
 - **Muted Slate** (`{colors.muted}`): secondary text on canvas (6.6:1 on canvas).
 - **Hairline Lavender** (`{colors.line}`): ring borders on fields and secondary buttons, sheet handle.
+- **Faint Lavender** (`{colors.faint}`): non-text UI boundaries only: the checkbox ring and the "forward" chevron on category cards (3.3:1 on white, above the 3:1 floor for UI components). Never text; placeholders use Muted Slate.
+- **Skeleton** (`{colors.skeleton}`): loading shimmer base, a mix of line and canvas (55/45 in oklab) defined in the token file.
+- **TV Dim** (`{colors.dim}`): white at 72%, the single value for TV secondary (English) lines, `text-dim` across the live surface; about 11:1 on navy-deep.
+- **TV Navy Dim** (`{colors.navy-dim}`): navy at 75%, the same role on the yellow leader row (`text-navy-dim`).
 - **Canvas** (`{colors.canvas}`): page background of the voter app. **Surface** (`{colors.surface}`): cards, fields, sheet.
 - **Navy Deep** (`{colors.navy-deep}`): TV ground base and QR modules.
 - **Soft tints** (`purple-soft`, `royal-soft`, `turquoise-soft`, `yellow-soft`, `crimson-soft`): state backgrounds for notices, voted card, pressed rows.
@@ -198,7 +206,7 @@ A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and
 
 ### Hierarchy (TV, design pixels on 1920x1080; size floor 40px)
 - **Poster counts**: ceremony solo winner 240px; leader count 96px; ranked counts 72px; header numerals 52px; all Nexa Black (900), tabular numerals.
-- **Names**: Arabic Bold 56px (leader 60px; sealed headline 120px; waiting 104px; ceremony solo 104px), English beneath Regular 40px (leader 42px) at 72% white.
+- **Names**: Arabic Bold 56px (leader 60px; sealed headline 120px; waiting 104px; ceremony solo 104px), English beneath Regular 40px (leader 42px) in Dim (`{colors.dim}`, white at 72%).
 - **Chrome text**: header, pills, rail category: 40px minimum; rail leader name and count 56px.
 - Nothing on the TV is below 40px.
 
@@ -209,7 +217,7 @@ A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and
 
 ## Layout
 
-**Voter:** a single column, max 28rem wide (`max-w-md`), centred; on wider screens it becomes a rounded (2.5rem) card on a dark backdrop. Page gutters 20px (`px-5`), hero gutters 24px (`px-6`). Rhythm is Tailwind 4px steps: 12 to 16px inside lists, 24px between photo cards. Top insets use `env(safe-area-inset-top)`; the sticky action bar clears the home indicator with `env(safe-area-inset-bottom)` over a canvas-to-transparent fade. Primary action lives in the thumb zone (bottom). Short viewports (under 700px high) shrink the welcome hero to 44dvh and hide step details. Tap targets are at least 44px (icon buttons, language toggle) and 48 to 56px for primary controls.
+**Voter:** a single column, max 28rem wide (`max-w-md`), centred; on wider screens it becomes a rounded (2.5rem) card on a dark backdrop. Page gutters 20px (`px-5`), hero gutters 24px (`px-6`). Rhythm is Tailwind 4px steps: 12 to 16px inside lists, 24px between photo cards. Top insets use `env(safe-area-inset-top)`; the sticky action bar clears the home indicator with `env(safe-area-inset-bottom)` over a canvas-to-transparent fade. Primary action lives in the thumb zone (bottom). Short viewports (under 700px high) shrink the welcome hero to 44dvh and hide step details. Every tap target is at least 48px (language toggle `min-h-12`, back and search-clear buttons `size-12`, text links `min-h-12`, checkbox rows full-width 48px) and primary controls are 56px; the sheet's 36px drag handle is a pointer-drag region, not a button.
 
 **TV:** a fixed 1920x1080 artboard (`dir="rtl"`, `lang="ar"`), scaled by `min(w/1920, h/1080)` and centred; non-16:9 screens get navy-deep bars. Content is Header 80px, Stage (title row 76px, five rows of 128px with 8px gaps), Rail 144px, with 12px between stage parts. Rows use a 4-column grid: rank 84px, photo 104px, name flexible, count auto, 28px gap and gutter. The whole picture drifts 7px/5px over 240s to prevent burn-in. Z-order: sticky 20, banner 40, sheet 60 (voter); ceremony overlay z-50 (TV).
 
@@ -237,13 +245,13 @@ Soft and generous: controls 18px (1.125rem), cards 24px (1.5rem), exhibitor phot
 
 ### Buttons
 - **Shape:** 18px radius, full width, min height 56px (`lg`) or 48px (`md`); bold text 1.0625rem.
-- **Primary:** purple fill, white text, purple glow shadow; disabled `#b9a3e0`.
+- **Primary:** purple fill, white text, purple glow shadow; disabled is purple at 45% (`bg-purple/45`, no shadow).
 - **Secondary:** white surface, navy text, 1.5px line ring. **Ghost:** transparent, royal text. **On-dark:** white, navy text, for hero grounds.
 - **States:** press scales to 0.96 with a fast spring plus a haptic tick; `loading` shows the dotted gear, sets `aria-busy`, and ignores taps so a double tap cannot submit twice. Focus uses the global 3px royal outline.
 
 ### Fields
 - **Style:** label above the control (not floating), white fill, 1.5px inset ring in line colour, 56px min height, text 1.0625rem (never under 16px).
-- **Focus:** ring thickens to 2.5px and turns purple. **Error:** crimson ring and a bold crimson message with an alert icon that says what to do next. Hint is muted small text.
+- **Focus:** ring thickens to 2.5px and turns purple. **Error:** crimson ring and a bold crimson message with an alert icon that says what to do next. Hint is muted small text; placeholders use Muted Slate (`text-muted`, 4.5:1 or better).
 - **OTP:** six visual cells over one real input (autofill, paste, numeric keyboard work); active cell purple ring, filled cells scale 1.03, invalid crimson on crimson-soft. Always LTR. Checkbox rows are 48px tall, whole-row targets.
 
 ### Category and exhibitor cards
@@ -252,10 +260,10 @@ Soft and generous: controls 18px (1.125rem), cards 24px (1.5rem), exhibitor phot
 - Press scale 0.975.
 
 ### Bottom Sheet
-A native `<dialog>` with a 32px top radius, 24px side padding, a drag handle (44x6 pill in line colour), navy dim backdrop (`rgb(0 0 50 / 0.58)`), spring entrance, drag-to-dismiss at 110px or 0.6px/ms, locked while a vote is in flight. Content: photo, restated choice, confirm button, ghost cancel; success shows the ray celebration; offline shows a yellow-soft notice and retries.
+A native `<dialog>` with a 32px top radius, 24px side padding, a drag handle (44x6 pill in line colour inside a 36px-high drag region), navy dim backdrop (`rgb(0 0 50 / 0.58)`), spring entrance, drag-to-dismiss at 110px or 0.6px/ms, locked while a vote is in flight. Content: photo, restated choice, confirm button, ghost cancel; success shows the ray celebration; offline shows a yellow-soft notice and retries.
 
 ### Hero and chrome
-Navy hero with two radial glows (purple top-end, royal bottom-start; a teal variant for gate/system screens) and slowly turning concentric rings. Language toggle (pill, 44px, labelled in the target language) is always visible. Offline banner is a sticky ink strip with a yellow icon. Chevron trail (one triangle per category, filled in brand order as votes land) is the progress device. Skeletons use a navy-tinted shimmer.
+Navy hero with two radial glows (purple top-end, royal bottom-start; a teal variant for gate/system screens) and slowly turning concentric rings. Language toggle (pill, 48px, labelled in the target language) is always visible. Offline banner is a sticky ink strip with a yellow icon. Chevron trail (one triangle per category, filled in brand order as votes land) is the progress device. Skeletons use a navy-tinted shimmer built from the skeleton token.
 
 ### TV: Stage and rail
 - **Row:** 128px, 32px radius, translucent white 7% base; the row itself is the bar (fill scaleX to share of leader). **Leader** row is solid yellow with navy text, 60px name, 96px count. Non-leader fill white 15%. Rows slide to new rank in 900ms and cascade in at 70ms steps.
@@ -266,7 +274,7 @@ Navy hero with two radial glows (purple top-end, royal bottom-start; a teal vari
 - **Sealed / Waiting / Pairing:** panels on the ground with rings and one slow dotted gear (sealed shows no numbers at all); waiting adds a 380px QR; pairing is a 96px-high field and white button.
 
 ### Signature: the no-photo tile
-A deterministic brand tile (seeded by exhibitor id) in one of five brand grounds with faint rings, one circle/triangle/dotted-ring accent and the initial in Nexa Black. Reads as designed, not as a missing image. The TV scales a 160px tile and drops the yellow ground.
+A deterministic brand tile (seeded by exhibitor id) in one of five brand grounds with faint rings, one circle/triangle/dotted-ring accent and the initial in Nexa Black (Latin) or Helvetica Neue Arabic Bold (Arabic initials, the face's top weight). Reads as designed, not as a missing image. The TV scales a 160px tile and drops the yellow ground.
 
 ### Motion
 Entrances use `cubic-bezier(0.25, 1, 0.5, 1)` (quart) or `cubic-bezier(0.16, 1, 0.3, 1)` (expo). Springs: press (stiffness 700, damping 32), soft (380/34), sheet (420/38). Voter and TV animate transform and opacity only. Reduced motion collapses durations to near zero; on the TV staged delays go to zero and the dwell fill is hidden so it does not look finished from frame one. Haptics and sound are enhancements only; the TV has no sound.
@@ -295,9 +303,4 @@ Layout is authored with logical properties (`start`/`end`, `ps`/`pe`); arrows, c
 - **Don't** let the TV hide or invent numbers: the server decides what is sealed, the client renders it.
 
 ### Known inconsistencies in the build (recorded, not canonized)
-- The Category screen's sticky header uses `bg-canvas/95` with `backdrop-blur-sm`, which brushes against the PRODUCT.md "no glassy blurs" anti-reference. Treat as a defect, not a pattern for new surfaces.
-- The TV Rail is 144px tall in code; the surface brief says 120px. The code is recorded here.
-- A few off-token neutral literals are used in components: placeholder `#7c7c9c`, checkbox ring and forward arrow `#8b8bab`, disabled primary `#b9a3e0`, skeleton `#ececf6`.
 - Voter focus ring (3px royal, 6px radius) is global, while fields suppress it and use their own purple ring; both are intended, but the ring colour differs.
-- TV secondary English lines are `white/72`, which is lighter than the white used for primary text; contrast on navy-deep remains high but the opacity is a one-off.
-- The no-photo tile's initial uses Nexa Black (900) for Arabic initials, a weight the Arabic face does not ship, so it falls back to Bold rendering.

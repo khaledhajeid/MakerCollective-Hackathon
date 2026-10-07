@@ -22,7 +22,7 @@ const Pair = ({ ar, en, strong = true }: { ar: string; en: string; strong?: bool
     <span lang="ar" className={`text-[40px] leading-[1.2] ${strong ? 'font-bold' : ''}`}>
       {ar}
     </span>
-    <bdi lang="en" className="text-[40px] leading-[1.2] text-white/72">
+    <bdi lang="en" className="text-[40px] leading-[1.2] text-dim">
       {en}
     </bdi>
   </span>
@@ -78,7 +78,7 @@ export function Header({
           <span lang="ar" className="text-[40px] font-bold leading-[1.2]">
             {pill.ar}
           </span>
-          <bdi lang="en" className="text-[40px] leading-[1.2] text-white/72">
+          <bdi lang="en" className="text-[40px] leading-[1.2] text-dim">
             {pill.en}
           </bdi>
         </span>
@@ -91,7 +91,7 @@ export function Header({
             <span lang="ar" className="text-[40px] font-bold leading-[1.2]">
               {A.reconnecting}
             </span>
-            <bdi lang="en" className="text-[40px] leading-[1.2] text-navy/75">
+            <bdi lang="en" className="text-[40px] leading-[1.2] text-navy-dim">
               {E.reconnecting}
             </bdi>
           </span>

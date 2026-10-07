@@ -151,7 +151,12 @@
     opacity: 0;
   }
   .skeleton {
-    background: linear-gradient(100deg, #ececf6 30%, #f6f6fb 50%, #ececf6 70%);
+    background: linear-gradient(
+      100deg,
+      var(--color-skeleton) 30%,
+      var(--color-canvas) 50%,
+      var(--color-skeleton) 70%
+    );
     background-size: 220% 100%;
     animation: shimmer 1.4s linear infinite;
   }

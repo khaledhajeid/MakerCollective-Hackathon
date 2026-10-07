@@ -17,7 +17,7 @@ OWN-WORLD: Navy ground (navy-deep to navy with quiet brand glows), white type, y
 
 STORY: Glance up and know the leader of each category and that the numbers are live. In Blind Hour the room sees a sealed screen and no numbers at all. In Reveal each winner arrives as a ceremony, then stays as a final result.
 
-FIRST VIEWPORT: Header 80px (logo, LIVE badge, total votes, closing countdown). Stage title row 76px (category pill, Arabic 56px over English 40px, dwell segments). Five ranked rows of 128px: rank, photo, name block with a thin bar, count (72px; leader 96px on a yellow panel). Bottom rail 120px: one chip per category with its leader, the active chip filling with dwell progress, the static Scan-to-vote QR at the end.
+FIRST VIEWPORT: Header 80px (logo, LIVE badge, total votes, closing countdown). Stage title row 76px (category pill, Arabic 56px over English 40px, dwell segments). Five ranked rows of 128px: rank, photo, name block with the row itself as the bar (its fill is the share of the leader), count (72px; leader 96px on a yellow panel). Bottom rail 144px: one chip per category with its leader, the active chip filling with dwell progress, the static Scan-to-vote QR at the end.
 
 FORM: Stage and rail, position 3 of 7 on the ordered structure list (seed key 90b3da32).
 

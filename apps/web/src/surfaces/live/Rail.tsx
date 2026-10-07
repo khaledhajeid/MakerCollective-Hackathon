@@ -73,7 +73,7 @@ export function Rail({
                   </span>
                   <span className="mt-[2px] flex items-baseline gap-[16px] leading-[1.1]">
                     {c.sealed ? (
-                      <span className="inline-flex items-center gap-[12px] text-[40px] text-white/72">
+                      <span className="inline-flex items-center gap-[12px] text-[40px] text-dim">
                         <Icon name="lock" size={32} strokeWidth={2.4} />
                         <span lang="ar">{A.sealed}</span>
                       </span>
@@ -110,7 +110,7 @@ export function Rail({
           <Bi
             k="scanToVote"
             arClass="text-[40px] font-bold leading-[1.2] whitespace-nowrap"
-            enClass="text-[40px] leading-[1.1] text-white/72 whitespace-nowrap"
+            enClass="text-[40px] leading-[1.1] text-dim whitespace-nowrap"
           />
         </div>
       )}

@@ -51,7 +51,7 @@ function Row({
             nameAr={ex.nameAr}
             nameEn={ex.nameEn}
             arClass={`font-bold ${leader ? 'text-[60px] leading-[1.2]' : 'text-[56px] leading-[1.25]'}`}
-            enClass={`leading-[1.1] ${leader ? 'text-[42px] text-navy/75' : 'text-[40px] text-white/72'}`}
+            enClass={`leading-[1.1] ${leader ? 'text-[42px] text-navy-dim' : 'text-[40px] text-dim'}`}
           />
           <Ticker
             value={ex.votes}
@@ -84,7 +84,7 @@ export function Stage({
           <span lang="ar" className="text-[56px] font-bold leading-[1.25]">
             {category.nameAr}
           </span>
-          <bdi lang="en" className="text-[40px] font-normal leading-[1.2] text-white/72">
+          <bdi lang="en" className="text-[40px] font-normal leading-[1.2] text-dim">
             {category.nameEn}
           </bdi>
         </h1>

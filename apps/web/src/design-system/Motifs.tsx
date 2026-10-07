@@ -176,6 +176,8 @@ export function MotifTile({
   const tone = pool[h % pool.length]!;
   const layout = (h >>> 5) % 3;
   const initial = [...label.trim()][0] ?? '·';
+  // Helvetica Neue Arabic tops out at Bold (700); asking for Black would be a synthesised faux weight.
+  const isArabicInitial = /[\u0600-\u06FF]/.test(initial);
   // Rings (the brand's spiral motif) quietly fill the tile; one confident accent shape carries the identity.
   const ringCentre = layout === 0 ? [0, 100] : layout === 1 ? [160, 0] : [150, 100];
   return (
@@ -228,7 +230,7 @@ export function MotifTile({
         )}
       </svg>
       <span
-        className="absolute bottom-2.5 start-4 text-[3.25rem] font-black leading-none"
+        className={`absolute bottom-2.5 start-4 text-[3.25rem] leading-none ${isArabicInitial ? 'font-bold' : 'font-black'}`}
         style={{ color: tone.fg, fontFamily: 'var(--font-sans)' }}
       >
         {initial}

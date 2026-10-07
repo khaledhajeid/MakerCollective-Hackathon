@@ -92,7 +92,7 @@ export function CategoryCard({ category, index, voted, picked, onOpen }: Props) 
           </>
         )}
       </span>
-      <Icon name="forward" flip className={voted ? 'text-navy' : 'text-[#8b8bab]'} />
+      <Icon name="forward" flip className={voted ? 'text-navy' : 'text-faint'} />
     </m.button>
   );
 }

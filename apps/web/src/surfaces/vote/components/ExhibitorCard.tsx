@@ -56,13 +56,13 @@ export function ExhibitorCard({ exhibitor, picked, locked, onOpen }: Props) {
           <MotifTile seed={exhibitor.id} label={name} className="size-full" />
         )}
         {picked && (
-          <span className="t-label absolute start-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-turquoise px-3 py-1.5 text-navy shadow-md">
+          <span className="t-label absolute start-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-turquoise px-3 py-1.5 text-navy shadow-[var(--shadow-card)]">
             <Icon name="check" size={16} strokeWidth={3.2} />
             {d.category.yourPick}
           </span>
         )}
         {exhibitor.booth && (
-          <span className="t-small absolute bottom-3 end-3 rounded-full bg-white/95 px-3 py-1 font-bold text-navy shadow-sm">
+          <span className="t-small absolute bottom-3 end-3 rounded-full bg-white/95 px-3 py-1 font-bold text-navy shadow-[var(--shadow-card)]">
             {fmt(d.category.booth, { booth: exhibitor.booth })}
           </span>
         )}

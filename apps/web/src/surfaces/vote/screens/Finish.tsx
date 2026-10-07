@@ -55,7 +55,7 @@ export function Finish() {
           onClick={() =>
             void signOut().then(() => navigate('/vote', { replace: true, dir: 'back' }))
           }
-          className="t-small mx-auto block min-h-11 rounded-lg px-4 font-bold text-white/80 underline decoration-2 underline-offset-4"
+          className="t-small mx-auto block min-h-12 rounded-lg px-4 font-bold text-white/80 underline decoration-2 underline-offset-4"
         >
           {d.common.signOut}
         </button>

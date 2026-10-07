@@ -195,7 +195,7 @@ export function Code() {
               type="button"
               onClick={() => void resend()}
               disabled={busy}
-              className="t-label min-h-11 rounded-lg px-1 text-royal underline decoration-2 underline-offset-4 disabled:opacity-50"
+              className="t-label min-h-12 rounded-lg px-1 text-royal underline decoration-2 underline-offset-4 disabled:opacity-50"
             >
               {d.code.resend}
             </button>
@@ -206,7 +206,7 @@ export function Code() {
               setChallenge(null);
               navigate('/vote/details', { replace: true, dir: 'back' });
             }}
-            className="t-label min-h-11 rounded-lg px-1 text-muted underline decoration-2 underline-offset-4"
+            className="t-label min-h-12 rounded-lg px-1 text-muted underline decoration-2 underline-offset-4"
           >
             {d.code.changeNumber}
           </button>

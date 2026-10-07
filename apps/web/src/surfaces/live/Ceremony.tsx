@@ -65,7 +65,7 @@ function Winner({ ex, size, solo }: { ex: ResultExhibitor; size: WinnerSize; sol
           <Bi
             k="winner"
             arClass="text-[56px] font-bold leading-[1.25] text-yellow"
-            enClass="text-[40px] leading-[1.15] text-white/72"
+            enClass="text-[40px] leading-[1.15] text-dim"
             className="mb-[18px]"
           />
         )}
@@ -84,7 +84,7 @@ function Winner({ ex, size, solo }: { ex: ResultExhibitor; size: WinnerSize; sol
           <Bi
             k="votes"
             arClass="text-[48px] font-bold leading-[1.2]"
-            enClass="text-[40px] leading-[1.1] text-white/72"
+            enClass="text-[40px] leading-[1.1] text-dim"
             className="mt-[8px]"
           />
         </div>
@@ -138,7 +138,7 @@ export function Ceremony({ category, onDone }: { category: ResultCategory; onDon
           <span lang="ar" className="text-[72px] font-bold leading-[1.25]">
             {category.nameAr}
           </span>
-          <bdi lang="en" className="text-[44px] leading-[1.2] text-white/72">
+          <bdi lang="en" className="text-[44px] leading-[1.2] text-dim">
             {category.nameEn}
           </bdi>
         </div>
@@ -148,7 +148,7 @@ export function Ceremony({ category, onDone }: { category: ResultCategory; onDon
             <Bi
               k="noVotesYet"
               arClass="text-[80px] font-bold leading-[1.25]"
-              enClass="text-[44px] leading-[1.15] text-white/72"
+              enClass="text-[44px] leading-[1.15] text-dim"
               className="text-center"
             />
           </div>
@@ -159,7 +159,7 @@ export function Ceremony({ category, onDone }: { category: ResultCategory; onDon
                 <Bi
                   k="jointWinners"
                   arClass="text-[56px] font-bold leading-[1.25] text-yellow"
-                  enClass="text-[40px] leading-[1.15] text-white/72"
+                  enClass="text-[40px] leading-[1.15] text-dim"
                 />
               </div>
             )}
@@ -193,7 +193,7 @@ export function Ceremony({ category, onDone }: { category: ResultCategory; onDon
                       nameAr={r.nameAr}
                       nameEn={r.nameEn}
                       arClass="text-[56px] font-bold leading-[1.25]"
-                      enClass="text-[40px] leading-[1.1] text-white/72"
+                      enClass="text-[40px] leading-[1.1] text-dim"
                       className="flex-1"
                     />
                     <Ticker

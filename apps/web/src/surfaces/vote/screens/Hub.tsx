@@ -74,7 +74,7 @@ export function Hub() {
             <button
               type="button"
               onClick={() => void refreshVotes()}
-              className="t-label min-h-11 rounded-lg px-3 text-royal underline decoration-2 underline-offset-4"
+              className="t-label min-h-12 rounded-lg px-3 text-royal underline decoration-2 underline-offset-4"
             >
               {d.common.tryAgain}
             </button>
@@ -112,7 +112,7 @@ export function Hub() {
             onClick={() =>
               void signOut().then(() => navigate('/vote', { replace: true, dir: 'back' }))
             }
-            className="t-small min-h-11 rounded-lg px-4 font-bold text-muted underline decoration-2 underline-offset-4"
+            className="t-small min-h-12 rounded-lg px-4 font-bold text-muted underline decoration-2 underline-offset-4"
           >
             {d.common.signOut}
           </button>

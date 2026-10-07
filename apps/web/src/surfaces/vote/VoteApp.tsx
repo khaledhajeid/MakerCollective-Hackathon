@@ -108,7 +108,7 @@ export function VoteApp() {
         <VoterProvider>
           {/* Desktop/tablet: a phone-width column on brand navy, so the app is judged as designed. */}
           <div className="min-h-dvh md:bg-navy md:py-6">
-            <div className="relative mx-auto min-h-dvh max-w-md overflow-x-clip bg-canvas md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-[2.5rem] md:shadow-[0_30px_80px_-20px_rgb(0_0_0/0.6)]">
+            <div className="relative mx-auto min-h-dvh max-w-md overflow-x-clip bg-canvas md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-[2.5rem] md:shadow-[0_30px_80px_-20px_rgb(0_0_40/0.6)]">
               <OfflineBanner />
               <Stage />
             </div>

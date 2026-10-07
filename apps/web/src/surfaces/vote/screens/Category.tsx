@@ -66,7 +66,7 @@ export function CategoryScreen({ id }: { id: string }) {
   return (
     <div className="flex min-h-dvh flex-col pb-10">
       <header
-        className="sticky top-0 bg-canvas/95 px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-sm"
+        className="sticky top-0 bg-canvas px-5 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
         style={{ zIndex: 'var(--z-sticky)' }}
       >
         <div className="flex items-center gap-3">
@@ -99,14 +99,14 @@ export function CategoryScreen({ id }: { id: string }) {
               onChange={(e) => setQuery(e.target.value)}
               aria-label={d.category.searchLabel}
               placeholder={d.category.searchPlaceholder}
-              className="min-h-12 w-full rounded-full bg-surface ps-11 pe-11 text-base text-ink ring-[1.5px] ring-inset ring-line outline-none placeholder:text-[#7c7c9c] focus:ring-[2.5px] focus:ring-purple [&::-webkit-search-cancel-button]:hidden"
+              className="min-h-12 w-full rounded-full bg-surface ps-11 pe-11 text-base text-ink ring-[1.5px] ring-inset ring-line outline-none placeholder:text-muted focus:ring-[2.5px] focus:ring-purple [&::-webkit-search-cancel-button]:hidden"
             />
             {query && (
               <button
                 type="button"
                 aria-label={d.category.clearSearch}
                 onClick={() => setQuery('')}
-                className="absolute end-1.5 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full text-muted"
+                className="absolute end-0 top-1/2 grid size-12 -translate-y-1/2 place-items-center rounded-full text-muted"
               >
                 <Icon name="close" size={18} />
               </button>

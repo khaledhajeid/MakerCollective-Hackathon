@@ -19,7 +19,7 @@ function Connecting() {
       <Bi
         k="connecting"
         arClass="text-[80px] font-bold leading-[1.2]"
-        enClass="text-[44px] leading-[1.15] text-white/72"
+        enClass="text-[44px] leading-[1.15] text-dim"
       />
     </main>
   );

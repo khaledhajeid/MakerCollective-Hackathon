@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-07T01:09:00+00:00",
+  "generatedAt": "2026-10-07T12:00:00+00:00",
   "title": "Design System: MC2026 Voting",
   "extensions": {
     "colorMeta": {
@@ -183,6 +183,62 @@
           "#ffffff",
           "#ffffff"
         ]
+      },
+      "faint": {
+        "role": "neutral",
+        "displayName": "Faint Lavender",
+        "canonical": "#8b8bab",
+        "tonalRamp": [
+          "#2c2c3a",
+          "#444459",
+          "#5c5c78",
+          "#8b8bab",
+          "#a2a2bc",
+          "#babacd",
+          "#d1d1de",
+          "#e8e8ee"
+        ]
+      },
+      "skeleton": {
+        "role": "neutral",
+        "displayName": "Skeleton",
+        "canonical": "color-mix(in oklab, #dcdcee 55%, #f6f6fb)",
+        "tonalRamp": [
+          "#63636b",
+          "#8f8f9b",
+          "#b4b4c3",
+          "#e6e6f2",
+          "#ebebf5",
+          "#f0f0f8",
+          "#f6f6fb",
+          "#fcfcfd"
+        ]
+      },
+      "dim": {
+        "role": "neutral",
+        "displayName": "TV Dim",
+        "canonical": "rgb(255 255 255 / 0.72)",
+        "tonalRamp": [
+          "rgb(255 255 255 / 0.12)",
+          "rgb(255 255 255 / 0.24)",
+          "rgb(255 255 255 / 0.4)",
+          "rgb(255 255 255 / 0.72)",
+          "rgb(255 255 255 / 0.8)",
+          "rgb(255 255 255 / 0.88)",
+          "rgb(255 255 255 / 0.94)",
+          "rgb(255 255 255 / 1)"
+        ]
+      },
+      "navy-dim": {
+        "role": "neutral",
+        "displayName": "TV Navy Dim",
+        "canonical": "rgb(0 0 123 / 0.75)",
+        "tonalRamp": [
+          "rgb(0 0 123 / 0.12)",
+          "rgb(0 0 123 / 0.24)",
+          "rgb(0 0 123 / 0.4)",
+          "rgb(0 0 123 / 0.75)"
+        ]
       }
     },
     "typographyMeta": {
@@ -216,7 +272,7 @@
       },
       "tv-secondary": {
         "displayName": "TV Secondary",
-        "purpose": "English lines and chrome; floor 40px, 72% white."
+        "purpose": "English lines and chrome; floor 40px, Dim (white at 72%)."
       },
       "tv-count": {
         "displayName": "TV Count",
@@ -323,7 +379,7 @@
       "refersTo": "field",
       "description": "Label above, 56px control, purple focus ring.",
       "html": "<label class=\"ds-field-label\" for=\"n\">Full name</label><input id=\"n\" class=\"ds-field\" placeholder=\"Your name\">",
-      "css": ".ds-field-label{display:block;margin-bottom:8px;font:700 .875rem Nexa,system-ui,sans-serif;color:#0b0b3b} .ds-field{box-sizing:border-box;width:100%;min-height:56px;padding:0 16px;border:0;border-radius:1.125rem;background:#fff;color:#0b0b3b;font:400 1.0625rem Nexa,system-ui,sans-serif;box-shadow:inset 0 0 0 1.5px #dcdcee;outline:none;transition:box-shadow .15s} .ds-field::placeholder{color:#7c7c9c} .ds-field:focus{box-shadow:inset 0 0 0 2.5px #7f32d9}"
+      "css": ".ds-field-label{display:block;margin-bottom:8px;font:700 .875rem Nexa,system-ui,sans-serif;color:#0b0b3b} .ds-field{box-sizing:border-box;width:100%;min-height:56px;padding:0 16px;border:0;border-radius:1.125rem;background:#fff;color:#0b0b3b;font:400 1.0625rem Nexa,system-ui,sans-serif;box-shadow:inset 0 0 0 1.5px #dcdcee;outline:none;transition:box-shadow .15s} .ds-field::placeholder{color:#55557a} .ds-field:focus{box-shadow:inset 0 0 0 2.5px #7f32d9}"
     },
     {
       "name": "Category Card",
@@ -339,7 +395,7 @@
       "refersTo": "category-card-voted",
       "description": "Turquoise pill with navy text marking the visitor's vote.",
       "html": "<span class=\"ds-pick\">Your pick</span>",
-      "css": ".ds-pick{display:inline-flex;align-items:center;padding:6px 12px;border-radius:9999px;background:#74dccf;color:#00007b;font:700 .875rem Nexa,system-ui,sans-serif;box-shadow:0 4px 6px -1px rgb(0 0 0 / .1)}"
+      "css": ".ds-pick{display:inline-flex;align-items:center;padding:6px 12px;border-radius:9999px;background:#74dccf;color:#00007b;font:700 .875rem Nexa,system-ui,sans-serif}"
     },
     {
       "name": "TV Leader Row",

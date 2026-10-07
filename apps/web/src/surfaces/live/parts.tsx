@@ -43,7 +43,7 @@ export function Bi({
   k,
   time,
   arClass = 'text-[56px] font-bold leading-[1.25]',
-  enClass = 'text-[40px] font-normal leading-[1.1] text-white/72',
+  enClass = 'text-[40px] font-normal leading-[1.1] text-dim',
   className = '',
 }: {
   k: TvKey;
@@ -250,7 +250,7 @@ export function QrCode({
       aria-label={A.scanToVote}
       className={`shrink-0 rounded-[14px] bg-white ${className}`}
     >
-      <path d={path} fill="#00004a" />
+      <path d={path} className="fill-navy-deep" />
     </svg>
   );
 }

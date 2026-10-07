@@ -102,3 +102,11 @@ The reviewer's last report still read "fix" because of the yellow-tile regressio
 
 Re-verified after the fixes: `pnpm check`, the full browser suite, and the live stack (below).
 
+## 10. Decisions resolved by the owner (2026-10-07) and UI-debt round
+
+- **Categories:** the event has 3 categories, so the rail keeps its current behaviour (full leader line up to 4 categories; marker + leader count for 5 or more). No change.
+- **TV pairing address:** the public address only. TVs must open the event's public URL; localhost and LAN addresses are refused by design, with a clear message on the TV. No `EXTRA_ORIGINS` entry is added.
+- **Design names** ("The Workshop Banner" and the colour names in `DESIGN.md`) approved.
+- **UI debt fixed in one commit:** the Category header glass blur removed (solid canvas); every tap target is now at least 48 px (language toggle, back button, text links, search-clear); off-token colours replaced by named tokens (`faint`, `skeleton`, `dim`, `navy-dim`) or existing ones (placeholders use `muted`, which also fixes a placeholder that measured 4.0:1 against the 4.5:1 rule); default black card shadows and the desktop frame shadow made navy-tinted; Arabic initials on the no-photo tile use Bold (the Arabic face ships no Black); the Welcome triangle and QR use tokens; TV pairing placeholder raised to the dim token. Verified in a real browser (back and clear buttons measure 48 × 48), the full suite (46 browser, 195 API, 43 web tests) and the TV axe scan.
+- **Left as is, on purpose:** the voter checkbox row (already a full-row 48 px target), the bottom-sheet drag handle (a drag region, not a button), the brand-artwork hex values inside the logo chevrons, and the two focus-ring colours (documented as intended).
+

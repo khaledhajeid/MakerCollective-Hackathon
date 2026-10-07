@@ -42,7 +42,7 @@ export function FieldShell({ label, hint, error, children }: FieldShellProps) {
 }
 
 export const controlClass = (invalid: boolean) =>
-  `min-h-14 w-full rounded-[var(--radius-control)] bg-surface px-4 text-[1.0625rem] text-ink ring-[1.5px] ring-inset outline-none transition-shadow duration-150 placeholder:text-[#7c7c9c] focus:ring-[2.5px] ${
+  `min-h-14 w-full rounded-[var(--radius-control)] bg-surface px-4 text-[1.0625rem] text-ink ring-[1.5px] ring-inset outline-none transition-shadow duration-150 placeholder:text-muted focus:ring-[2.5px] ${
     invalid ? 'ring-crimson focus:ring-crimson' : 'ring-line focus:ring-purple'
   }`;
 
@@ -88,7 +88,7 @@ export function CheckRow({ checked, onChange, children, invalid }: CheckProps) {
           type="checkbox"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
-          className="peer absolute inset-0 size-6 cursor-pointer appearance-none rounded-md bg-surface ring-[1.5px] ring-inset ring-[#8b8bab] transition-colors checked:bg-purple checked:ring-purple"
+          className="peer absolute inset-0 size-6 cursor-pointer appearance-none rounded-md bg-surface ring-[1.5px] ring-inset ring-faint transition-colors checked:bg-purple checked:ring-purple"
         />
         <Icon
           name="check"
