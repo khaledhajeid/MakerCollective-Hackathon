@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-07
 - **Scope:** admin accounts, argon2id sign-in, mandatory TOTP + recovery codes, DB-backed sessions, CSRF, lock-out, RBAC guard and permission table, audit trail, operator CLI (`pnpm stack:admin`), migration 0008, ADR-007, threat model, ASVS checklist, runbook. **No admin screens**: they arrive with the console in Phase 6 (the API they will call is finished and tested).
-- **Verdict:** ✅ Built, verified end to end on the real stack (HTTP through Caddy and HTTPS through the public tunnel), and mutation-checked. No open Critical/High findings from my own review. **Three decisions are waiting for you (§7).** The `/code-review` and `/security-review` rounds are yours to run; §9 records the `/code-review` round (done); the `/security-review` result is still to come.
+- **Verdict:** ✅ Built, verified end to end on the real stack (HTTP through Caddy and HTTPS through the public tunnel), and mutation-checked. No open Critical/High findings from my own review. **Three decisions are waiting for you (§7).** The `/code-review` and `/security-review` rounds are yours to run; §9 records the `/code-review` round and §10 the `/security-review` round (both done).
 
 ## 1. Plan acceptance criteria
 
@@ -114,5 +114,21 @@ Each row breaks one security property in the code; the matching tests must fail.
 
 Tests added for the fixes: 10 (gate: 2, integration: 8). Each fix was mutation-checked by putting the old behaviour back and confirming a test fails (8 of 8). After the round: API 281 tests, all green; the Docker stack was rebuilt so what runs is what is committed.
 
-## 10. `/security-review` round
-*(to be filled in after you run it)*
+## 10. `/security-review` round (run on the final code, after §9's fixes)
+
+**No findings at or above the bar (confidence ≥ 8/10).** An independent pass read every new file (guard, routes, service, sessions, users, password, totp, recovery, audit, permissions, CLI, schema, migration, shared schemas) and the existing code they sit beside. It did not enumerate the rest of the repository, so a plugin registered elsewhere could in principle have been missed; none is in the dependency list.
+
+Checked and holding: the guard's every branch fails closed (and a route without a declaration cannot boot); CSRF on every state change including `pending` routes; only the MFA-verify, enrolment-confirm and password-change paths create a fully authenticated session; tokens replaced at each privilege change; TOTP step and recovery code claimed atomically inside the session-issuing transaction; lock enforced at login, MFA, password change and recovery regeneration; generic failure messages and decoy hash; account management locked to SUPER_ADMIN with the last-SUPER_ADMIN rule; no raw SQL with user input; no response can serialise a hash or TOTP secret.
+
+Considered and not raised (all below the bar or excluded by the review rules), for the backlog:
+
+| Candidate | Why it stays in the backlog |
+|---|---|
+| Several pending sessions racing past the lock check before the first failure commits | A few extra 6-digit guesses at roughly 0.0003% each: a rate-limit weakness |
+| Rehash on login writes from a stale read | Only when the argon2 cost parameters change; theoretical |
+| TOTP ciphertext is bound to a purpose, not to the admin id | Swapping needs database write access |
+| A database error log line could include a session's CSRF secret | Needs a database fault, and the cookie is needed as well. Phase 7: scrub query parameters from error logs |
+| No CSRF token on the login endpoint | Covered by `SameSite=Strict` and the Origin / Sec-Fetch-Site checks; the result is only a pending session |
+| Audit `before` cursor has no upper bound | A 500 at most (Phase 6: cap it in the schema) |
+
+**Outcome:** zero open Critical/High/Medium findings from either review round. The three decisions in §7 are still the owner's.
