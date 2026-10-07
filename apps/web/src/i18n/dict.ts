@@ -41,7 +41,6 @@ export const en = {
     subtitle:
       'Pick your favourite project in each category. You get one vote per category, and it is final once confirmed.',
     start: 'Start voting',
-    duration: 'Takes under a minute',
     steps: ['Verify your phone', 'Choose a favourite', 'Confirm'],
     stepsDetail: [
       'A one-time code by SMS',
@@ -222,7 +221,6 @@ export const ar: Dict = {
     title: 'صوّت لصنّاعك المفضلين',
     subtitle: 'اختر مشروعك المفضل في كل فئة. لكل فئة صوت واحد، ويصبح نهائياً بعد التأكيد.',
     start: 'ابدأ التصويت',
-    duration: 'يستغرق أقل من دقيقة',
     steps: ['تحقق من هاتفك', 'اختر مفضّلك', 'أكّد'],
     stepsDetail: [
       'رمز لمرة واحدة عبر رسالة نصية',

@@ -52,7 +52,7 @@ export function Welcome() {
               </span>
               <span className="min-w-0">
                 <span className="t-heading block text-navy">{label}</span>
-                <span className="t-small block text-muted max-[700px]:hidden">
+                <span className="t-small block text-muted">
                   {d.welcome.stepsDetail[i]}
                 </span>
               </span>
@@ -71,7 +71,6 @@ export function Welcome() {
 
         <ActionBar>
           <Button onClick={() => navigate('/vote/details')}>{d.welcome.start}</Button>
-          <p className="t-small text-center text-muted">{d.welcome.duration}</p>
         </ActionBar>
       </div>
     </div>
