@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { AdminRole } from '@mc/shared';
 import { and, eq, lt, ne, sql } from 'drizzle-orm';
-import type { Database } from '../../db/client.js';
+import type { Database, Tx } from '../../db/client.js';
 import { adminSessions, adminUsers } from '../../db/schema.js';
 import { randomToken, sha256Hex } from '../../lib/crypto.js';
 
@@ -52,8 +52,6 @@ export interface SessionOrigin {
   ip: string | null;
   userAgent: string | null;
 }
-
-type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export class AdminSessions {
   constructor(

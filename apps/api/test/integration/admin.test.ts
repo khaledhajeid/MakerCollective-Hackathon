@@ -277,18 +277,49 @@ describe('sign-in', () => {
     expect((await adminRow(a.id)).failedAttempts).toBe(0);
   });
 
-  it('rate-limits sign-in per username and per address before any hashing', async () => {
+  it('rate-limits sign-in per ADDRESS before any hashing, and never per username', async () => {
     const a = await seed();
-    const codes: number[] = [];
-    for (let i = 0; i < 12; i++)
-      codes.push((await login(a, `wrong-password-${i}-yy`)).res.statusCode);
-    expect(codes.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
-    expect(codes).toContain(429);
-    const limited = await ctx.call('POST', '/api/admin/auth/login', {
-      body: { username: a.username, password: 'x'.repeat(20) },
+    // A burst against one real username from many addresses must not shut the real admin out: only the account
+    // lock (5 wrong answers) applies per account, and it is a different, escapable mechanism.
+    for (let i = 0; i < 4; i++)
+      expect((await login(a, `wrong-password-${i}-yy`)).res.statusCode).toBe(401);
+    const real = await ctx.call('POST', '/api/admin/auth/login', {
+      body: { username: a.username, password: a.password },
+      ip: '198.51.100.7', // a different address: not limited, and the account is not yet locked
     });
-    expect(limited.statusCode).toBe(429);
-    expect(limited.json().error.details.retryAfterSeconds).toBeGreaterThan(0);
+    expect(real.statusCode).toBe(200);
+
+    const burst: number[] = [];
+    for (let i = 0; i < 32; i++) {
+      const r = await ctx.call('POST', '/api/admin/auth/login', {
+        body: { username: `ghost${i}`, password: 'whatever-password-1' },
+        ip: '203.0.113.9',
+      });
+      burst.push(r.statusCode);
+    }
+    expect(burst.slice(0, 30).every((c) => c === 401)).toBe(true);
+    expect(burst.slice(30)).toEqual([429, 429]);
+  }, 60_000);
+
+  it('a stranger who knows the password cannot knock out the admin’s own sign-in in progress', async () => {
+    const a = await seed();
+    const mine = await login(a);
+    await login(a); // someone else signs in with the same password: a second pending session
+    const res = await ctx.call('POST', '/api/admin/auth/mfa/verify', {
+      cookie: mine.cookie,
+      csrf: mine.csrf,
+      body: { code: nextCode(a.secret) },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('records a refused sign-in only when the password was right (no audit flooding)', async () => {
+    const a = await seed();
+    await db.update(adminUsers).set({ isDisabled: true }).where(eq(adminUsers.id, a.id));
+    for (let i = 0; i < 5; i++) await login(a, `guessing-a-password-${i}`);
+    expect(await audit('admin.login.refused')).toHaveLength(0);
+    await login(a); // right password on a disabled account: that is worth knowing about
+    expect(await audit('admin.login.refused')).toHaveLength(1);
   });
 
   it('upgrades an old password hash to the current cost on a good sign-in', async () => {
@@ -610,6 +641,145 @@ describe('recovery codes', () => {
       body: { recoveryCode: codes[0] },
     });
     expect(old.statusCode).toBe(401);
+  });
+});
+
+describe('credentials are spent only if the sign-in completes', () => {
+  it('a failure while issuing the session gives the recovery code (and the time-step) back', async () => {
+    const a = await seed({ mfa: false });
+    const first = await login(a);
+    const { secret } = (
+      await ctx.call('POST', '/api/admin/auth/mfa/enroll/start', {
+        cookie: first.cookie,
+        csrf: first.csrf,
+      })
+    ).json();
+    const done = await ctx.call('POST', '/api/admin/auth/mfa/enroll/confirm', {
+      cookie: first.cookie,
+      csrf: first.csrf,
+      body: { code: nextCode(secret) },
+    });
+    const codes = done.json().recoveryCodes as string[];
+    const before = await adminRow(a.id);
+
+    const pending = await login({ ...a, secret });
+    const realCreate = ctx.app.adminSessions.create.bind(ctx.app.adminSessions);
+    ctx.app.adminSessions.create = async () => {
+      throw new Error('database hiccup');
+    };
+    const broken = await ctx.call('POST', '/api/admin/auth/mfa/verify', {
+      cookie: pending.cookie,
+      csrf: pending.csrf,
+      body: { recoveryCode: codes[0] },
+    });
+    expect(broken.statusCode).toBe(500);
+    ctx.app.adminSessions.create = realCreate;
+
+    // Nothing was spent: the same code works on the retry, and the failure was not counted as a wrong guess.
+    const unused = await db
+      .select()
+      .from(adminRecoveryCodes)
+      .where(and(eq(adminRecoveryCodes.adminId, a.id), isNull(adminRecoveryCodes.usedAt)));
+    expect(unused).toHaveLength(10);
+    expect((await adminRow(a.id)).totpLastStep).toBe(before.totpLastStep);
+    expect((await adminRow(a.id)).failedAttempts).toBe(0);
+    const retry = await ctx.call('POST', '/api/admin/auth/mfa/verify', {
+      cookie: pending.cookie,
+      csrf: pending.csrf,
+      body: { recoveryCode: codes[0] },
+    });
+    expect(retry.statusCode).toBe(200);
+  });
+
+  it('recovery codes survive a change of SESSION_SECRET (they are not keyed with the cookie secret)', async () => {
+    const a = await seed({ mfa: false });
+    const first = await login(a);
+    const { secret } = (
+      await ctx.call('POST', '/api/admin/auth/mfa/enroll/start', {
+        cookie: first.cookie,
+        csrf: first.csrf,
+      })
+    ).json();
+    const done = await ctx.call('POST', '/api/admin/auth/mfa/enroll/confirm', {
+      cookie: first.cookie,
+      csrf: first.csrf,
+      body: { code: nextCode(secret) },
+    });
+    const codes = done.json().recoveryCodes as string[];
+    const rotated = await makeApp({
+      SESSION_SECRET: 'rotated-after-a-scare-'.padEnd(40, 'x'),
+      PII_ENCRYPTION_KEY: env.PII_ENCRYPTION_KEY,
+      PHONE_HASH_PEPPER: env.PHONE_HASH_PEPPER,
+    });
+    ctx = rotated;
+    const again = await login({ ...a, secret });
+    const ok = await ctx.call('POST', '/api/admin/auth/mfa/verify', {
+      cookie: again.cookie,
+      csrf: again.csrf,
+      body: { recoveryCode: codes[3] },
+    });
+    expect(ok.statusCode).toBe(200);
+  });
+});
+
+describe('sensitive prompts while the account is locked', () => {
+  it('a signed-in session gets only a handful of guesses at the current password, and is not thrown out', async () => {
+    const a = await seed();
+    const s = await signIn(a);
+    const outcomes: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const r = await ctx.call('POST', '/api/admin/auth/password', {
+        cookie: s.cookie,
+        csrf: s.csrf,
+        body: {
+          currentPassword: `stolen-session-guess-${i}-x`,
+          newPassword: 'another-long-passphrase-2',
+        },
+      });
+      outcomes.push(r.statusCode);
+    }
+    // Five real guesses (400), then the lock answers 429 for the rest, without ever checking the password again.
+    expect(outcomes).toEqual([400, 400, 400, 400, 400, 429, 429, 429]);
+    expect((await adminRow(a.id)).failedAttempts).toBe(5);
+    const still = await ctx.call('GET', '/api/admin/auth/session', { cookie: s.cookie });
+    expect(still.json().authenticated).toBe(true);
+    // The right password is refused too while locked, and works once the lock has expired.
+    const right = await ctx.call('POST', '/api/admin/auth/password', {
+      cookie: s.cookie,
+      csrf: s.csrf,
+      body: { currentPassword: PASSWORD, newPassword: 'another-long-passphrase-2' },
+    });
+    expect(right.statusCode).toBe(429);
+    expect(right.json().error.details.retryAfterSeconds).toBeGreaterThan(0);
+    advance(5 * 60_000 + 1000);
+    const later = await ctx.call('POST', '/api/admin/auth/password', {
+      cookie: s.cookie,
+      csrf: s.csrf,
+      body: { currentPassword: PASSWORD, newPassword: 'another-long-passphrase-2' },
+    });
+    expect(later.statusCode).toBe(200);
+  });
+
+  it('the same for recovery-code regeneration', async () => {
+    const a = await seed();
+    const s = await signIn(a);
+    const outcomes: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      const r = await ctx.call('POST', '/api/admin/auth/recovery-codes', {
+        cookie: s.cookie,
+        csrf: s.csrf,
+        body: { code: '000000' },
+      });
+      outcomes.push(r.statusCode);
+    }
+    expect(outcomes).toEqual([401, 401, 401, 401, 401, 429, 429]);
+    // Even a correct code is refused while locked.
+    const good = await ctx.call('POST', '/api/admin/auth/recovery-codes', {
+      cookie: s.cookie,
+      csrf: s.csrf,
+      body: { code: nextCode(a.secret) },
+    });
+    expect(good.statusCode).toBe(429);
   });
 });
 
@@ -1229,6 +1399,30 @@ describe('admin account management', () => {
     const supers = await db.select().from(adminUsers).where(eq(adminUsers.role, 'SUPER_ADMIN'));
     expect(supers).toHaveLength(1);
   });
+
+  it('crossing concurrent changes finish cleanly: success or a 409, never a deadlock error', async () => {
+    const boss = await seed({ username: 'boss1' });
+    const xs = await Promise.all(
+      ['aaa1', 'bbb1', 'ccc1', 'ddd1'].map((u) => seed({ username: u })),
+    );
+    const actor = (id: string, label: string) => ({ adminId: id, label });
+    for (let round = 0; round < 6; round++) {
+      const results = await Promise.allSettled([
+        ctx.app.adminUsers.update(xs[0]!.id, { role: 'ADMIN' }, actor(xs[1]!.id, 'x1')),
+        ctx.app.adminUsers.update(xs[1]!.id, { role: 'ADMIN' }, actor(xs[2]!.id, 'x2')),
+        ctx.app.adminUsers.update(xs[2]!.id, { role: 'ADMIN' }, actor(xs[3]!.id, 'x3')),
+        ctx.app.adminUsers.update(xs[3]!.id, { role: 'ADMIN' }, actor(xs[0]!.id, 'x0')),
+        ctx.app.adminUsers.update(boss.id, { role: 'ADMIN' }, actor(xs[0]!.id, 'x0')),
+      ]);
+      for (const r of results)
+        if (r.status === 'rejected')
+          expect((r.reason as { statusCode?: number }).statusCode).toBe(409);
+      expect(
+        (await db.select().from(adminUsers).where(eq(adminUsers.role, 'SUPER_ADMIN'))).length,
+      ).toBeGreaterThan(0);
+      await db.update(adminUsers).set({ role: 'SUPER_ADMIN' });
+    }
+  }, 60_000);
 
   it('reset-credentials voids password, authenticator, recovery codes and sessions in one step', async () => {
     const { s } = await boss();

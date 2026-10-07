@@ -1,9 +1,7 @@
 import type { AuditEntry } from '@mc/shared';
 import { desc, lt } from 'drizzle-orm';
-import type { Database } from '../../db/client.js';
+import type { Database, Tx } from '../../db/client.js';
 import { auditLog } from '../../db/schema.js';
-
-type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export interface AuditRecord {
   adminId: string | null;

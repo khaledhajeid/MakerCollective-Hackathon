@@ -2,6 +2,9 @@ import { argon2 as argon2Callback, randomBytes, randomInt, timingSafeEqual } fro
 import { promisify } from 'node:util';
 import { PASSWORD_MAX, PASSWORD_MIN } from '@mc/shared';
 
+// crypto.argon2 arrived in Node 24.7. Fail at start-up with a sentence, not with "undefined is not a function".
+if (typeof argon2Callback !== 'function')
+  throw new Error('Admin sign-in needs Node 24.7 or newer (crypto.argon2)');
 const argon2 = promisify(argon2Callback);
 
 /**
@@ -20,14 +23,18 @@ const BOUNDS = { memory: 262_144, passes: 10, parallelism: 4 } as const;
 
 let running = 0;
 const waiting: Array<() => void> = [];
-async function gated<T>(work: () => Promise<T>): Promise<T> {
+/** Exported for its test only. */
+export async function gated<T>(work: () => Promise<T>): Promise<T> {
+  // A freed slot is handed straight to the next waiter (it stays counted), never released and re-acquired: otherwise a
+  // caller arriving in between could take it too and the cap would be exceeded.
   if (running >= MAX_CONCURRENT) await new Promise<void>((resolve) => waiting.push(resolve));
-  running++;
+  else running++;
   try {
     return await work();
   } finally {
-    running--;
-    waiting.shift()?.();
+    const next = waiting.shift();
+    if (next) next();
+    else running--;
   }
 }
 
@@ -111,7 +118,13 @@ let dummy: Promise<string> | null = null;
  * verification against this, so response time never reveals whether a username exists.
  */
 export function dummyHash(): Promise<string> {
-  return (dummy ??= hashPassword(randomBytes(24).toString('base64')));
+  // A failed attempt must not be cached: every unknown-username sign-in would then fail with a 500 (and so reveal that
+  // the name does not exist).
+  dummy ??= hashPassword(randomBytes(24).toString('base64')).catch((err: unknown) => {
+    dummy = null;
+    throw err;
+  });
+  return dummy;
 }
 
 /* ───────────── policy ───────────── */

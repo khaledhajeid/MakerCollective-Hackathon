@@ -22,5 +22,5 @@ export function normalizeRecoveryCode(input: string): string | null {
   return clean.length === LENGTH && [...clean].every((c) => ALPHABET.includes(c)) ? clean : null;
 }
 
-export const hashRecoveryCode = (sessionSecret: string, normalized: string): string =>
-  hmacHex(`${sessionSecret}:admin-recovery`, normalized);
+export const hashRecoveryCode = (key: string, normalized: string): string =>
+  hmacHex(`${key}:admin-recovery`, normalized);

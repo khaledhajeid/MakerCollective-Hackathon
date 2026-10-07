@@ -3,6 +3,8 @@ import pg from 'pg';
 import * as schema from './schema.js';
 
 export type Database = NodePgDatabase<typeof schema>;
+/** The handle inside `db.transaction(async (tx) => …)`. */
+export type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 export interface DbHandle {
   pool: pg.Pool;

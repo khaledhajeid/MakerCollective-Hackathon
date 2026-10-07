@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-07
 - **Scope:** admin accounts, argon2id sign-in, mandatory TOTP + recovery codes, DB-backed sessions, CSRF, lock-out, RBAC guard and permission table, audit trail, operator CLI (`pnpm stack:admin`), migration 0008, ADR-007, threat model, ASVS checklist, runbook. **No admin screens**: they arrive with the console in Phase 6 (the API they will call is finished and tested).
-- **Verdict:** ✅ Built, verified end to end on the real stack (HTTP through Caddy and HTTPS through the public tunnel), and mutation-checked. No open Critical/High findings from my own review. **Three decisions are waiting for you (§7).** The `/code-review` and `/security-review` rounds are yours to run; §9 is left for their results.
+- **Verdict:** ✅ Built, verified end to end on the real stack (HTTP through Caddy and HTTPS through the public tunnel), and mutation-checked. No open Critical/High findings from my own review. **Three decisions are waiting for you (§7).** The `/code-review` and `/security-review` rounds are yours to run; §9 records the `/code-review` round (done); the `/security-review` result is still to come.
 
 ## 1. Plan acceptance criteria
 
@@ -19,7 +19,7 @@
 | Check | Result |
 |---|---|
 | Typecheck / ESLint / Prettier (`pnpm check`) | ✅ |
-| Unit + integration | ✅ shared 2 · web 43 · API **271** (was 195: **+20** unit for TOTP and passwords, **+56** integration on real Postgres) |
+| Unit + integration | ✅ shared 2 · web 43 · API **281** (was 195: **+23** unit for TOTP, passwords and the hashing gate, **+63** integration on real Postgres) |
 | `pnpm audit --prod` | ✅ no known vulnerabilities (no dependency added: argon2 and TOTP use `node:crypto`) |
 | Semgrep / gitleaks / osv-scanner | not installed on this laptop; they run in CI (`ci.yml`) |
 | Live acceptance, real stack | ✅ 28 checks, below |
@@ -62,7 +62,7 @@ Each row breaks one security property in the code; the matching tests must fail.
 | Password change leaves other sessions alive | ✅ |
 | Unlock does not clear the lock | ✅ |
 
-16 of 18 mutants killed; the 2 survivors are the single-layer enrolment mutants described above.
+16 of 18 mutants killed in the first run (the 2 survivors are the single-layer enrolment mutants described above); the 8 mutants for the `/code-review` fixes (§9) are all killed.
 
 ## 6. Accepted / open items
 | Item | Severity | Disposition |
@@ -98,5 +98,21 @@ Each row breaks one security property in the code; the matching tests must fail.
 | Audit completeness, no secrets, append-only | › *audit log* |
 | Data at rest | › *data at rest* |
 
-## 9. `/code-review` and `/security-review` rounds
-*(to be filled in after you run them)*
+## 9. `/code-review` round (9 findings: all addressed)
+
+| # | Finding | Verdict | Fix |
+|---|---|---|---|
+| 1 | `crypto.argon2` needs Node 24.7 but `engines` allowed ≥ 22.12 (the whole API would fail to boot on an older Node) | Valid | `engines` ≥ 24.7; a start-up check with a plain message |
+| 2 | Account updates locked the target row, then the set of SUPER_ADMINs, in a different order in different transactions: two crossing updates can deadlock (500 instead of 409) | Valid | One lock order everywhere: the SUPER_ADMIN set (by id) first, then the target; a test fires crossing updates |
+| 3 | The recovery code / TOTP step was spent *before* the transaction that issues the session: a failure in between burns it with no session | Valid | The claim now runs inside that transaction (also for recovery-code regeneration); test forces a failure and shows nothing was spent |
+| 4 | The per-username limiter lets anyone exhaust it for a known name and turn the real admin away (a cheaper lock-out than the real one); and a valid password revoked the admin's pending MFA session | Valid | Per-username limiter **removed** (per-address stays; the account lock covers per-account guessing); login no longer revokes other pending sessions. Documented in ADR-007 §5 |
+| 5 | The hashing gate let a third 64 MiB hash in when a caller arrived between a slot being freed and its waiter resuming; and a failed decoy-hash attempt was cached forever (every unknown-username sign-in would then fail with a 500) | Valid | Slot handed directly to the waiter; the cached rejection is cleared. A deterministic test reproduces the interleaving (the mutant gives `expected 3 to be 2`). The decoy-retry path has no test (it needs a failing hash) |
+| 6 | A stolen **signed-in** session can guess the current password indefinitely at the password-change prompt (the lock only ended pending sessions) | Valid | While the account is locked, that prompt and recovery-code regeneration answer 429 without checking; the session is not thrown out (so a stranger who merely locked the account cannot eject the real admin) |
+| 7 | Every unauthenticated login against a disabled / expired account wrote a permanent audit row | Valid | Audited only when the password was right |
+| 8 | Recovery codes were keyed with `SESSION_SECRET`: rotating the cookie secret silently voids every code | Valid | Keyed with the PII key (which cannot be rotated casually) |
+| 9 | The recovery-code block and the `Tx` type were duplicated; a comment named a test file that does not exist | Valid | One `issueRecoveryCodes` helper, one exported `Tx`, comment corrected |
+
+Tests added for the fixes: 10 (gate: 2, integration: 8). Each fix was mutation-checked by putting the old behaviour back and confirming a test fails (8 of 8). After the round: API 281 tests, all green; the Docker stack was rebuilt so what runs is what is committed.
+
+## 10. `/security-review` round
+*(to be filled in after you run it)*

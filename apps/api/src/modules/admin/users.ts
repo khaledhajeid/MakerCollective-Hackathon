@@ -92,6 +92,15 @@ export class AdminUserService {
 
   async update(id: string, patch: UpdateAdmin, actor: Actor): Promise<AdminUser> {
     return this.db.transaction(async (tx) => {
+      // ONE lock order for every concurrent change: the set of active SUPER_ADMINs (by id) first, then the target.
+      // Locking the target first and the set second lets two changes that cross over deadlock (Postgres aborts one
+      // with a 500 instead of the intended 409). It also serialises two SUPER_ADMINs demoting each other.
+      const activeSupers = await tx
+        .select({ id: adminUsers.id })
+        .from(adminUsers)
+        .where(and(eq(adminUsers.role, 'SUPER_ADMIN'), eq(adminUsers.isDisabled, false)))
+        .orderBy(asc(adminUsers.id))
+        .for('update');
       const [target] = await tx
         .select()
         .from(adminUsers)
@@ -104,13 +113,6 @@ export class AdminUserService {
           'CONFLICT',
           'You cannot change your own role or disable your own account',
         );
-
-      // Serialise concurrent changes: two SUPER_ADMINs demoting each other must not both succeed.
-      const activeSupers = await tx
-        .select({ id: adminUsers.id })
-        .from(adminUsers)
-        .where(and(eq(adminUsers.role, 'SUPER_ADMIN'), eq(adminUsers.isDisabled, false)))
-        .for('update');
       const losesSuper =
         target.role === 'SUPER_ADMIN' &&
         !target.isDisabled &&

@@ -2,7 +2,7 @@ import type { AdminRole } from '@mc/shared';
 
 /**
  * The authorisation matrix: every capability an admin route can demand, and the roles that hold it.
- * It is data on purpose: one table to review, and one test (`rbac.test.ts`) that walks it and every registered
+ * It is data on purpose: one table to review, and one test (the *authorisation (RBAC)* suite in `test/integration/admin.test.ts`) that walks it and every registered
  * route, so a new route cannot ship without an explicit decision. A route that declares no access is refused at
  * boot (see guard.ts), and an unknown permission does not typecheck.
  *

@@ -7,9 +7,9 @@ import type {
 } from '@mc/shared';
 import { and, count, eq, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Env } from '../../config/env.js';
-import type { Database } from '../../db/client.js';
+import type { Database, Tx } from '../../db/client.js';
 import { adminRecoveryCodes, adminUsers } from '../../db/schema.js';
-import { FieldCipher, sha256Hex } from '../../lib/crypto.js';
+import { FieldCipher } from '../../lib/crypto.js';
 import { AppError } from '../../lib/errors.js';
 import type { RateLimiter } from '../../lib/rate-limit.js';
 import { writeAudit } from './audit.js';
@@ -23,7 +23,6 @@ import {
 import type { AdminSessions, IssuedSession, ResolvedSession, SessionOrigin } from './sessions.js';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
 
-type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 type SignedInView = Extract<AdminSessionInfo, { authenticated: true }>;
 
 /** Five wrong answers (password or second factor) lock sign-in for 5 min; each further five doubles it, capped at 1 h. */
@@ -92,10 +91,11 @@ export class AdminAuthService {
   /* ───────────── step 1: password ───────────── */
 
   async login(input: AdminLogin, ctx: SessionOrigin): Promise<SignedIn> {
-    // Throttle BEFORE any hashing: the limiter is the cheap gate in front of the expensive one. Both keys apply
-    // whether or not the username exists, so the 429 reveals nothing either.
+    // Throttle BEFORE any hashing: the limiter is the cheap gate in front of the expensive one. It is per ADDRESS
+    // only. A per-username limit would let anyone exhaust it for a known name and turn away the real admin even with
+    // the right password, a cheaper lock-out than the account lock itself; guessing against one account is what the
+    // lock is for.
     await this.limit('admin-login-ip', ctx.ip ?? 'unknown', 30, 600);
-    await this.limit('admin-login-user', sha256Hex(input.username), 10, 600);
 
     const [admin] = await this.db
       .select()
@@ -118,8 +118,9 @@ export class AdminAuthService {
           ? 'credentials_expired'
           : null;
     if (reason) {
-      // A locked account is not audited per attempt (the lock itself was); the others are worth a line.
-      if (reason !== 'locked')
+      // Only a refusal that came with the CORRECT password is worth a row (someone really tried to use a disabled or
+      // expired account). Without that, anyone could fill the permanent log by hammering a disabled username.
+      if (passwordOk && reason !== 'locked')
         await writeAudit(this.db, {
           adminId: admin.id,
           label: `admin:${admin.username}`,
@@ -145,7 +146,6 @@ export class AdminAuthService {
     }
     // A password alone does NOT clear the failure counter: only a completed second factor does. Otherwise
     // someone holding the password could reset the counter by logging in again and guess codes without limit.
-    await this.sessions.revokeAll(admin.id, { onlyPending: true });
     const session = await this.sessions.create(admin.id, false, ctx);
     return { session, view: viewOf(admin, false, session.csrfToken) };
   }
@@ -174,21 +174,14 @@ export class AdminAuthService {
     }
 
     const method = 'code' in input ? 'totp' : 'recovery';
-    const accepted =
-      'code' in input
-        ? await this.claimTotp(admin, input.code)
-        : await this.claimRecoveryCode(admin.id, input.recoveryCode);
-    if (!accepted) {
-      await this.recordFailure(
-        admin.id,
-        admin.username,
-        method === 'totp' ? 'totp' : 'recovery',
-        ctx,
-      );
-      throw new AppError(401, 'UNAUTHENTICATED', 'That code did not work. Check it and try again.');
-    }
-
+    // The credential is spent in the SAME transaction that issues the session: a failure after the claim rolls the
+    // claim back, so an admin never loses a recovery code (or a time-step) without getting in.
     const session = await this.db.transaction(async (tx) => {
+      const accepted =
+        'code' in input
+          ? await this.claimTotp(admin, input.code, tx)
+          : await this.claimRecoveryCode(admin.id, input.recoveryCode, tx);
+      if (!accepted) return null;
       await tx
         .update(adminUsers)
         .set({ failedAttempts: 0, lockedUntil: null, lastLoginAt: now })
@@ -206,6 +199,10 @@ export class AdminAuthService {
       });
       return issued;
     });
+    if (!session) {
+      await this.recordFailure(admin.id, admin.username, method, ctx);
+      throw new AppError(401, 'UNAUTHENTICATED', 'That code did not work. Check it and try again.');
+    }
     const remaining = method === 'recovery' ? await this.remainingRecoveryCodes(admin.id) : null;
     return {
       session,
@@ -219,12 +216,13 @@ export class AdminAuthService {
   private async claimTotp(
     admin: { id: string; totpSecretEnc: string | null; totpLastStep: number | null },
     code: string,
+    executor: Database | Tx = this.db,
   ): Promise<boolean> {
     if (!admin.totpSecretEnc) return false;
     const secret = this.cipher.decrypt(admin.totpSecretEnc, 'admin.totp');
     const step = verifyTotp(secret, code, this.now().getTime(), admin.totpLastStep);
     if (step === null) return false;
-    const claimed = await this.db
+    const claimed = await executor
       .update(adminUsers)
       .set({ totpLastStep: step })
       .where(
@@ -237,21 +235,56 @@ export class AdminAuthService {
     return claimed.length === 1;
   }
 
-  private async claimRecoveryCode(adminId: string, raw: string): Promise<boolean> {
+  private async claimRecoveryCode(
+    adminId: string,
+    raw: string,
+    executor: Database | Tx = this.db,
+  ): Promise<boolean> {
     const normalized = normalizeRecoveryCode(raw);
     if (!normalized) return false;
-    const used = await this.db
+    const used = await executor
       .update(adminRecoveryCodes)
       .set({ usedAt: this.now() })
       .where(
         and(
           eq(adminRecoveryCodes.adminId, adminId),
-          eq(adminRecoveryCodes.codeHash, hashRecoveryCode(this.env.SESSION_SECRET, normalized)),
+          eq(adminRecoveryCodes.codeHash, this.recoveryHash(normalized)),
           isNull(adminRecoveryCodes.usedAt),
         ),
       )
       .returning({ id: adminRecoveryCodes.id });
     return used.length === 1;
+  }
+
+  /** Keyed with the PII key, not SESSION_SECRET: rotating the cookie secret (routine after a scare) must not silently void
+   *  every admin's recovery codes. */
+  private recoveryHash(normalized: string): string {
+    return hashRecoveryCode(this.env.PII_ENCRYPTION_KEY, normalized);
+  }
+
+  /** Replaces ALL of an admin's recovery codes with a fresh set; returns the codes (the only time they exist in clear). */
+  private async issueRecoveryCodes(tx: Tx, adminId: string): Promise<string[]> {
+    const codes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
+    await tx.delete(adminRecoveryCodes).where(eq(adminRecoveryCodes.adminId, adminId));
+    await tx
+      .insert(adminRecoveryCodes)
+      .values(
+        codes.map((c) => ({ adminId, codeHash: this.recoveryHash(normalizeRecoveryCode(c)!) })),
+      );
+    return codes;
+  }
+
+  /**
+   * While an account is locked, a signed-in session may not keep guessing at the sensitive prompts either (current
+   * password, authenticator code): the lock bounds those guesses to a handful per lock period. The session itself is
+   * left alone, so a stranger who merely locked the account cannot throw the real admin out.
+   */
+  private refuseWhileLocked(admin: { lockedUntil: Date | null }): void {
+    const now = this.now();
+    if (admin.lockedUntil && admin.lockedUntil > now)
+      throw new AppError(429, 'RATE_LIMITED', 'Too many wrong answers, please wait', {
+        retryAfterSeconds: Math.ceil((admin.lockedUntil.getTime() - now.getTime()) / 1000),
+      });
   }
 
   private async remainingRecoveryCodes(adminId: string): Promise<number> {
@@ -285,7 +318,6 @@ export class AdminAuthService {
       throw new AppError(409, 'CONFLICT', 'An authenticator is already set up');
     await this.limit('admin-mfa-session', current.tokenHash, 8, 600);
 
-    const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
     const now = this.now();
     const outcome = await this.db.transaction(async (tx) => {
       const [admin] = await tx
@@ -316,13 +348,7 @@ export class AdminAuthService {
           lastLoginAt: now,
         })
         .where(eq(adminUsers.id, admin.id));
-      await tx.delete(adminRecoveryCodes).where(eq(adminRecoveryCodes.adminId, admin.id));
-      await tx.insert(adminRecoveryCodes).values(
-        recoveryCodes.map((c) => ({
-          adminId: admin.id,
-          codeHash: hashRecoveryCode(this.env.SESSION_SECRET, normalizeRecoveryCode(c)!),
-        })),
-      );
+      const recoveryCodes = await this.issueRecoveryCodes(tx, admin.id);
       await this.sessions.revoke(current.tokenHash, tx);
       const session = await this.sessions.create(admin.id, true, ctx, tx);
       await writeAudit(tx, {
@@ -333,14 +359,14 @@ export class AdminAuthService {
         entityId: admin.id,
         ip: ctx.ip,
       });
-      return { session, admin: { ...admin, mfaEnabled: true } };
+      return { session, recoveryCodes, admin: { ...admin, mfaEnabled: true } };
     });
     if (!outcome) {
       await this.recordFailure(current.admin.id, current.admin.username, 'totp', ctx);
       throw new AppError(401, 'UNAUTHENTICATED', 'That code did not work. Check it and try again.');
     }
     return {
-      recoveryCodes,
+      recoveryCodes: outcome.recoveryCodes,
       session: outcome.session,
       view: viewOf(outcome.admin, true, outcome.session.csrfToken),
     };
@@ -353,19 +379,11 @@ export class AdminAuthService {
       .select()
       .from(adminUsers)
       .where(eq(adminUsers.id, current.admin.id));
-    if (!admin || !(await this.claimTotp(admin, code))) {
-      if (admin) await this.recordFailure(admin.id, admin.username, 'totp', ctx);
-      throw new AppError(401, 'UNAUTHENTICATED', 'That code did not work. Check it and try again.');
-    }
-    const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
-    await this.db.transaction(async (tx) => {
-      await tx.delete(adminRecoveryCodes).where(eq(adminRecoveryCodes.adminId, admin.id));
-      await tx.insert(adminRecoveryCodes).values(
-        recoveryCodes.map((c) => ({
-          adminId: admin.id,
-          codeHash: hashRecoveryCode(this.env.SESSION_SECRET, normalizeRecoveryCode(c)!),
-        })),
-      );
+    if (!admin) throw refused();
+    this.refuseWhileLocked(admin);
+    const recoveryCodes = await this.db.transaction(async (tx) => {
+      if (!(await this.claimTotp(admin, code, tx))) return null;
+      const codes = await this.issueRecoveryCodes(tx, admin.id);
       await writeAudit(tx, {
         adminId: admin.id,
         label: `admin:${admin.username}`,
@@ -374,7 +392,12 @@ export class AdminAuthService {
         entityId: admin.id,
         ip: ctx.ip,
       });
+      return codes;
     });
+    if (!recoveryCodes) {
+      await this.recordFailure(admin.id, admin.username, 'totp', ctx);
+      throw new AppError(401, 'UNAUTHENTICATED', 'That code did not work. Check it and try again.');
+    }
     return { recoveryCodes };
   }
 
@@ -392,6 +415,7 @@ export class AdminAuthService {
       .from(adminUsers)
       .where(eq(adminUsers.id, current.admin.id));
     if (!admin) throw refused();
+    this.refuseWhileLocked(admin);
     if (!(await verifyPassword(input.currentPassword, admin.passwordHash))) {
       await this.recordFailure(admin.id, admin.username, 'password', ctx);
       throw new AppError(400, 'VALIDATION_FAILED', 'Your current password is not correct', {
@@ -464,7 +488,7 @@ export class AdminAuthService {
     ctx: SessionOrigin,
   ): Promise<void> {
     const now = this.now();
-    await this.db.transaction(async (tx: Tx) => {
+    await this.db.transaction(async (tx) => {
       const [row] = await tx
         .update(adminUsers)
         .set({ failedAttempts: sql`${adminUsers.failedAttempts} + 1` })

@@ -10,7 +10,7 @@ Phase 5 builds the security core (API, operator CLI, tests). The console screens
 ## Decisions
 
 ### 1. Passwords: argon2id from Node's own crypto, no new dependency
-`crypto.argon2` (Node ≥ 24.7; the image runs 24.21) with 64 MiB, 3 passes, 1 lane ≈ 150 ms. Hashes are PHC strings carrying their own parameters, so cost can be raised later and `needsRehash` upgrades an old hash at the next good sign-in. Passwords are NFKC-normalised. Policy follows NIST SP 800-63B: length (12 to 128 characters), not composition rules, plus a short deny-list of what attackers try first, no username inside the password, and not the current password. At most two hashes run at once per process (64 MiB each), and the rate limiter sits in front of the hash.
+`crypto.argon2` (Node ≥ 24.7, enforced by `engines` and by a start-up check with a plain message; the image runs 24.21) with 64 MiB, 3 passes, 1 lane ≈ 150 ms. Hashes are PHC strings carrying their own parameters, so cost can be raised later and `needsRehash` upgrades an old hash at the next good sign-in. Passwords are NFKC-normalised. Policy follows NIST SP 800-63B: length (12 to 128 characters), not composition rules, plus a short deny-list of what attackers try first, no username inside the password, and not the current password. At most two hashes run at once per process (64 MiB each; a freed slot is handed straight to the next waiter, so a caller arriving at the same instant cannot take a third), and the rate limiter sits in front of the hash.
 
 *Rejected:* the `argon2` npm package (a native add-on to build and to supply-chain, for no benefit); bcrypt (72-byte limit, less memory-hard); a hosted identity provider (needs accounts, internet and a vendor at an event with none of those guaranteed).
 
@@ -19,7 +19,7 @@ TOTP (RFC 6238: SHA-1, 6 digits, 30 s, ±1 step for clock drift), the one profil
 - The secret is 160 random bits, stored **AES-256-GCM encrypted** (purpose-bound AAD) and only trusted once a code proves it (`mfa_enabled`). A database check forbids `mfa_enabled` without a secret.
 - **Each time-step works once.** The claim is one conditional `UPDATE … WHERE totp_last_step < $step`, so two parallel requests carrying the same code cannot both succeed (tested with eight at once).
 - Enrolment can only start while MFA is **not** enrolled. Someone who has only the password can never replace an existing authenticator.
-- Ten **recovery codes** (60 random bits, Crockford base32) are shown once at enrolment, stored only as keyed HMACs, single use, claimed atomically. Using one reports how many remain. Regenerating them needs a fresh authenticator code and voids all old ones.
+- Ten **recovery codes** (60 random bits, Crockford base32) are shown once at enrolment, stored only as HMACs keyed with the PII key (not `SESSION_SECRET`: rotating the cookie secret after a scare must not void every admin's recovery codes), single use, claimed atomically **inside the transaction that issues the session**, so a failure after the claim gives the code back. Using one reports how many remain. Regenerating them needs a fresh authenticator code and voids all old ones.
 
 ### 3. Sign-in is a state machine held on the server
 ```
@@ -38,7 +38,8 @@ Five wrong answers in a row (password **or** code) lock sign-in for 5 minutes; e
 - A correct password does **not** reset the counter; only a finished second factor does. Otherwise someone holding the password could reset it by logging in again and guess codes without limit.
 - A locked account answers exactly like a wrong password (no oracle), and the password is not even checked.
 - A lock ends sign-ins in progress but **never an established session**.
-- Per-address and per-username rate limits sit in front of all of it, before any hashing.
+- A per-**address** rate limit (30 per 10 minutes) sits in front of all of it, before any hashing. There is deliberately **no per-username limit**: anyone could exhaust it for a known name and turn the real admin away even with the right password, a cheaper lock-out than the lock itself. Guessing against one account is what the lock is for.
+- While an account is locked, a signed-in session also gets no further guesses at the sensitive prompts (current password, authenticator code for recovery codes): those answer 429 without checking, so a stolen session cannot guess a password forever. The session itself is left alone.
 
 *Accepted trade-off:* someone who knows a username can keep that account locked out of **new** sign-ins. The impact is bounded (existing sessions survive; a SUPER_ADMIN or the operator CLI unlocks in one command) and the alternative, no lock-out, is worse. See residual risk R-A1.
 
@@ -62,10 +63,10 @@ Implemented now: `admins.read`, `admins.manage`, `audit.read` (SUPER_ADMIN only)
 - The operator CLI (`pnpm stack:admin …`) is the bootstrap and the break-glass path and goes through the same service, so the same rules hold.
 
 ### 8. Everything security-relevant is audited, and nothing secret is
-Sign-in success and failure, locks, refusals, MFA enrolment, recovery-code regeneration, password changes, logout, every account change and every denied access write to the append-only `audit_log`, in the same transaction as the change. A test scans the whole table for passwords, secrets, codes and tokens. An unknown username is not recorded (it is often a mistyped password).
+Sign-in success and failure, locks, refusals (only when the password was right, so hammering a disabled name cannot flood the log), MFA enrolment, recovery-code regeneration, password changes, logout, every account change and every denied access write to the append-only `audit_log`, in the same transaction as the change. A test scans the whole table for passwords, secrets, codes and tokens. An unknown username is not recorded (it is often a mistyped password).
 
 ## Consequences
-- The auth surface lives in one directory (`modules/admin`, about 1,800 formatted lines including routes and account management), uses no auth framework and no native add-on. It is also ours to get right: the test suite is the safety net (76 tests, mutation-checked, §5 of the Phase 5 review).
+- The auth surface lives in one directory (`modules/admin`, about 1,800 formatted lines including routes and account management), uses no auth framework and no native add-on. It is also ours to get right: the test suite is the safety net (86 tests, mutation-checked, §5 of the Phase 5 review).
 - Admin sign-in is reachable from the internet. MFA, the lock-out and the rate limits are the protection; restricting `/api/admin` to the venue network or a VPN is possible later without changing this design (Phase 7 option).
 - Recovery depends on a SUPER_ADMIN or the laptop operator. That is intentional: there is no email or SMS reset path to attack.
 - WebAuthn / passkeys would be stronger than TOTP against phishing and are a natural future second factor; they were left out because they need a stable HTTPS relying-party identity on every device used and add UI surface a two-day build cannot afford.
