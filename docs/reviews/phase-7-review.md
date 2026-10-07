@@ -73,3 +73,14 @@ Threat model section "Phase 7" has the table. In short:
 | 8 | The test pool fell back to the owner role if `TEST_APP_DATABASE_URL` was missing, so the suite could pass without testing least privilege | It throws instead |
 | 9 | Log serializer: callers passing strings lost detail, PostgreSQL's own quoted values and `AggregateError` members were not handled | Callers pass the error object; quoted values in driver messages are masked (constraint names kept); `AggregateError` members kept; string messages cut at `params:`. 2 new tests |
 | 10 | "Privileged role" check missed role membership and createdb/replication, and looked up `votes` in any schema | Uses `pg_has_role` for the table owner and PostgreSQL's all-data / server-file / server-program roles, `public.votes` explicitly; new test grants and revokes a predefined role |
+
+## 9. `/security-review` round (run on the final code, after §8's fixes)
+**No findings at or above the reporting bar** (nothing above 80 % confidence). Examined: role provisioning (identifier validated by regex, password through `format(%L)`, constant table lists), the compose and image changes, the `/api/readyz` edge block (no bypass through case or trailing slash: Caddy matches exactly and Fastify is case-sensitive), the log serializer, `reset-event` and its guards, the preflight, `gen-env`, the cursor regex tightening, and the load tooling and committed results (no tokens, passwords, connection strings or phone numbers).
+
+Notes considered and not changed:
+| Note | Disposition |
+|---|---|
+| `load/otp-feed.mjs` listens on all interfaces without authentication | Test tooling on the tester's laptop, serving fake codes from the throw-away database; not part of the deployed stack. Could bind to the Docker gateway only if you prefer. |
+| The log serializer masks only the `: "value"` pattern; a message like `value "N" is out of range` would still log its number | Log hygiene, not a secret. Accepted. |
+| `mc_app` can read and insert in every table (including admin and OTP tables) | Needed by the application; strictly narrower than the owner/superuser it replaces. |
+| Redis without a password | Loopback and the private Docker network only; unchanged. |
