@@ -3,6 +3,7 @@ import type { SVGProps } from 'react';
 /** One hand-drawn set, one stroke style (2px, round caps). No icon library — about 1 KB for all of them. */
 const PATHS = {
   check: 'M5 12.5 9.5 17 19 7.5',
+  person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1',
   forward: 'm9 5 7 7-7 7',
   back: 'm15 5-7 7 7 7',
   close: 'm6 6 12 12M18 6 6 18',

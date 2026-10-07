@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '../../../design-system/Button';
-import { CheckRow, FieldShell, TextField, controlClass } from '../../../design-system/Field';
+import {
+  CheckRow,
+  FieldControl,
+  FieldShell,
+  LeadBadge,
+  TextField,
+  inputClass,
+} from '../../../design-system/Field';
 import { Icon } from '../../../design-system/Icon';
 import { useI18n } from '../../../i18n';
 import { ApiError, api } from '../../../lib/api';
@@ -21,6 +28,9 @@ export function Details() {
   const [busy, setBusy] = useState(false);
 
   const national = nationalDigits(draft.phone);
+  const name = draft.name.trim();
+  /** The badge shows the first letter as you type: proof the field took your name, and a little welcome. */
+  const initial = [...name][0]?.toUpperCase();
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -64,7 +74,7 @@ export function Details() {
   return (
     <form onSubmit={(e) => void submit(e)} noValidate className="flex min-h-dvh flex-col">
       <TopBar back="/vote" />
-      <div className="flex-1 space-y-6 px-5 pt-6">
+      <div className="flex-1 space-y-6 px-5 pb-4 pt-6">
         <div className="space-y-2">
           <h1 className="t-title text-navy" tabIndex={-1} data-screen-title>
             {d.details.title}
@@ -81,20 +91,28 @@ export function Details() {
             if (errors.name) setErrors((p) => ({ ...p, name: undefined }));
           }}
           autoComplete="name"
+          autoCapitalize="words"
+          spellCheck={false}
           enterKeyHint="next"
           maxLength={80}
           error={errors.name}
+          valid={name.length >= 2}
+          lead={<LeadBadge>{initial ?? <Icon name="person" size={20} />}</LeadBadge>}
         />
 
         <FieldShell label={d.details.phoneLabel} hint={d.details.phoneHint} error={errors.phone}>
           {({ id, describedBy, invalid }) => (
-            <div className="flex items-stretch gap-2">
-              <span
-                dir="ltr"
-                className="grid min-h-14 place-items-center rounded-[var(--radius-control)] bg-purple-soft px-4 text-[1.0625rem] font-bold text-navy"
-              >
-                +962
-              </span>
+            <FieldControl
+              invalid={invalid}
+              valid={isJordanMobile(national)}
+              lead={
+                <LeadBadge wide decorative={false}>
+                  <span dir="ltr" className="num">
+                    +962
+                  </span>
+                </LeadBadge>
+              }
+            >
               <input
                 id={id}
                 dir="ltr"
@@ -110,9 +128,9 @@ export function Details() {
                   setDraft({ ...draft, phone: nationalDigits(e.target.value) });
                   if (errors.phone) setErrors((p) => ({ ...p, phone: undefined }));
                 }}
-                className={`${controlClass(invalid)} min-w-0 flex-1 text-start tabular-nums tracking-wide rtl:text-end`}
+                className={`${inputClass} text-start tabular-nums tracking-wide rtl:text-end`}
               />
-            </div>
+            </FieldControl>
           )}
         </FieldShell>
 
