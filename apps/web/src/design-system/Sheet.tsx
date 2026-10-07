@@ -77,7 +77,11 @@ function SheetBody({
         close();
       }}
       className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none overflow-hidden border-0 bg-transparent p-0 text-ink backdrop:bg-transparent"
-      style={{ zIndex: 'var(--z-sheet)' }}
+      // `overflow: clip` (not just hidden): the panel starts translated off-screen, and showModal() focuses the confirm
+      // button inside it. A hidden-overflow box can still be scrolled by that focus, which made the whole sheet jump
+      // up by its own height as it opened (visible on iOS Safari). A clipped box cannot be scrolled at all. Browsers
+      // without `clip` drop the declaration and keep the class's `overflow-hidden`.
+      style={{ zIndex: 'var(--z-sheet)', overflow: 'clip' }}
     >
       <m.div
         className="absolute inset-0 bg-[rgb(0_0_50/0.58)]"
@@ -88,7 +92,7 @@ function SheetBody({
         onClick={close}
       />
       <m.div
-        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-[2rem] bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)]"
+        className="absolute inset-x-0 bottom-0 mx-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[2rem] bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)]"
         style={{ y }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
