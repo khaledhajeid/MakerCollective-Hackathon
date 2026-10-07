@@ -37,6 +37,17 @@ try {
     console.error('usage: display create <label> | list | revoke <id>');
     process.exitCode = 2;
   }
+} catch (err) {
+  // An operator mistyping an id at the event gets a sentence, not a stack trace.
+  const code = (err as { code?: string }).code;
+  console.error(
+    code === '22P02'
+      ? 'That is not a valid display id. Copy it from `pnpm stack:display list`.'
+      : err instanceof Error
+        ? err.message
+        : String(err),
+  );
+  process.exitCode = 1;
 } finally {
   await pool.end();
 }

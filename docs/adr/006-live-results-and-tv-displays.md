@@ -24,7 +24,7 @@ A missing or unparsable snapshot **fails closed** (everything sealed); it never 
 
 ### 3. State transitions are transactional, idempotent and audited
 `setMode` and `revealCategory` run under `SELECT … FOR UPDATE` on the `settings` row and write an `audit_log` row in the same transaction.
-- Entering `FROZEN` stores the leaderboard **for every active category, including empty ones** (an absent category would mean "created after the freeze" and render sealed). Entering `FROZEN` again keeps the original snapshot.
+- Entering `FROZEN` stores the leaderboard **for every active category, including empty ones** (an absent category would mean "created after the freeze" and render sealed). A sealed result is **never refreshed**: entering `FROZEN` again, or coming back to it from `HIDDEN` (which keeps the snapshot), restores the original. Only `LIVE` or `REVEAL` discard it, so an organiser takes a fresh snapshot by going through `LIVE`.
 - Entering `REVEAL` starts with nothing released. Each `revealCategory` stores that category's standings at that moment, so a late vote cannot change an announced winner. Revealing twice is a no-op.
 - The same service is used by the operator CLI now (`pnpm stack:results …`) and by the admin console in Phase 6.
 
@@ -33,8 +33,9 @@ Statement-level triggers on `votes`, `settings`, the catalog tables and `display
 
 Each API replica holds one `LISTEN` connection and a `ResultsHub`:
 - A vote marks the hub dirty. Recomputation is a **leading-edge throttle**: the first change recomputes at once, then at most once per second. A burst of 1,000 votes costs about one query per second per replica, not 1,000.
-- A settings / catalog change (the Blind Hour toggle) is **urgent**: it skips the window.
+- A settings / catalog change (the Blind Hour toggle) is **urgent**: it skips the window. A display-token change is not a frame change: it only triggers the revocation check, and is announced only when `revoked_at` changes or a token is deleted (not by the "last seen" touch on every connect).
 - A frame is broadcast only if it differs from the last one. A replica with no TV connected does no work.
+- A recompute that fails (a database hiccup exactly when a freeze is announced) is retried within the throttle window, not left to the next resync; a TV that cannot be given a current frame is refused rather than served a cached one; no TV is accepted once shutdown has begun, and capacity is decided after the awaits so a reconnect burst cannot exceed it.
 - Safety nets: a 5 s resync (a missed notification, or a clock-driven change such as the voting window closing), automatic reconnect of the `LISTEN` connection with jittered backoff, and a full resync after every reconnect. If `NOTIFY` ever became a commit bottleneck, the resync alone keeps the TVs correct (Phase 7 load test measures it).
 - **No notification is ever lost:** an announcement that arrives while no TV is registered, or while a connecting TV's frame is being computed, still marks the hub dirty and forces another computation before that TV is served. A TV that cannot be served a *current* frame (database unreachable) is refused and reconnects, rather than being handed a cached frame that may predate a freeze. This closed a real race found in testing.
 
@@ -52,5 +53,5 @@ Shutdown: Fastify's `server.close()` waits for open connections and runs before 
 ## Consequences
 - The Blind Hour guarantee is testable in one place and was tested end to end: a browser recording of the raw event stream while 41 votes arrive during a freeze contains none of them.
 - Cost scales with TVs and replicas, not with voters.
-- `NOTIFY` adds a short global lock at commit for each voting transaction; measure in Phase 7.
+- `NOTIFY` adds a short global lock at commit for each voting transaction. At this event's scale (a few votes per second on average, bursts of tens) that is negligible, but it sits on the most important write path, so Phase 7 measures vote latency with and without it. The off-switch is one migration (drop the two `votes_notify*` triggers) plus a 500 ms resync: the TVs would be at most ~0.6 s behind instead of ~0.1 s.
 - Admin viewing of live counts during the Blind Hour (read-only, audit-logged, ADR-003) arrives with admin auth in Phases 5 and 6; the service already separates "what a TV may see" from "what is true".

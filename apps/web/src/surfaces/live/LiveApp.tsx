@@ -8,8 +8,8 @@ import { Pairing } from './Pairing';
 import { Rail } from './Rail';
 import { SealedScreen, WaitingScreen } from './Screens';
 import { Stage } from './Stage';
-import { useNow, useRotation } from './hooks';
-import { DWELL_MS, OFFLINE_CHIP_MS, screenFor, stageCategories } from './model';
+import { useOfflineNotice, useRotation } from './hooks';
+import { DWELL_MS, screenFor, stageCategories } from './model';
 import { useDisplay } from './useDisplay';
 
 function Connecting() {
@@ -28,7 +28,6 @@ function Connecting() {
 type Display = ReturnType<typeof useDisplay>;
 
 function Screen({ d, frame }: { d: Display; frame: ResultsFrame }) {
-  const now = useNow(1000);
   const screen = screenFor(frame);
   const cats = stageCategories(frame);
   const ceremonyCategory = d.reveal
@@ -55,13 +54,12 @@ function Screen({ d, frame }: { d: Display; frame: ResultsFrame }) {
     clearReveal();
   }, [jumpTo, clearReveal]);
 
-  const offline =
-    d.link === 'offline' && d.offlineSince !== null && now - d.offlineSince > OFFLINE_CHIP_MS;
+  const offline = useOfflineNotice(d.link, d.offlineSince);
 
   return (
     <main className="tv-ground relative size-full overflow-hidden text-white">
       <div className="tv-burnin flex size-full flex-col gap-[16px] px-[64px] py-[32px]">
-        <Header frame={frame} serverNow={now + d.clockOffset} offline={offline} />
+        <Header frame={frame} clockOffset={d.clockOffset} offline={offline} />
         <div className="min-h-0 flex-1">
           {screen === 'sealed' && <SealedScreen />}
           {screen === 'waiting' && <WaitingScreen />}

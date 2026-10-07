@@ -120,6 +120,7 @@ export class ResultsHub {
    * handed the pre-freeze numbers.
    */
   async subscribe(client: StreamClient): Promise<() => void> {
+    if (this.closed) throw new Error('shutting down');
     if (!this.hasCapacity()) throw new Error('too many displays');
     // Recompute until the frame is current. A change announced WHILE we compute leaves `stale` set (the
     // notification cannot be lost just because this TV is not registered yet), so go round again.
@@ -132,6 +133,9 @@ export class ResultsHub {
     // Fail closed: if the database could not be read, the cached frame may predate a freeze — send nothing and
     // let the TV's automatic reconnect try again, rather than risk showing numbers that should now be sealed.
     if (this.stale || !this.lastJson) throw new Error('results unavailable');
+    // The awaits above let other connects and a shutdown overtake us: decide again, now, with nothing left to await.
+    if (this.closed) throw new Error('shutting down');
+    if (!this.hasCapacity()) throw new Error('too many displays');
     // Re-read AFTER the await: a broadcast may have happened meanwhile, and this client now receives every later one.
     this.clients.add(client);
     // The server clock goes first-class with the first frame: TV clocks are often wrong and the countdown needs it.
@@ -199,7 +203,10 @@ export class ResultsHub {
         }
       } catch (err) {
         this.stale = true;
-        this.deps.log.error({ err: String(err) }, 'results frame failed — TVs keep the last frame');
+        // The failed read must not be forgotten: re-arm so the throttle retries in about a second, instead of
+        // waiting for the next resync while a change (a freeze, say) is still unseen.
+        this.dirty = true;
+        this.deps.log.error({ err: String(err) }, 'results frame failed — retrying');
       } finally {
         this.running = null;
         if (this.dirty && !this.closed) {
@@ -238,9 +245,10 @@ export class ResultsHub {
   }
 
   private onNotification(tag: string | undefined): void {
+    // A token was revoked or deleted: close those streams. It changes no frame, so nothing is recomputed.
+    if (tag === 'display') return void this.dropRevoked();
     // Mode / window / catalog changes must reach the TVs at once; a vote only needs the coalesced path.
     this.schedule(tag !== 'votes');
-    if (tag === 'display') void this.dropRevoked();
   }
 
   private async connectListener(): Promise<void> {

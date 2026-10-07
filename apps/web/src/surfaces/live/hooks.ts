@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { nextCategoryId } from './model';
+import { OFFLINE_CHIP_MS, nextCategoryId } from './model';
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
 export function useReducedMotion(): boolean {
@@ -76,4 +76,21 @@ export function useRotation(ids: readonly string[], dwellMs: number, hold: boole
     epoch: state.epoch,
     jumpTo: useCallback((id: string) => setState((s) => ({ id, epoch: s.epoch + 1 })), []),
   };
+}
+
+/**
+ * True once the link has been down long enough to tell the room. A one-shot timer instead of a clock tick, so the
+ * rest of the screen does not re-render every second just to find out.
+ */
+export function useOfflineNotice(
+  link: 'connecting' | 'live' | 'offline',
+  since: number | null,
+): boolean {
+  const [due, setDue] = useState<number | null>(null);
+  useEffect(() => {
+    if (link !== 'offline' || since === null) return;
+    const t = setTimeout(() => setDue(since), Math.max(0, since + OFFLINE_CHIP_MS - Date.now()));
+    return () => clearTimeout(t);
+  }, [link, since]);
+  return link === 'offline' && since !== null && due === since;
 }

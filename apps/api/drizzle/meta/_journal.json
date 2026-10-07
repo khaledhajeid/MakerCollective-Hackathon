@@ -50,6 +50,13 @@
       "when": 1791328630899,
       "tag": "0006_results_notify",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791334123905,
+      "tag": "0007_display_notify_revocation_only",
+      "breakpoints": true
     }
   ]
 }

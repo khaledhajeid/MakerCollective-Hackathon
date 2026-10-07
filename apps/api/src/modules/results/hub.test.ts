@@ -126,6 +126,44 @@ describe('ResultsHub', () => {
     expect(first.modes()).toEqual(['LIVE']);
   });
 
+  it('a failed recompute is retried within the throttle window, not left until the next resync', async () => {
+    const { service, pending, control } = controlledService();
+    const hub = makeHub(service);
+    const tv = fakeClient();
+    const p = hub.subscribe(tv.client);
+    await tick();
+    pending[0]!.resolve(frame('LIVE', 5));
+    await p;
+
+    control.failing = true; // the database hiccups exactly when a freeze is announced
+    hub.schedule(true);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(tv.modes()).toEqual(['LIVE']);
+    control.failing = false;
+    await new Promise((r) => setTimeout(r, 30));
+    pending.at(-1)!.resolve(frame('FROZEN', 5));
+    await tick();
+    expect(tv.modes()).toEqual(['LIVE', 'FROZEN']); // picked up by the retry, with no resync involved
+    await hub.close();
+  });
+
+  it('refuses new TVs once shutting down, and never exceeds capacity when connects race', async () => {
+    const { service, pending } = controlledService();
+    const hub = makeHub(service, { maxClients: 1 });
+    const a = fakeClient('a');
+    const b = fakeClient('b');
+    const results = Promise.allSettled([hub.subscribe(a.client), hub.subscribe(b.client)]);
+    await tick();
+    pending[0]!.resolve(frame('LIVE', 1));
+    const [ra, rb] = await results;
+    expect([ra!.status, rb!.status].sort()).toEqual(['fulfilled', 'rejected']);
+    expect(hub.size).toBe(1);
+
+    await hub.close();
+    await expect(hub.subscribe(fakeClient('c').client)).rejects.toThrow(/shutting down/);
+    expect(hub.size).toBe(0);
+  });
+
   it('coalesces a burst of vote notifications into one recomputation per window', async () => {
     const { service, pending } = controlledService();
     const hub = makeHub(service, { minIntervalMs: 30 });

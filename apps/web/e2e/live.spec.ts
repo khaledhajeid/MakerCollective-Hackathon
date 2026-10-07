@@ -120,6 +120,20 @@ test('an unpaired TV asks for a code; a wrong one is refused, the right one pair
   await expect(page.getByText('بانتظار أول صوت')).toBeVisible();
 });
 
+test('a network hiccup while pairing from the link is retried with the same token', async ({
+  page,
+}) => {
+  const { token } = await newDisplay();
+  let attempts = 0;
+  await page.route('**/api/display/pair', (route) =>
+    attempts++ === 0 ? route.abort() : route.continue(),
+  );
+  await page.goto(`/live#t=${token}`);
+  await expect(page.getByText('بانتظار أول صوت')).toBeVisible({ timeout: 12_000 }); // the TV pairs by itself…
+  expect(attempts).toBeGreaterThanOrEqual(2);
+  expect(page.url()).not.toContain('mcd_'); // …although the secret left the address bar before the first try
+});
+
 test('pairing from an address the API does not allow says so, instead of "cannot reach the server"', async ({
   page,
 }) => {

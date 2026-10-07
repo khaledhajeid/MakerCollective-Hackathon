@@ -49,37 +49,43 @@ export function useDisplay() {
     setAuth('unpaired');
   }, []);
 
-  const pairWith = useCallback(async (token: string): Promise<boolean> => {
-    setPairing(true);
-    try {
-      const res = await fetch(PAIR_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token: token.trim() }),
-      });
-      if (res.ok) {
-        setIssue(null);
-        setAuth('ready');
-        return true;
+  /** `retry` = the server could not be reached (or asked us to slow down): the same token is worth trying again. */
+  const pairWith = useCallback(
+    async (token: string): Promise<'ok' | 'invalid' | 'origin' | 'retry'> => {
+      setPairing(true);
+      try {
+        const res = await fetch(PAIR_URL, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ token: token.trim() }),
+        });
+        if (res.ok) {
+          setIssue(null);
+          setAuth('ready');
+          return 'ok';
+        }
+        setAuth('unpaired');
+        if (res.status === 401 || res.status === 400) {
+          setIssue('invalid');
+          return 'invalid';
+        }
+        // 403 = the API refused this page's address (CSRF origin check): say so instead of "cannot reach the server".
+        if (res.status === 403) {
+          setIssue('origin');
+          return 'origin';
+        }
+        setIssue('network'); // 429 / 5xx
+        return 'retry';
+      } catch {
+        setAuth('unpaired');
+        setIssue('network');
+        return 'retry';
+      } finally {
+        setPairing(false);
       }
-      // 403 = the API refused this page's address (CSRF origin check): say so instead of "cannot reach the server".
-      setIssue(
-        res.status === 401 || res.status === 400
-          ? 'invalid'
-          : res.status === 403
-            ? 'origin'
-            : 'network',
-      );
-      setAuth('unpaired');
-      return false;
-    } catch {
-      setIssue('network');
-      setAuth('unpaired');
-      return false;
-    } finally {
-      setPairing(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   // 1) Who am I? A `#t=` fragment pairs immediately and is removed from the address bar.
   useEffect(() => {
@@ -104,10 +110,15 @@ export function useDisplay() {
       timer = setTimeout(check, sleepRetry);
     };
 
-    void (async () => {
-      if (fragment && (await pairWith(fragment))) return;
-      if (!fragment) await check();
-    })();
+    // The link's token is gone from the address bar, so a hiccup must not cost the operator a 47-character retype:
+    // keep trying the same token while the failure is one a retry can fix.
+    const pairFromLink = async (token: string) => {
+      const result = await pairWith(token);
+      if (!stop && result === 'retry')
+        timer = setTimeout(() => void pairFromLink(token), sleepRetry);
+    };
+    if (fragment) void pairFromLink(fragment);
+    else void check();
     return () => {
       stop = true;
       clearTimeout(timer);

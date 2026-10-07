@@ -84,3 +84,21 @@ The reviewer's last report still read "fix" because of the yellow-tile regressio
 - Web unit: `surfaces/live/model.test.ts` (19: screen choice, rotation, countdown, ranking helpers, reveal trigger).
 - Browser: `apps/web/e2e/live.spec.ts` (13 specs, 1080p).
 - Live stack: `docs/runbooks/tv-and-blind-hour.md` describes the commands used.
+
+## 9. `/code-review` round (10 findings)
+
+| # | Finding | Assessment | Outcome |
+|---|---|---|---|
+| 1 | The `display_tokens` statement trigger notified on every UPDATE, including the "last seen" touch on every TV connect (even matching no row); the hub treated it as urgent, causing needless recomputes and feeding the stale/refuse loop | Valid, my bug | **Fixed:** migration 0007 (row-level, only when `revoked_at` changes or a token is deleted); the hub handles `display` as a revocation check only; integration test |
+| 2 | FROZEN → HIDDEN → FROZEN wiped the sealed snapshot and took a new one from live votes, breaking ADR-003's "a sealed result cannot be refreshed" | Valid, **serious** | **Fixed:** HIDDEN keeps the snapshot (the DB constraint allows it); returning to FROZEN restores it; only LIVE/REVEAL discard it. Integration test; ADR-006, runbook and threat model updated |
+| 3 | A failed recompute was not retried until the next 5 s resync (the dirty flag had been cleared) | Valid | **Fixed:** the failure re-arms the throttle (retry ~1 s). Unit test, mutation-checked |
+| 4 | A transient failure pairing from the `#t=` link was never retried, and the token was already gone from the address bar | Valid | **Fixed:** retryable failures (network, 429, 5xx) retry with the same token every 3 s; invalid and refused-address failures stop. Browser test |
+| 5 | `session` and `stream` had no rate limit; each well-formed cookie costs a lookup | Valid (DoS-class, cheap to close) | **Fixed:** 600/min/IP |
+| 6 | `subscribe()` still accepted TVs after `close()`, and capacity was checked before the awaited recompute | Valid | **Fixed:** refused when closing; capacity decided after the awaits. Unit test |
+| 7 | The display CLI crashed with a stack trace on a bad id | Valid | **Fixed:** friendly message and exit code |
+| 8 | `NOTIFY` on every vote commit takes a global lock and could serialise vote commits | Real risk, but hypothetical at this scale (a few votes/s, bursts of tens); the vote path is the most important write path | **Accepted, with a measurement and an off-switch:** Phase 7 load test compares vote latency with and without the trigger; the switch is documented in ADR-006. Not removed now because it is the plan's architecture and the benefit (TVs ~0.1 s vs ~0.6 s behind) is real |
+| 9 | The whole TV tree re-rendered every second to update one countdown and the offline notice | Valid (smart-TV browsers) | **Fixed:** the clock lives in the header only; the offline notice is a one-shot timer |
+| 10 | A photo that failed once stayed "broken" for that row even after the photo URL changed | Valid | **Fixed:** the failure is remembered per URL |
+
+Re-verified after the fixes: `pnpm check`, the full browser suite, and the live stack (below).
+

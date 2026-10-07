@@ -25,6 +25,14 @@ export const displayRoutes: FastifyPluginAsyncZod = async (app) => {
   };
 
   const authenticate = async (request: FastifyRequest): Promise<DisplayIdentity> => {
+    // Every authenticated read costs a lookup; a malformed cookie is refused before the database, a well-formed
+    // one is capped per address (generous: a venue shares one IP, and TVs connect a handful of times).
+    const hit = await app.limiter.hit('display-auth', request.ip, 600, 60);
+    if (!hit.allowed) {
+      throw new AppError(429, 'RATE_LIMITED', 'Too many attempts, please wait', {
+        retryAfterSeconds: hit.retryAfterSec,
+      });
+    }
     const token = request.cookies[DISPLAY_COOKIE];
     const identity = token ? await app.displays.verify(token) : null;
     if (!identity) throw new AppError(401, 'UNAUTHENTICATED', 'This screen is not paired');

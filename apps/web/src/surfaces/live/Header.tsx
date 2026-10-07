@@ -3,6 +3,7 @@ import { Icon } from '../../design-system/Icon';
 import { Logo } from '../../design-system/Logo';
 import { A, E, withTime } from './parts';
 import { clockTime, formatCountdown } from './model';
+import { useNow } from './hooks';
 import { Ticker } from './Ticker';
 
 type Pill = { key: 'live' | 'closed' | 'soon' | 'sealed' | 'results'; ar: string; en: string };
@@ -30,14 +31,17 @@ const Pair = ({ ar, en, strong = true }: { ar: string; en: string; strong?: bool
 /** Logo, status, votes so far, and the countdown. One line, one glance. */
 export function Header({
   frame,
-  serverNow,
+  clockOffset,
   offline,
 }: {
   frame: ResultsFrame;
-  serverNow: number;
+  /** serverTime − clientTime (ms), so the countdown follows the server and not the TV's own clock. */
+  clockOffset: number;
   /** The stream has been down long enough to tell the room (the last frame stays on screen). */
   offline: boolean;
 }) {
+  // The only per-second clock on the screen lives here, so nothing else re-renders to update a countdown.
+  const serverNow = useNow(1000) + clockOffset;
   const pill = pillFor(frame);
   const target = offline
     ? null // a countdown beside an "offline" notice would only crowd the line; the stage keeps the last numbers

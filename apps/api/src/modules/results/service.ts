@@ -6,7 +6,7 @@ import { AppError } from '../../lib/errors.js';
 import { loadCatalog } from '../catalog/repository.js';
 import { loadSettings, type Settings } from '../settings/repository.js';
 import { buildFrame } from './frame.js';
-import { parseRevealed, type FrozenSnapshot, type RevealedEntry } from './snapshot.js';
+import { parseFrozen, parseRevealed, type FrozenSnapshot, type RevealedEntry } from './snapshot.js';
 import { liveStandings } from './standings.js';
 
 /** Who is acting: an admin (Phase 5/6) or the operator CLI. Recorded in the append-only audit log. */
@@ -62,7 +62,11 @@ export class ResultsService {
 
       const now = new Date();
       let patch: Partial<typeof settings.$inferInsert>;
-      if (target === 'FROZEN') {
+      const kept = cur.resultsVisibility === 'HIDDEN' ? parseFrozen(cur.frozenSnapshot) : null;
+      if (target === 'FROZEN' && kept && cur.frozenAt) {
+        // Coming back from HIDDEN: the sealed standings were kept, and a sealed result is never refreshed.
+        patch = { revealed: [] };
+      } else if (target === 'FROZEN') {
         const live = await liveStandings(tx);
         // Record EVERY active category, including ones with no votes yet: a category missing from the snapshot
         // means "created after the freeze" and stays sealed, which is not what an empty category should show.
@@ -80,8 +84,11 @@ export class ResultsService {
           ),
         };
         patch = { frozenSnapshot: snapshot, frozenAt: now, revealed: [] };
+      } else if (target === 'HIDDEN' && cur.resultsVisibility === 'FROZEN') {
+        // FROZEN -> HIDDEN keeps the snapshot (the DB allows it) so that going back to FROZEN restores it.
+        patch = { revealed: [] };
       } else {
-        // LIVE, HIDDEN and a fresh REVEAL all start with nothing stored.
+        // LIVE and a fresh REVEAL start with nothing stored.
         patch = { frozenSnapshot: null, frozenAt: null, revealed: [] };
       }
 

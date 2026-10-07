@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import pg from 'pg';
 import { eq } from 'drizzle-orm';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ResultsFrameSchema, type ResultsFrame } from '@mc/shared';
@@ -363,6 +364,47 @@ describe('Blind Hour (ADR-003): sealed means sealed', () => {
       [false, 0],
     ]);
     expect(frame.totalVotes).toBe(0);
+  });
+
+  it('FROZEN → HIDDEN → FROZEN restores the original sealed standings instead of taking a new snapshot', async () => {
+    const { a, x, y } = await seed();
+    await castVotes(a.id, x.id, 3);
+    const t = await boot();
+    await t.app.results.setMode('FROZEN', operator);
+    await castVotes(a.id, y.id, 9);
+    await t.app.results.setMode('HIDDEN', operator);
+    expect((await t.app.results.frame()).totalVotes).toBeNull();
+    const back = await t.app.results.setMode('FROZEN', operator);
+    expect(back.changed).toBe(true);
+    const frame = await t.app.results.frame();
+    expect(frame.totalVotes).toBe(3); // the votes cast while hidden stay unseen
+    expect(frame.categories[0]!.exhibitors.map((e) => e.votes)).toEqual([3]);
+    // Going through LIVE is how an organiser takes a fresh snapshot.
+    await t.app.results.setMode('LIVE', operator);
+    await t.app.results.setMode('FROZEN', operator);
+    expect((await t.app.results.frame()).totalVotes).toBe(12);
+  });
+
+  it('only a revocation announces a display change; connecting a TV does not', async () => {
+    await seed();
+    const t = await boot();
+    const { cookie, id } = await pair(t);
+    const heard: string[] = [];
+    const listener = new pg.Client({ connectionString: testDatabaseUrl() });
+    await listener.connect();
+    listener.on('notification', (m) => heard.push(m.payload ?? ''));
+    await listener.query('LISTEN mc_results');
+    try {
+      const s = openStream(t.port, cookie); // connecting runs the "last seen" touch
+      await s.frameWhere(() => true);
+      await sleep(300);
+      expect(heard).not.toContain('display');
+      await t.app.displays.revoke(id, operator);
+      await sleep(300);
+      expect(heard).toContain('display');
+    } finally {
+      await listener.end();
+    }
   });
 
   it('HIDDEN sends no counts at all, even with votes pouring in', async () => {

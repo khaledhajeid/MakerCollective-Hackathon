@@ -188,7 +188,9 @@ export function Photo({
   /** Tailwind ring classes: keeps a tile of any colour readable on any row colour. */
   ring?: string;
 }) {
-  const [broken, setBroken] = useState(false);
+  // Remember WHICH url failed: a corrected photo on a later frame must get its chance (same component instance).
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
+  const broken = brokenUrl !== null && brokenUrl === ex.photoUrl;
   const style: CSSProperties = { width: size, height: size, borderRadius: radius };
   return (
     <span className={`block shrink-0 overflow-hidden ${ring} ${className}`} style={style}>
@@ -199,7 +201,7 @@ export function Photo({
           width={size}
           height={size}
           decoding="async"
-          onError={() => setBroken(true)}
+          onError={() => setBrokenUrl(ex.photoUrl)}
           className="size-full object-cover"
         />
       ) : (

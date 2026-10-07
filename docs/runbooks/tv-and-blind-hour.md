@@ -22,7 +22,7 @@ pnpm stack:results mode LIVE         # back to live
 ```
 Voting is **not** affected by any of this: phones keep voting and every vote is counted. While sealed, the TVs never receive the newer numbers (not even hidden in the page), so there is nothing to find with browser tools.
 
-Switching takes effect on every TV within about a second. `FROZEN` run twice keeps the **first** snapshot; to take a fresh one, go `LIVE` then `FROZEN` again.
+Switching takes effect on every TV within about a second. A sealed result is never refreshed: `FROZEN` run twice, or `FROZEN` → `HIDDEN` → `FROZEN`, brings back the **first** snapshot. To take a fresh one, go through `LIVE` (`LIVE` then `FROZEN`).
 
 ## Announce the winners
 ```
