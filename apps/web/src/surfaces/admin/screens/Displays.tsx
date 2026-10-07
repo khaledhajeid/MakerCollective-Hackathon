@@ -32,6 +32,7 @@ export function Displays() {
   const [label, setLabel] = useState('');
   const [created, setCreated] = useState<DisplayCreated | null>(null);
   const [revoking, setRevoking] = useState<AdminDisplay | null>(null);
+  const [removing, setRemoving] = useState<AdminDisplay | null>(null);
 
   const create = useMutation({
     mutationFn: () => adminApi.createDisplay(label.trim()),
@@ -47,6 +48,16 @@ export function Displays() {
     onSuccess: () => {
       setRevoking(null);
       toast('good', 'That screen is switched off.');
+      void qc.invalidateQueries({ queryKey: ['admin', 'displays'] });
+    },
+    onError: (e) => toast('bad', explain(e)),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => adminApi.removeDisplay(id),
+    onSuccess: () => {
+      setRemoving(null);
+      toast('good', 'The display is removed.');
       void qc.invalidateQueries({ queryKey: ['admin', 'displays'] });
     },
     onError: (e) => toast('bad', explain(e)),
@@ -106,6 +117,9 @@ export function Displays() {
                     Switch off
                   </Btn>
                 )}
+                <Btn small variant="secondary" onClick={() => setRemoving(d)}>
+                  Remove
+                </Btn>
               </li>
             ))}
           </ul>
@@ -196,6 +210,23 @@ export function Displays() {
         <p>
           The screen goes blank within a few seconds and cannot be turned back on. Add a new display
           to replace it.
+        </p>
+      </Confirm>
+
+      <Confirm
+        open={removing !== null}
+        onClose={() => setRemoving(null)}
+        title={`Remove ${removing?.label ?? ''}?`}
+        confirmLabel="Remove"
+        danger
+        busy={remove.isPending}
+        onConfirm={() => removing && remove.mutate(removing.id)}
+      >
+        <p>
+          {removing?.revokedAt
+            ? 'It is taken off this list.'
+            : 'The screen goes blank within a few seconds and the display is taken off this list.'}{' '}
+          Add a new display if you need the screen again. The audit log keeps a record.
         </p>
       </Confirm>
     </>

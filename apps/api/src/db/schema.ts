@@ -383,6 +383,8 @@ export const displayTokens = pgTable('display_tokens', {
   createdAt: createdAt(),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  /** Taken off the admin list. The row stays (the API may not delete tokens), but it is revoked and no longer shown. */
+  removedAt: timestamp('removed_at', { withTimezone: true }),
 });
 
 /** Append-only (UPDATE/DELETE blocked by trigger, see custom migration). */

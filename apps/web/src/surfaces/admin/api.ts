@@ -153,6 +153,7 @@ export const adminApi = {
   displays: () => get<{ displays: AdminDisplay[] }>('/displays'),
   createDisplay: (label: string) => send<DisplayCreated>('POST', '/displays', { label }),
   revokeDisplay: (id: string) => send<{ ok: true }>('DELETE', `/displays/${id}`),
+  removeDisplay: (id: string) => send<{ ok: true }>('POST', `/displays/${id}/remove`),
 
   /* visitors */
   visitors: (q: { after?: string; phone?: string }) => {

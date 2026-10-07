@@ -7,6 +7,7 @@ import {
   adminUsers,
   auditLog,
   categories,
+  displayTokens,
   exhibitorPhotos,
   exhibitors,
   otpChallenges,
@@ -825,6 +826,33 @@ describe('TV displays', () => {
     expect((await audit('display.create')).length).toBe(1);
     expect((await audit('display.revoke')).length).toBe(1);
     expect(JSON.stringify(await db.select().from(auditLog))).not.toContain(token);
+  });
+
+  it('removes a display from the list: an active one is switched off first, a switched-off one just leaves', async () => {
+    const call = ctx.as(await admin());
+    const make = async (label: string) => {
+      const r = (await call('POST', '/api/admin/displays', { body: { label } })).json();
+      return { id: r.display.id as string, token: r.pairingUrl.split('#t=')[1] as string };
+    };
+    const live = await make('Lobby');
+    const off = await make('Old screen');
+    expect((await call('DELETE', `/api/admin/displays/${off.id}`)).statusCode).toBe(200);
+
+    expect((await call('POST', `/api/admin/displays/${live.id}/remove`)).statusCode).toBe(200);
+    expect((await call('POST', `/api/admin/displays/${off.id}/remove`)).statusCode).toBe(200);
+    // Gone from the list, and the token of the one that was active no longer pairs.
+    expect((await call('GET', '/api/admin/displays')).json().displays).toHaveLength(0);
+    expect(
+      (await ctx.anon('POST', '/api/display/pair', { body: { token: live.token } })).statusCode,
+    ).toBe(401);
+    // A second remove finds nothing. The rows are kept (the API may not delete tokens).
+    expect((await call('POST', `/api/admin/displays/${live.id}/remove`)).statusCode).toBe(404);
+    expect(await db.select().from(displayTokens)).toHaveLength(2);
+    const removed = await audit('display.remove');
+    expect(removed.map((r) => (r.details as { wasActive: boolean }).wasActive).sort()).toEqual([
+      false,
+      true,
+    ]);
   });
 });
 

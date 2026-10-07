@@ -71,6 +71,13 @@
       "when": 1791372249225,
       "tag": "0009_content_management",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791415337343,
+      "tag": "0010_display_removed",
+      "breakpoints": true
     }
   ]
 }

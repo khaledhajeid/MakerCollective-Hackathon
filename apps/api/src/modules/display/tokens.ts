@@ -88,6 +88,35 @@ export class DisplayTokenService {
     });
   }
 
+  /**
+   * Takes a display off the admin list. The API may not delete rows from this table, so it is marked removed instead,
+   * and revoked in the same step when it was still active (its TV goes blank, exactly as with `revoke`).
+   */
+  async remove(id: string, actor: Actor): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      const [before] = await tx
+        .select({ label: displayTokens.label, revokedAt: displayTokens.revokedAt })
+        .from(displayTokens)
+        .where(and(eq(displayTokens.id, id), isNull(displayTokens.removedAt)))
+        .for('update');
+      if (!before) return false;
+      await tx
+        .update(displayTokens)
+        .set({ revokedAt: sql`coalesce(${displayTokens.revokedAt}, now())`, removedAt: sql`now()` })
+        .where(eq(displayTokens.id, id));
+      await tx.insert(auditLog).values({
+        actorAdminId: actor.adminId,
+        actorLabel: actor.label,
+        action: 'display.remove',
+        entity: 'display_token',
+        entityId: id,
+        details: { label: before.label, wasActive: before.revokedAt === null },
+        ip: actor.ip ?? null,
+      });
+      return true;
+    });
+  }
+
   async list() {
     return this.db
       .select({
@@ -98,6 +127,7 @@ export class DisplayTokenService {
         revokedAt: displayTokens.revokedAt,
       })
       .from(displayTokens)
+      .where(isNull(displayTokens.removedAt))
       .orderBy(displayTokens.createdAt);
   }
 

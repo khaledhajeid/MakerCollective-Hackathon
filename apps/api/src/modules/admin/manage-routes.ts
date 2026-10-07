@@ -290,6 +290,17 @@ export const manageRoutes: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
+  // Off the list for good. Also switches the screen off if it was still on.
+  app.post(
+    '/admin/displays/:id/remove',
+    { config: { access: 'displays.manage' }, schema: { params: IdParams, response: { 200: Ok } } },
+    async (request) => {
+      if (!(await app.displays.remove(request.params.id, actorOf(request))))
+        throw new AppError(404, 'NOT_FOUND', 'No such display');
+      return ok;
+    },
+  );
+
   /* ───────────── visitors ───────────── */
 
   app.get(
