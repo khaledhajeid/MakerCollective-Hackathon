@@ -27,7 +27,17 @@ export function CategoryScreen({ id }: { id: string }) {
     const found = q
       ? all.filter((e) =>
           normaliseSearch(
-            [e.nameAr, e.nameEn, e.projectAr, e.projectEn, e.booth].filter(Boolean).join(' '),
+            [
+              e.nameAr,
+              e.nameEn,
+              e.projectAr,
+              e.projectEn,
+              e.descriptionAr,
+              e.descriptionEn,
+              e.booth,
+            ]
+              .filter(Boolean)
+              .join(' '),
           ).includes(q),
         )
       : all;

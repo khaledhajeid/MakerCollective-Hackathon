@@ -121,6 +121,8 @@ export const en = {
     retry: 'Try now',
     already: 'A vote was already recorded in this category and can’t be changed.',
     handle: 'Drag down to close',
+    readMore: 'Read more',
+    readLess: 'Show less',
   },
   finish: {
     title: 'Thank you, {name}!',
@@ -307,6 +309,8 @@ export const ar: Dict = {
     retry: 'حاول الآن',
     already: 'سبق تسجيل صوت في هذه الفئة ولا يمكن تغييره.',
     handle: 'اسحب للأسفل للإغلاق',
+    readMore: 'اقرأ المزيد',
+    readLess: 'عرض أقل',
   },
   finish: {
     title: 'شكراً {name}!',

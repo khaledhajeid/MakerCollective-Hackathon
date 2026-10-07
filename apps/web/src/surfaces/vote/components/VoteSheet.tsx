@@ -1,5 +1,5 @@
 import type { CatalogCategory, CatalogExhibitor } from '@mc/shared';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../../../design-system/Button';
 import { Icon } from '../../../design-system/Icon';
 import { MotifTile } from '../../../design-system/Motifs';
@@ -12,6 +12,44 @@ import { useVoter } from '../store';
 import { Celebration } from './Celebration';
 
 type Phase = 'confirm' | 'pending' | 'waiting' | 'done' | 'already';
+
+/** The project's description: four lines, and "Read more" only when the text really is cut off. */
+function Description({ text }: { text: string }) {
+  const { d } = useI18n();
+  const el = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [clipped, setClipped] = useState(false);
+
+  // Measured while collapsed: a short description never shows the toggle. Re-measured when the text changes.
+  useLayoutEffect(() => {
+    const p = el.current;
+    if (p && !expanded) setClipped(p.scrollHeight > p.clientHeight + 1);
+  }, [text, expanded]);
+
+  return (
+    <div className="mt-3 text-start">
+      <p
+        ref={el}
+        dir="auto"
+        className={`t-body whitespace-pre-line text-ink/80 ${
+          expanded ? 'max-h-[40dvh] overflow-y-auto' : 'line-clamp-4'
+        }`}
+      >
+        {text}
+      </p>
+      {(clipped || expanded) && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+          className="t-label mt-1 min-h-12 text-purple"
+        >
+          {expanded ? d.sheet.readLess : d.sheet.readMore}
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   category: CatalogCategory;
@@ -92,6 +130,7 @@ export function VoteSheet({ category, exhibitor, onClose, onDone }: Props) {
 
   const name = shown ? pick(shown.nameAr, shown.nameEn) : '';
   const categoryName = pick(category.nameAr, category.nameEn);
+  const description = shown ? pick(shown.descriptionAr, shown.descriptionEn) : null;
   // Only a request that is actually being sent (or the success moment) locks the sheet. While offline the visitor
   // can still back out: retries stop, and if one already in flight lands, the hub shows the recorded vote.
   const busy = phase === 'pending' || phase === 'done';
@@ -139,6 +178,7 @@ export function VoteSheet({ category, exhibitor, onClose, onDone }: Props) {
             <h2 id="vote-sheet-title" className="t-title text-navy" dir="auto">
               {fmt(d.sheet.title, { name })}
             </h2>
+            {description && <Description key={shown?.id} text={description} />}
             <p className="t-body mt-2 text-muted">
               {fmt(d.sheet.body, { category: categoryName })}
             </p>
