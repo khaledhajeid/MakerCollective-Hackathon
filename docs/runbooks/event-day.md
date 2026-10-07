@@ -16,7 +16,7 @@ For the organiser at the laptop. Commands are run from the repository root. Ever
 3. From a **phone on the venue Wi-Fi** open `https://vote.makercollective.app/api/access/status`: it must say you are inside. From mobile data it must say you are outside.
 4. Send one real sign-in to your own number; confirm the code arrives and voting works end to end. Then, in the console, block that visitor or just leave it for step 6.
 5. Set the voting window (or leave it manual) and the results mode you want at the start (LIVE).
-6. **Delete rehearsal data:** `pnpm stack:reset-event` first shows how many visitors and votes exist and changes nothing. Then run the command it prints (`--confirm=DELETE-ALL-VOTES --expect-votes=<that number>`), then `docker exec mc2026-redis-1 redis-cli flushall`. It keeps organisers, settings, content, photos and TV links, and refuses if voting is open or the number no longer matches (so an old command from your shell history cannot erase a real event).
+6. **Delete rehearsal data:** `pnpm stack:reset-event` first shows how many visitors and votes exist and changes nothing. Then run the command it prints (`--confirm=DELETE-ALL-VOTES --expect-votes=<that number>`), then `docker exec mc2026-redis-1 redis-cli flushall`. It keeps organisers, settings, content, photos and TV links (add `--with-content` to delete the exhibitors, categories and photos too, and put the results display back to LIVE), and refuses if voting is open or the number no longer matches (so an old command from your shell history cannot erase a real event).
 7. `pnpm stack:preflight` once more: "Test data" must read "No visitors or votes yet".
 
 ## During the event
