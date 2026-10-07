@@ -21,7 +21,7 @@ Each run writes `load/results/<name>/`: `summary.json` (k6), `tv.json` (what the
 4. `verify.mjs` checks the database: every vote a visitor was told was recorded exists exactly once, nobody has two votes in a category, totals add up.
 5. Puts the real stack back.
 
-The tunnel (`vote.alrabetahub.app`) serves whatever database the stack is on, so do not run this while real visitors could arrive. Requires Docker only; k6 is pulled as `grafana/k6`.
+The tunnel (`vote.makercollective.app`) serves whatever database the stack is on, so do not run this while real visitors could arrive. Requires Docker only; k6 is pulled as `grafana/k6`.
 
 ## Reading the results honestly
 

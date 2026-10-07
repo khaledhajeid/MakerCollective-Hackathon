@@ -3,7 +3,7 @@
 For the organiser at the laptop. Commands are run from the repository root. Everything here is safe to rehearse, except step 6 of "Before the doors open", which deletes rehearsal data.
 
 ## The night before
-1. `.env` holds the **real** settings: `STACK_NODE_ENV=production`, `STACK_PUBLIC_ORIGIN=https://vote.alrabetahub.app`, `SMS_PROVIDER=http` with `SMS_HTTP_URL` / `SMS_HTTP_BODY_TEMPLATE` (and `SMS_HTTP_AUTH_HEADER`) for the organisers' gateway, `DEMO_MODE=false` (or absent), `CLOUDFLARE_TUNNEL_TOKEN`, `APP_DB_PASSWORD`.
+1. `.env` holds the **real** settings: `STACK_NODE_ENV=production`, `STACK_PUBLIC_ORIGIN=https://vote.makercollective.app`, `SMS_PROVIDER=http` with `SMS_HTTP_URL` / `SMS_HTTP_BODY_TEMPLATE` (and `SMS_HTTP_AUTH_HEADER`) for the organisers' gateway, `DEMO_MODE=false` (or absent), `CLOUDFLARE_TUNNEL_TOKEN`, `APP_DB_PASSWORD`.
 2. Rebuild everything from the committed code: `pnpm stack:up`, then `pnpm stack:tunnel`.
 3. Organiser accounts (see `admin-accounts.md`): at least **two** SUPER_ADMINs, each signed in once, authenticator enrolled, recovery codes saved somewhere other than the laptop.
 4. In the console: real category names, exhibitors and photos; venue Wi-Fi name and password; the venue's public IP ranges (IPv4, and IPv6 if the venue network hands out IPv6; see "Finding the venue's address").
@@ -13,7 +13,7 @@ For the organiser at the laptop. Commands are run from the repository root. Ever
 ## Before the doors open (about 10 minutes)
 1. Power: laptop on mains, sleep disabled, phone hotspot ready as the backup network.
 2. `pnpm stack:preflight`: every line must be ok or an understood WARN. A FAIL means do not open. Typical fixes are in the line itself.
-3. From a **phone on the venue Wi-Fi** open `https://vote.alrabetahub.app/api/access/status`: it must say you are inside. From mobile data it must say you are outside.
+3. From a **phone on the venue Wi-Fi** open `https://vote.makercollective.app/api/access/status`: it must say you are inside. From mobile data it must say you are outside.
 4. Send one real sign-in to your own number; confirm the code arrives and voting works end to end. Then, in the console, block that visitor or just leave it for step 6.
 5. Set the voting window (or leave it manual) and the results mode you want at the start (LIVE).
 6. **Delete rehearsal data:** `pnpm stack:reset-event` first shows how many visitors and votes exist and changes nothing. Then run the command it prints (`--confirm=DELETE-ALL-VOTES --expect-votes=<that number>`), then `docker exec mc2026-redis-1 redis-cli flushall`. It keeps organisers, settings, content, photos and TV links, and refuses if voting is open or the number no longer matches (so an old command from your shell history cannot erase a real event).

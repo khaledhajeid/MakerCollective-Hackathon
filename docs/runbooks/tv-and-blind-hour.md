@@ -6,7 +6,7 @@ For the organiser at the laptop. The admin console does all of this with buttons
 ```
 pnpm stack:display create "Main hall"
 ```
-It prints a link ending in `/live#t=…`. **It is shown only once** (only a hash is stored). Open that link in the TV's browser (full-screen, `F11`). **Use the event's public address** (the one in the link, e.g. `https://vote.alrabetahub.app/live…`): the server only accepts pairing from its configured address, so a link opened on `localhost` or a LAN IP shows "This address is not allowed to pair" (add that address to `EXTRA_ORIGINS` if you really need it). The screen pairs, removes the secret from the address bar and starts showing results. The pairing lasts 30 days on that browser.
+It prints a link ending in `/live#t=…`. **It is shown only once** (only a hash is stored). Open that link in the TV's browser (full-screen, `F11`). **Use the event's public address** (the one in the link, e.g. `https://vote.makercollective.app/live…`): the server only accepts pairing from its configured address, so a link opened on `localhost` or a LAN IP shows "This address is not allowed to pair" (add that address to `EXTRA_ORIGINS` if you really need it). The screen pairs, removes the secret from the address bar and starts showing results. The pairing lasts 30 days on that browser.
 
 - A TV with no link: open `https://<your-domain>/live` and type the display code into the box.
 - List screens and when each was last seen: `pnpm stack:display list`

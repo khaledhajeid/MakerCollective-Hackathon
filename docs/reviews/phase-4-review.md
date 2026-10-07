@@ -76,7 +76,7 @@ The reviewer's last report still read "fix" because of the yellow-tile regressio
 
 ## 7. Decisions needed from you
 1. **Rail with 5 to 8 categories.** A single row cannot show a readable leader **name** for more than four categories. Today: up to 4 categories each chip shows category + leader at 56 px. With 5 or more, only the category on stage shows its leader name; the others show their colour marker and the leader's **vote count**. The event plan has 3 categories, so this only matters if you add more. Options: (a) keep it, (b) cap the TV at 4 categories and rotate the rest, (c) a two-row rail that costs two stage rows.
-2. **Operations:** TVs must open the **public address** (e.g. `https://vote.alrabetahub.app/live…`) to pair. Is that how you plan to connect them? If TVs will use the laptop's local address instead, tell me and I will add it to `EXTRA_ORIGINS`.
+2. **Operations:** TVs must open the **public address** (e.g. `https://vote.makercollective.app/live…`) to pair. Is that how you plan to connect them? If TVs will use the laptop's local address instead, tell me and I will add it to `EXTRA_ORIGINS`.
 
 ## 8. Test map
 - API unit: `modules/results/frame.test.ts` (modes, ranks, ties, fail-closed), `hub.test.ts` (lost-notification race, fail-closed, vote-burst tolerance, coalescing, change-only broadcast, capacity and slow-consumer drop, close).

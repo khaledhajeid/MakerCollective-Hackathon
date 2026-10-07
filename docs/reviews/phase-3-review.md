@@ -16,7 +16,7 @@
 | Voter JS budget (< 150 KB gz) | ✅ **122.7 KB** + 8.4 KB CSS |
 | `pnpm audit` | ✅ no known vulnerabilities |
 | Semgrep (typescript, react, security-audit, owasp-top-ten): 122 rules, 66 files | ✅ 0 findings |
-| Live stack through the **public Cloudflare tunnel** (`vote.alrabetahub.app`) | ✅ SPA deep link 200; CSP and cache headers; gzip; unauthenticated vote → 401; cross-site POST → 403; **full browser flow (OTP → 3 votes → finish)**; stored votes carry the laptop's real public IP |
+| Live stack through the **public Cloudflare tunnel** (`vote.makercollective.app`) | ✅ SPA deep link 200; CSP and cache headers; gzip; unauthenticated vote → 401; cross-site POST → 403; **full browser flow (OTP → 3 votes → finish)**; stored votes carry the laptop's real public IP |
 
 ## 2. What was built
 - **API:** `POST /api/votes` (order: venue gate → session → per-visitor limit → voting window → eligibility → insert), idempotent for the same choice (`alreadyRecorded`), `409 ALREADY_VOTED` for a different one, `422 EXHIBITOR_NOT_IN_CATEGORY` (wrong category, archived exhibitor, inactive category), `403 VOTING_NOT_OPEN` with the state, client IP stored in canonical form. `votingState()` is the single definition of "open" (manual OPEN/CLOSED win; SCHEDULED needs an opening time, so an unconfigured system fails closed).
@@ -63,7 +63,7 @@ Full table: [`docs/security/threat-model.md`, Phase 3](../security/threat-model.
 ## 7. Needs the user
 1. **Arabic copy review (deferred by the user):** the whole `ar` dictionary (`apps/web/src/i18n/dict.ts`) is reviewed once at the end of the project.
 2. **Real photos and category names** from the teammates (photo upload arrives in Phase 6; until then the designed pattern tile shows).
-3. **Cloudflare dashboard:** disable Web Analytics for `vote.alrabetahub.app`.
+3. **Cloudflare dashboard:** disable Web Analytics for `vote.makercollective.app`.
 4. Venue IT: public IPv4 **and IPv6** prefixes (unchanged from Phase 2).
 
 ## 8. Review round (`/security-review` and `/code-review` on `3ca3b88`)

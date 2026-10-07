@@ -32,7 +32,7 @@
 - A spoofed-header test exists from Phase 0 onward (unit and through the real Caddy).
 
 ## Verified through the real Cloudflare tunnel (Phase 2, 2026-10-06)
-`GET /api/access/status` on `https://vote.alrabetahub.app` resolves the caller's own address through the whole chain (Cloudflare → `cloudflared` → Caddy → Fastify):
+`GET /api/access/status` on `https://vote.makercollective.app` resolves the caller's own address through the whole chain (Cloudflare → `cloudflared` → Caddy → Fastify):
 
 | Check | Result |
 |---|---|

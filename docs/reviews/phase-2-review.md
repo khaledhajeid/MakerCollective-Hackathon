@@ -5,7 +5,7 @@
 - **Verdict:** ✅ Passed. Self-review (§3) plus the user-run `/code-review` of commit `a1f36dc` (§7: 10 findings, all addressed). No open Critical/High findings.
 
 ## 1. Tunnel verification (requested first)
-`GET /api/access/status` was built and tested **before** the rest of Phase 2, then checked through the real tunnel (`https://vote.alrabetahub.app`, Cloudflare named tunnel → `cloudflared` → Caddy → API). Results are recorded in ADR-002: the API reports the laptop's real public IP (matches `api.ipify.org`), every forged header is ignored (Cloudflare itself rejects a forged `CF-Connecting-IP`), and the gate admits/refuses/fails closed as designed. **IPv6 not yet verified on a real IPv6 phone** (this laptop has no IPv6 route): verified in unit tests only; on-site checklist item.
+`GET /api/access/status` was built and tested **before** the rest of Phase 2, then checked through the real tunnel (`https://vote.makercollective.app`, Cloudflare named tunnel → `cloudflared` → Caddy → API). Results are recorded in ADR-002: the API reports the laptop's real public IP (matches `api.ipify.org`), every forged header is ignored (Cloudflare itself rejects a forged `CF-Connecting-IP`), and the gate admits/refuses/fails closed as designed. **IPv6 not yet verified on a real IPv6 phone** (this laptop has no IPv6 route): verified in unit tests only; on-site checklist item.
 
 ## 2. Automated checks
 
