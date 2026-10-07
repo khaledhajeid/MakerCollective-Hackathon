@@ -31,9 +31,9 @@ export function Pairing({
             : null;
 
   return (
-    <main className="tv-ground relative flex size-full items-center justify-between overflow-hidden px-[120px] text-white">
+    <main className="tv-ground tv-dark relative flex size-full items-center justify-between overflow-hidden px-[120px] text-white">
       <Rings
-        className="rings-turn absolute -start-[300px] top-1/2 size-[1200px] -translate-y-1/2 opacity-60"
+        className="rings-turn absolute -start-[300px] top-1/2 size-[1200px] -translate-y-1/2"
         stroke="rgb(255 255 255 / 0.08)"
       />
       <div className="relative z-10 flex w-[1000px] flex-col gap-[40px]">
@@ -41,11 +41,11 @@ export function Pairing({
         <Bi
           k="pairTitle"
           arClass="text-[96px] font-bold leading-[1.2]"
-          enClass="text-[48px] leading-[1.15] text-white/80"
+          enClass="text-[48px] leading-[1.15] text-dim"
         />
         <Bi
           k="pairBody"
-          arClass="text-[44px] font-normal leading-[1.4] text-white/90"
+          arClass="text-[44px] font-normal leading-[1.4]"
           enClass="text-[40px] leading-[1.2] text-dim"
         />
         <form onSubmit={submit} className="flex items-end gap-[24px]">
@@ -81,7 +81,7 @@ export function Pairing({
         {problem && (
           <p role="alert" className="m-0 text-[40px] font-bold leading-[1.3] text-white">
             {problem[0]}{' '}
-            <bdi lang="en" className="font-normal text-white/80">
+            <bdi lang="en" className="font-normal text-dim">
               {problem[1]}
             </bdi>
           </p>

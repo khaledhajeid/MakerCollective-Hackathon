@@ -3,6 +3,7 @@ import qrcode from 'qrcode-generator';
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { MotifTile } from '../../design-system/Motifs';
 import { ar, en } from '../../i18n/dict';
+import type { NameFit } from './layout';
 
 /** The TV always shows both languages at once, so it reads the dictionaries directly (no locale provider). */
 export const A = ar.tv;
@@ -18,17 +19,20 @@ export function En({
   children,
   className = '',
   centered = false,
+  style,
 }: {
   children: ReactNode;
   className?: string;
   /** Centre the line (cards) instead of hanging it from the right edge (rows). */
   centered?: boolean;
+  style?: CSSProperties;
 }) {
   return (
     <span
       lang="en"
       dir="ltr"
       className={`block ${centered ? 'text-center' : 'text-right'} ${className}`}
+      style={style}
     >
       {children}
     </span>
@@ -65,55 +69,72 @@ export function Bi({
 }
 
 /**
- * `truncate` clips at the line box, which slices Arabic descenders (غ ج ق) and Latin g/y/p. Padding grows the clip
- * box and an equal negative margin gives the space back, so layout is unchanged but nothing is cut.
+ * Arabic name large, English beneath, both in full: they wrap onto further lines and the size comes from `fit`
+ * (layout.ts), never from clipping. `overflow-wrap: anywhere` is the last resort for one enormous word.
+ * A name with no Arabic shows its English line at the large size.
  */
-const CLIP = 'truncate py-[0.22em] -my-[0.22em]';
-
-/** Name pair for an exhibitor or category: Arabic first (when it exists), English beneath. */
-export function Names({
+export function FitNames({
   nameAr,
   nameEn,
-  arClass,
-  enClass,
+  fit,
+  arClass = 'font-bold',
+  enClass = 'text-dim',
   className = '',
   centered = false,
 }: {
   nameAr: string | null;
   nameEn: string;
-  arClass: string;
-  enClass: string;
+  fit: Pick<NameFit, 'ar' | 'en'>;
+  arClass?: string;
+  enClass?: string;
   className?: string;
   centered?: boolean;
 }) {
+  const align = centered ? 'text-center' : '';
+  const wrap = '[overflow-wrap:anywhere]';
   if (!nameAr) {
     return (
-      <En centered={centered} className={`${CLIP} ${arClass} ${className}`}>
+      <En
+        centered={centered}
+        className={`${wrap} font-bold ${arClass} ${className}`}
+        style={{ fontSize: fit.ar, lineHeight: 1.2 }}
+      >
         {nameEn}
       </En>
     );
   }
   return (
     <span className={`block min-w-0 ${className}`}>
-      <span lang="ar" className={`block ${centered ? 'text-center' : ''} ${CLIP} ${arClass}`}>
+      <span
+        lang="ar"
+        className={`block ${align} ${wrap} ${arClass}`}
+        style={{ fontSize: fit.ar, lineHeight: 1.32 }}
+      >
         {nameAr}
       </span>
-      <En centered={centered} className={`${CLIP} ${enClass}`}>
+      <En
+        centered={centered}
+        className={`${wrap} ${enClass}`}
+        style={{ fontSize: fit.en, lineHeight: 1.2 }}
+      >
         {nameEn}
       </En>
     </span>
   );
 }
 
-/** The brand chevron in a category's colour; points along the reading direction (right-to-left here). */
+/** The brand chevron; points along the reading direction (right-to-left here). */
 export function Chevron({
   color,
   size = 36,
   className = '',
+  edge = 'rgb(255 255 255 / 0.7)',
 }: {
   color: string;
   size?: number;
   className?: string;
+  /** Outline that keeps a dark or pale category colour visible on any ground. */
+  edge?: string;
 }) {
   return (
     <svg
@@ -126,7 +147,7 @@ export function Chevron({
       <path
         d="M44.6 25.7 0 0v51.4Z"
         fill={color}
-        stroke="rgb(255 255 255 / 0.7)"
+        stroke={edge}
         strokeWidth={3}
         strokeLinejoin="round"
         paintOrder="stroke"
@@ -257,3 +278,62 @@ export function QrCode({
 
 /** Where the QR points: this very site's voter app. */
 export const voteUrl = () => `${window.location.origin}/vote`;
+
+/**
+ * The place, as a medal: gold, silver, bronze, each with a navy numeral. The block a place sits on keeps the ladder
+ * (yellow, light glass, dark glass); the medal is what names the place. Gold is a deeper metal than the brand yellow,
+ * so it stays readable on the yellow first-place block (where the medal also carries a navy ring).
+ */
+export const PLACE_STYLE = {
+  1: { fill: '#e0a526', ink: 'var(--color-navy)' },
+  2: { fill: '#c8cdd6', ink: 'var(--color-navy)' },
+  3: { fill: '#c97a3a', ink: 'var(--color-navy)' },
+} as const;
+export const placeOf = (rank: number): 1 | 2 | 3 => (rank <= 1 ? 1 : rank === 2 ? 2 : 3);
+
+export function PlaceBadge({
+  rank,
+  size = 68,
+  className = '',
+}: {
+  rank: number;
+  size?: number;
+  /** Tailwind ring classes, e.g. a navy ring when the medal sits on a yellow block. */
+  className?: string;
+}) {
+  const p = placeOf(rank);
+  const { fill, ink } = PLACE_STYLE[p];
+  return (
+    <span
+      role="img"
+      aria-label={`${p}`}
+      data-place={p}
+      className={`num inline-flex shrink-0 items-center justify-center rounded-full font-black leading-none ${className}`}
+      style={{ width: size, height: size, fontSize: size * 0.56, background: fill, color: ink }}
+    >
+      <span aria-hidden="true">{p}</span>
+    </span>
+  );
+}
+
+/** "votes / صوت" in the small unit size, so a number on the board is always read as a count. */
+export function VotesUnit({
+  className = '',
+  large = false,
+}: {
+  className?: string;
+  large?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-baseline gap-[8px] whitespace-nowrap leading-none ${className}`}
+    >
+      <span lang="ar" className={`${large ? 'text-[34px]' : 'text-[28px]'} font-bold`}>
+        {A.votes}
+      </span>
+      <bdi lang="en" className={large ? 'text-[30px]' : 'text-[26px]'}>
+        {E.votes}
+      </bdi>
+    </span>
+  );
+}

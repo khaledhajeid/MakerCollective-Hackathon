@@ -122,7 +122,7 @@ export function Admins({ role, me }: { role: AdminRole; me: string }) {
                 return (
                   <li key={u.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                     <div className="min-w-0 flex-1 basis-56">
-                      <p className="truncate text-[0.9375rem] font-bold text-navy">
+                      <p className="break-words text-[0.9375rem] font-bold text-navy">
                         {u.username} {isMe && <span className="font-normal text-muted">(you)</span>}
                       </p>
                       <p className="text-sm text-muted">

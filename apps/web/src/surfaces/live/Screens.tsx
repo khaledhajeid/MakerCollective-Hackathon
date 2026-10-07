@@ -9,21 +9,21 @@ export function SealedScreen() {
   return (
     <section
       aria-label="Sealed"
-      className="tv-stage-in relative flex h-full items-center justify-between overflow-hidden rounded-[40px] bg-white/[0.05]"
+      className="tv-stage-in relative flex h-full items-center justify-between overflow-hidden rounded-[40px] bg-white/[0.05] ring-1 ring-white/10"
     >
       <Rings
-        className="rings-turn absolute -start-[260px] top-1/2 size-[1100px] -translate-y-1/2 opacity-70"
-        stroke="rgb(255 255 255 / 0.1)"
+        className="rings-turn absolute -start-[260px] top-1/2 size-[1100px] -translate-y-1/2"
+        stroke="rgb(255 255 255 / 0.08)"
       />
       <div className="relative z-10 flex flex-col gap-[28px] ps-[96px]">
         <Bi
           k="resultsSealed"
-          arClass="text-[120px] font-bold leading-[1.2]"
-          enClass="text-[56px] leading-[1.15] text-white/80"
+          arClass="text-[120px] font-bold leading-[1.25]"
+          enClass="text-[56px] leading-[1.15] text-dim"
         />
         <Bi
           k="announceSoon"
-          arClass="text-[56px] font-bold leading-[1.25] text-white"
+          arClass="text-[56px] font-bold leading-[1.3]"
           enClass="text-[40px] leading-[1.15] text-dim"
         />
       </div>
@@ -37,21 +37,21 @@ export function WaitingScreen() {
   return (
     <section
       aria-label="Waiting"
-      className="tv-stage-in relative flex h-full items-center justify-between overflow-hidden rounded-[40px] bg-white/[0.05]"
+      className="tv-stage-in relative flex h-full items-center justify-between overflow-hidden rounded-[40px] bg-white/[0.05] ring-1 ring-white/10"
     >
       <Rings
-        className="rings-turn absolute -start-[260px] top-1/2 size-[1100px] -translate-y-1/2 opacity-70"
-        stroke="rgb(255 255 255 / 0.1)"
+        className="rings-turn absolute -start-[260px] top-1/2 size-[1100px] -translate-y-1/2"
+        stroke="rgb(255 255 255 / 0.08)"
       />
       <div className="relative z-10 flex flex-col gap-[28px] ps-[96px]">
         <Bi
           k="waitingTitle"
-          arClass="text-[104px] font-bold leading-[1.2]"
-          enClass="text-[52px] leading-[1.15] text-white/80"
+          arClass="text-[104px] font-bold leading-[1.25]"
+          enClass="text-[52px] leading-[1.15] text-dim"
         />
         <Bi
           k="waitingBody"
-          arClass="text-[56px] font-bold leading-[1.25] text-white"
+          arClass="text-[56px] font-bold leading-[1.3]"
           enClass="text-[40px] leading-[1.15] text-dim"
         />
       </div>

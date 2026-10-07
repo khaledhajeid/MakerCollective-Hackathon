@@ -19,7 +19,7 @@ function pillFor(f: ResultsFrame): Pill {
 
 const Pair = ({ ar, en, strong = true }: { ar: string; en: string; strong?: boolean }) => (
   <span className="inline-flex items-baseline gap-[14px] whitespace-nowrap">
-    <span lang="ar" className={`text-[40px] leading-[1.2] ${strong ? 'font-bold' : ''}`}>
+    <span lang="ar" className={`text-[40px] leading-[1.3] ${strong ? 'font-bold' : ''}`}>
       {ar}
     </span>
     <bdi lang="en" className="text-[40px] leading-[1.2] text-dim">
@@ -52,43 +52,42 @@ export function Header({
         : null;
 
   return (
-    <header className="flex h-[80px] shrink-0 items-center justify-between">
+    <header className="flex h-[88px] shrink-0 items-center justify-between text-white">
       <div className="flex items-center gap-[40px]">
-        <Logo variant="white" className="h-[64px] w-auto" alt="" />
-        <span
-          className={`inline-flex h-[64px] items-center gap-[16px] rounded-full px-[30px] ${
-            pill.key === 'sealed' || pill.key === 'results'
-              ? 'bg-white/[0.16] text-white'
-              : 'bg-white/10 text-white'
-          }`}
-        >
-          {pill.key === 'live' ? (
-            <span
-              className="relative flex size-[22px] items-center justify-center"
-              aria-hidden="true"
-            >
-              {!offline && <span className="tv-pulse absolute inset-0 rounded-full bg-turquoise" />}
+        <Logo variant="white" className="h-[72px] w-auto" alt="" />
+        {/* Offline, the "Live" pill would claim what is no longer true: the reconnecting notice replaces it. */}
+        {!(offline && pill.key === 'live') && (
+          <span className="inline-flex h-[68px] items-center gap-[16px] rounded-full bg-white/10 px-[32px] text-white ring-1 ring-white/15">
+            {pill.key === 'live' ? (
               <span
-                className={`relative size-[14px] rounded-full ${offline ? 'bg-white/40' : 'bg-turquoise'}`}
-              />
+                className="relative flex size-[22px] items-center justify-center"
+                aria-hidden="true"
+              >
+                {!offline && (
+                  <span className="tv-pulse absolute inset-0 rounded-full bg-turquoise" />
+                )}
+                <span
+                  className={`relative size-[14px] rounded-full ${offline ? 'bg-white/40' : 'bg-turquoise'}`}
+                />
+              </span>
+            ) : pill.key === 'sealed' ? (
+              <Icon name="lock" size={28} strokeWidth={2.4} />
+            ) : null}
+            <span lang="ar" className="text-[40px] font-bold leading-[1.3]">
+              {pill.ar}
             </span>
-          ) : pill.key === 'sealed' ? (
-            <Icon name="lock" size={28} strokeWidth={2.4} />
-          ) : null}
-          <span lang="ar" className="text-[40px] font-bold leading-[1.2]">
-            {pill.ar}
+            <bdi lang="en" className="text-[40px] leading-[1.2] text-white/80">
+              {pill.en}
+            </bdi>
           </span>
-          <bdi lang="en" className="text-[40px] leading-[1.2] text-dim">
-            {pill.en}
-          </bdi>
-        </span>
+        )}
         {offline && (
           <span
             role="status"
-            className="inline-flex h-[64px] items-center gap-[16px] rounded-full bg-white px-[30px] text-navy"
+            className="inline-flex h-[68px] items-center gap-[16px] rounded-full bg-white px-[30px] text-navy"
           >
             <Icon name="signal" size={30} strokeWidth={2.4} />
-            <span lang="ar" className="text-[40px] font-bold leading-[1.2]">
+            <span lang="ar" className="text-[40px] font-bold leading-[1.3]">
               {A.reconnecting}
             </span>
             <bdi lang="en" className="text-[40px] leading-[1.2] text-navy-dim">
@@ -97,7 +96,7 @@ export function Header({
           </span>
         )}
         {!offline && frame.mode === 'FROZEN' && frame.frozenAt && (
-          <span lang="ar" className="text-[40px] font-bold leading-[1.2] text-white">
+          <span lang="ar" className="text-[40px] font-bold leading-[1.3]">
             {withTime(A.sealedAt, clockTime(frame.frozenAt))}
           </span>
         )}

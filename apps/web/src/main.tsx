@@ -1,4 +1,7 @@
 import './index.css';
+// The TV's own styles (the .tv-* classes). Loaded here, not from the lazily imported TV chunk: in the production
+// build that chunk's stylesheet was never linked, so the board lost its ground, motion, freeze and blur effects.
+import './surfaces/live/live.css';
 import { startPreboot } from './lib/preboot';
 
 const root = document.getElementById('root');

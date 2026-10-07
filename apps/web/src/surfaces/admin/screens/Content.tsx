@@ -147,8 +147,8 @@ function Categories({ data }: { data: AdminContent }) {
                 style={{ background: c.color }}
               />
               <div className="min-w-0 flex-1 basis-48">
-                <p className="truncate text-[0.9375rem] font-bold text-navy">{c.nameEn}</p>
-                <p dir="rtl" lang="ar" className="truncate text-sm text-muted">
+                <p className="break-words text-[0.9375rem] font-bold text-navy">{c.nameEn}</p>
+                <p dir="rtl" lang="ar" className="break-words text-sm text-muted">
                   {c.nameAr}
                 </p>
               </div>
@@ -441,7 +441,7 @@ function Exhibitors({ data }: { data: AdminContent }) {
             <li key={e.id} className="flex flex-wrap items-center gap-4 px-5 py-3">
               <Thumb url={e.photoUrl} name={e.nameEn} />
               <div className="min-w-0 flex-1 basis-56">
-                <p className="truncate text-[0.9375rem] font-bold text-navy">
+                <p className="break-words text-[0.9375rem] font-bold text-navy">
                   {e.nameEn}
                   {!e.isActive && (
                     <span className="ms-2 align-middle">
@@ -449,7 +449,7 @@ function Exhibitors({ data }: { data: AdminContent }) {
                     </span>
                   )}
                 </p>
-                <p className="truncate text-sm text-muted">
+                <p className="break-words text-sm text-muted">
                   {[e.nameAr, e.projectEn, e.booth && `Booth ${e.booth}`]
                     .filter(Boolean)
                     .join(' · ') || 'No details yet'}

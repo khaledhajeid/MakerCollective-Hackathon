@@ -1,14 +1,89 @@
 /*
  * Live TV (/live). A fixed 1920x1080 artboard scaled to the screen, so every size below is a design pixel.
- * Only transform and opacity are animated (a modest laptop drives the TV); every animation has a reduced-motion
- * alternative at the bottom of the file and in the global rule in index.css.
+ * The board is dark (white type on deep navy, yellow only for first place); the winner ceremony is a brighter navy curtain over it. `--color-dim`
+ * is the secondary text colour. Motion is transform and opacity only (a modest laptop
+ * drives the TV), and every animation has a reduced-motion alternative at the bottom of the file and in the global
+ * rule in index.css.
  */
 
+.tv-dark {
+  --color-dim: rgb(255 255 255 / 0.72);
+}
+
+/* The board: one deep navy with a single quiet royal glow. No second hue competes with first place's yellow. */
 .tv-ground {
   background:
-    radial-gradient(70% 60% at 100% 0%, rgb(127 50 217 / 0.34) 0%, transparent 62%),
-    radial-gradient(60% 55% at 0% 100%, rgb(74 104 216 / 0.3) 0%, transparent 60%),
+    radial-gradient(75% 65% at 100% 0%, rgb(74 104 216 / 0.22) 0%, transparent 62%),
     var(--color-navy-deep);
+}
+/*
+ * The ceremony curtain: brand navy, frosted. It blurs the board behind it (the board is inert, and the announced
+ * category is held sealed there), so the room still sees one scene with the winner in front.
+ */
+.tv-ground-ceremony {
+  background:
+    radial-gradient(70% 65% at 50% 0%, rgb(74 104 216 / 0.3) 0%, transparent 70%),
+    rgb(0 0 123 / 0.74);
+  -webkit-backdrop-filter: blur(28px) saturate(1.15);
+  backdrop-filter: blur(28px) saturate(1.15);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tv-ground-ceremony {
+    background:
+      radial-gradient(70% 65% at 50% 0%, rgb(74 104 216 / 0.3) 0%, transparent 70%),
+      var(--color-navy);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Blind Hour: a rim of ice around the whole screen, with frost gathering in the corners and a slow sheen. */
+.tv-frost {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 8px rgb(205 240 255 / 0.7),
+    inset 0 0 0 20px rgb(150 215 245 / 0.22),
+    inset 0 0 140px 24px rgb(150 215 245 / 0.34);
+  background:
+    radial-gradient(34% 40% at 0% 0%, rgb(225 247 255 / 0.3), transparent 70%),
+    radial-gradient(34% 40% at 100% 0%, rgb(225 247 255 / 0.3), transparent 70%),
+    radial-gradient(34% 40% at 0% 100%, rgb(225 247 255 / 0.3), transparent 70%),
+    radial-gradient(34% 40% at 100% 100%, rgb(225 247 255 / 0.3), transparent 70%),
+    rgb(190 230 250 / 0.035);
+  animation: tv-frost-in 1.6s var(--ease-out-expo) both;
+}
+.tv-frost::after {
+  content: '';
+  position: absolute;
+  inset: -20% auto -20% -40%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgb(235 250 255 / 0.1), transparent);
+  transform: translate3d(0, 0, 0) skewX(-12deg);
+  animation: tv-frost-sheen 11s ease-in-out infinite;
+}
+@keyframes tv-frost-in {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+@keyframes tv-frost-sheen {
+  0%,
+  55% {
+    transform: translate3d(0, 0, 0) skewX(-12deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(480%, 0, 0) skewX(-12deg);
+    opacity: 0;
+  }
 }
 
 /* Anti burn-in: the whole picture wanders a few pixels over minutes, too slowly to notice. */
@@ -24,13 +99,25 @@
   }
 }
 
-/* Stage change: the whole category enters, then its rows cascade. */
+/* A screen or a column arrives once; its rows then fade in one after the other. */
 .tv-stage-in {
   animation: tv-fade 0.5s var(--ease-out-quart) both;
 }
+.tv-col-in {
+  animation: tv-rise 0.8s var(--ease-out-expo) both;
+}
 .tv-row-in {
-  animation: tv-rise 0.75s var(--ease-out-expo) both;
-  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+  animation: tv-fade 0.6s var(--ease-out-quart) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 120ms);
+}
+/* A row changes place (e.g. becomes the leader): its content eases in rather than popping. */
+.tv-swap {
+  animation: tv-swap 0.45s var(--ease-out-quart) 0.15s both;
+}
+@keyframes tv-swap {
+  from {
+    opacity: 0;
+  }
 }
 @keyframes tv-fade {
   from {
@@ -40,7 +127,7 @@
 @keyframes tv-rise {
   from {
     opacity: 0;
-    transform: translate3d(0, 22px, 0);
+    transform: translate3d(0, 24px, 0);
   }
 }
 
@@ -52,20 +139,6 @@
 @keyframes tv-bump {
   30% {
     transform: scale(1.09);
-  }
-}
-
-/* Dwell progress on the active rail chip and its segment. */
-.tv-dwell {
-  transform-origin: right center;
-  animation: tv-dwell linear both;
-}
-@keyframes tv-dwell {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
   }
 }
 
@@ -93,31 +166,39 @@
   transform-origin: 50% 50%;
 }
 
-/* ── Winner ceremony. Stages are timed by --d (seconds); the component ends it after CEREMONY_MS. ── */
+/*
+ * Winner ceremony. The curtain is OPAQUE from its first frame and moves as one piece (a slide, not a fade), so the
+ * board can never show through it. The beats inside are driven by the component (see Ceremony.tsx); these only
+ * give each arrival its motion.
+ */
 .cer {
-  animation: tv-fade 0.7s var(--ease-out-quart) both;
+  animation: cer-up 0.9s var(--ease-out-expo) both;
 }
 .cer-leave {
-  animation: cer-leave 0.6s var(--ease-out-quart) both;
+  animation: cer-down 0.7s cubic-bezier(0.65, 0, 0.35, 1) both;
 }
-@keyframes cer-leave {
+@keyframes cer-up {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+@keyframes cer-down {
   to {
-    opacity: 0;
+    transform: translate3d(0, 100%, 0);
   }
 }
 .cer-in {
-  animation: cer-in 1s var(--ease-out-expo) both;
+  animation: cer-in 0.9s var(--ease-out-expo) both;
   animation-delay: var(--d, 0s);
 }
 @keyframes cer-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 36px, 0) scale(0.94);
+    transform: translate3d(0, 36px, 0) scale(0.96);
   }
 }
 .cer-glow {
-  animation: cer-glow 1.4s var(--ease-out-expo) both;
-  animation-delay: 1.5s;
+  animation: cer-glow 1.2s var(--ease-out-expo) 0.15s both;
 }
 @keyframes cer-glow {
   from {
@@ -130,18 +211,22 @@
   }
 }
 
-/* Reduced motion: everything is simply there, with no staged delays. */
+/* Reduced motion: everything is simply there, with no staged delays and no slide. */
 @media (prefers-reduced-motion: reduce) {
   .cer-in,
   .cer-glow,
   .tv-row-in {
     animation-delay: 0s !important;
   }
-  .tv-burnin {
+  .cer,
+  .cer-leave {
     animation: none;
   }
-  /* Dwell progress would snap to "full" and look finished from the first frame: show only the active segment. */
-  .tv-dwell-chip {
-    display: none;
+  .cer-leave {
+    opacity: 0;
+  }
+  .tv-burnin,
+  .tv-frost::after {
+    animation: none;
   }
 }

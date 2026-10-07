@@ -1,15 +1,19 @@
 import type { ResultCategory, ResultsFrame } from '@mc/shared';
 
-/** How long one category holds the stage before the next one takes over. */
-export const DWELL_MS = 14_000;
+/** With more categories than fit side by side, how long one page of columns holds the screen. */
+export const PAGE_MS = 14_000;
 /** The "reconnecting" chip waits this long, so a blip on the network never flashes at the room. */
 export const OFFLINE_CHIP_MS = 5_000;
 /** Heartbeats arrive every 5 s. Silence this long means the link is down even though the browser raised no error. */
 export const QUIET_MS = 12_000;
 /** Silence this long and the TV opens a fresh stream (a hung proxy or a pulled cable never closes the old one). */
 export const STALE_MS = 25_000;
-/** Winner ceremony length; its stages are timed in live.css. */
-export const CEREMONY_MS = 15_000;
+/** Winner ceremony: the announcement beat, the winner beat, then second and third place; ends at CEREMONY_MS. */
+export const CEREMONY_WINNER_AT = 2_600;
+export const CEREMONY_PODIUM_AT = 10_000;
+export const CEREMONY_MS = 16_000;
+/** The curtain takes this long to leave, so it starts leaving that long before the end. */
+export const CEREMONY_LEAVE_MS = 700;
 
 export type Screen = 'sealed' | 'waiting' | 'stage';
 

@@ -84,7 +84,7 @@ export function CategoryCard({ category, index, voted, picked, onOpen }: Props) 
         ) : (
           <>
             {description && (
-              <span className="t-small mt-0.5 line-clamp-2 block text-muted" dir="auto">
+              <span className="t-small mt-0.5 block text-muted" dir="auto">
                 {description}
               </span>
             )}

@@ -296,7 +296,7 @@ function BlindHourPanel({ o }: { o: OverviewData }) {
                           className="size-3 shrink-0 rounded-full"
                           style={{ background: c.color }}
                         />
-                        <span className="truncate text-[0.9375rem] font-bold text-navy">
+                        <span className="min-w-0 break-words text-[0.9375rem] font-bold text-navy">
                           {c.nameEn}
                         </span>
                       </span>
@@ -480,7 +480,9 @@ function Categories({ o }: { o: OverviewData }) {
           <li key={c.id} className="flex min-h-12 items-center justify-between gap-3 px-5 py-2">
             <span className="flex min-w-0 items-center gap-2.5">
               <span className="size-3 shrink-0 rounded-full" style={{ background: c.color }} />
-              <span className="truncate text-[0.9375rem] font-bold text-navy">{c.nameEn}</span>
+              <span className="min-w-0 break-words text-[0.9375rem] font-bold text-navy">
+                {c.nameEn}
+              </span>
               {!c.isActive && <Badge>Hidden</Badge>}
             </span>
             <span className="num text-[0.9375rem] font-bold text-ink">{n(c.votes)}</span>
@@ -554,7 +556,7 @@ function LiveCounts({ mode }: { mode: ResultsVisibility }) {
                       key={r.exhibitorId}
                       className="flex items-center justify-between gap-3 rounded-lg bg-canvas px-3 py-2 text-[0.9375rem]"
                     >
-                      <span className="truncate">
+                      <span className="min-w-0 break-words">
                         <span className="num me-2 text-muted">{i + 1}</span>
                         {r.nameEn}
                       </span>

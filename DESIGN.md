@@ -1,6 +1,6 @@
 ---
 name: MC2026 Voting
-description: On-site award voting for the Maker Collective 2026 exhibition. A tactile, Arabic-first brand world in navy, purple and royal, in two variants (mobile voter app, hall TV dashboard).
+description: On-site award voting for the Maker Collective 2026 exhibition. A tactile, Arabic-first brand world in navy, purple and royal, in two variants (mobile voter app on a light canvas, dark hall TV board with a brighter navy ceremony curtain).
 colors:
   navy: "#00007b"
   navy-deep: "#00004a"
@@ -54,19 +54,34 @@ typography:
     fontSize: "0.875rem"
     fontWeight: 700
     lineHeight: 1.3
-  tv-name:
+  tv-name-max:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "56px"
+    fontSize: "52px"
     fontWeight: 700
-    lineHeight: 1.25
-  tv-secondary:
+    lineHeight: 1.32
+  tv-name-min:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "21px"
+    fontWeight: 700
+    lineHeight: 1.32
+  tv-chrome:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
     fontSize: "40px"
     fontWeight: 400
-    lineHeight: 1.1
-  tv-count:
+    lineHeight: 1.3
+  tv-unit:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "72px"
+    fontSize: "28px"
+    fontWeight: 700
+    lineHeight: 1
+  tv-second-count:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "80px"
+    fontWeight: 900
+    lineHeight: 1
+  tv-third-count:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "60px"
     fontWeight: 900
     lineHeight: 1
   control-text:
@@ -89,59 +104,54 @@ typography:
     fontSize: "3.25rem"
     fontWeight: 900
     lineHeight: 1
-  tv-caption:
-    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "42px"
-    fontWeight: 400
-    lineHeight: 1.1
-  tv-caption-lg:
-    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "44px"
-    fontWeight: 400
-    lineHeight: 1.2
-  tv-subhead:
-    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "48px"
-    fontWeight: 700
-    lineHeight: 1.2
   tv-stat:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
     fontSize: "52px"
     fontWeight: 900
     lineHeight: 1
-  tv-leader-name:
+  tv-body:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "60px"
+    fontSize: "56px"
     fontWeight: 700
-    lineHeight: 1.2
-  tv-card-name:
-    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "64px"
-    fontWeight: 700
-    lineHeight: 1.25
-  tv-title:
+    lineHeight: 1.3
+  tv-connecting-title:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
     fontSize: "80px"
     fontWeight: 700
-    lineHeight: 1.2
-  tv-display:
+    lineHeight: 1.3
+  tv-leader-count:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
     fontSize: "96px"
     fontWeight: 900
     lineHeight: 1
-  tv-hero-name:
+  tv-pairing-title:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "96px"
+    fontWeight: 700
+    lineHeight: 1.2
+  tv-screen-title:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
     fontSize: "104px"
     fontWeight: 700
-    lineHeight: 1.2
-  tv-headline:
+    lineHeight: 1.25
+  tv-sealed-headline:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
     fontSize: "120px"
     fontWeight: 700
-    lineHeight: 1.2
-  tv-poster-count:
+    lineHeight: 1.25
+  tv-ceremony-name:
     fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
-    fontSize: "240px"
+    fontSize: "128px"
+    fontWeight: 700
+    lineHeight: 1.32
+  tv-ceremony-announce:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "136px"
+    fontWeight: 700
+    lineHeight: 1.3
+  tv-ceremony-count:
+    fontFamily: "Nexa, Helvetica Neue Arabic, system-ui, sans-serif"
+    fontSize: "170px"
     fontWeight: 900
     lineHeight: 1
 rounded:
@@ -150,8 +160,11 @@ rounded:
   photo: "1.4rem"
   sheet: "2rem"
   pill: "9999px"
-  tv-row: "32px"
-  tv-chip: "28px"
+  tv-block: "28px"
+  tv-panel: "40px"
+  tv-runner: "32px"
+  tv-photo: "30px"
+  tv-input: "28px"
   focus: "6px"
 spacing:
   xs: "8px"
@@ -159,8 +172,9 @@ spacing:
   md: "16px"
   page-x: "20px"
   hero-x: "24px"
-  tv-row-gap: "8px"
-  tv-gutter: "28px"
+  tv-frame-x: "48px"
+  tv-col-gap: "32px"
+  tv-cell-x: "26px"
 components:
   button-primary:
     backgroundColor: "{colors.purple}"
@@ -201,18 +215,35 @@ components:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     rounded: "{rounded.sheet}"
-  tv-row:
+  tv-board:
     backgroundColor: "{colors.navy-deep}"
     textColor: "{colors.surface}"
-    rounded: "{rounded.tv-row}"
-    height: "128px"
-  tv-row-leader:
+  tv-column:
+    backgroundColor: "transparent"
+    textColor: "{colors.surface}"
+    height: "800px"
+  tv-column-head:
+    backgroundColor: "transparent"
+    textColor: "{colors.surface}"
+    padding: "0 13px"
+  tv-first-block:
     backgroundColor: "{colors.yellow}"
     textColor: "{colors.navy}"
-  tv-rail-chip:
+    rounded: "{rounded.tv-block}"
+    padding: "14px 26px"
+  tv-second-block:
+    backgroundColor: "rgb(255 255 255 / 0.2)"
     textColor: "{colors.surface}"
-    rounded: "{rounded.tv-chip}"
-    height: "144px"
+    rounded: "{rounded.tv-block}"
+    padding: "14px 26px"
+  tv-third-block:
+    backgroundColor: "rgb(255 255 255 / 0.08)"
+    textColor: "{colors.surface}"
+    rounded: "{rounded.tv-block}"
+    padding: "14px 26px"
+  tv-ceremony:
+    backgroundColor: "{colors.navy}"
+    textColor: "{colors.surface}"
 ---
 
 # Design System: MC2026 Voting
@@ -221,29 +252,29 @@ components:
 
 **Creative North Star: "The Workshop Banner"**
 
-One brand world, the Maker Collective palette and its pattern vocabulary (chevron, gear, circle, triangle, spiral rings), expressed twice. On a phone it is a premium native-app feel: a navy hero with purple and royal glows over a light, navy-tinted canvas, one decision per screen, a thumb-sized purple button, and a bottom sheet for the irreversible step. On the hall TV it is the same navy turned into the ground, white poster-scale type, and one reserved colour (yellow) that always means "leading".
+One brand world, the Maker Collective palette and its pattern vocabulary (chevron, gear, circle, triangle, spiral rings), expressed twice. On a phone it is a premium native-app feel: a navy hero with purple and royal glows over a light, navy-tinted canvas, one decision per screen, a thumb-sized purple button, and a bottom sheet for the irreversible step. On the hall TV it is the same world after dark: a flat navy-deep board with one royal glow, a plain white category title with a white chevron over each column, poster-scale white type, and a podium that is a ladder of separate rounded blocks from loud to quiet: solid yellow first, light glass second, darker glass third, with yellow reserved for first place alone. The winner ceremony is a brighter scene on top: an opaque brand-navy curtain with a dimmer royal glow that slides up over the board.
 
 Depth is soft and navy-tinted, never grey. Motion is crisp: exponential ease-out entrances, spring press feedback, and a slow-turning dotted gear as the system's loading and "sealed" mark. Arabic is the first-class script; every layout is built RTL and Latin is fitted beneath or beside it.
 
 **Key Characteristics:**
 - Navy-tinted neutrals; no pure grey, no pure black text.
 - Brand hues are saturated and few; soft tints (never new hues) carry state backgrounds.
-- Purple is the voter action colour; yellow is the TV leader colour; turquoise means "yours / live / progress".
+- Purple is the voter action colour; yellow is the TV first-place colour; turquoise means "yours / live / progress".
 - Pattern motifs (chevron, dotted gear, rings, triangle, circle) are the only decoration. Icons are a single hand-drawn 2.2px round-cap stroke set.
-- Two variants share tokens, fonts and motifs: voter (light canvas + navy hero) and TV (navy-deep ground on a 1920x1080 artboard).
+- Two variants share tokens, fonts and motifs: voter (light canvas + navy hero) and TV (dark navy-deep board on a 1920x1080 artboard; the ceremony curtain is the brighter brand navy).
 
 ## Colors
 
 A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and soft tints for state.
 
 ### Primary
-- **Maker Navy** (`{colors.navy}`): hero grounds, headings and body-on-light text for titles, text on yellow and turquoise fills, TV QR/ground base. The brand anchor.
+- **Maker Navy** (`{colors.navy}`): hero grounds, headings and body-on-light text for titles, text on yellow and turquoise fills, the TV ceremony curtain ground, and text and medal numerals on the TV's yellow first place. The brand anchor.
 - **Maker Purple** (`{colors.purple}`): the voter primary button, focus ring on fields, "tap to choose" label, checked checkbox. White text on it passes AA.
-- **Royal Blue** (`{colors.royal}`): global focus-visible outline (3px, offset 3px), ghost button text, info banners (on royal-soft), hero glow.
+- **Royal Blue** (`{colors.royal}`): global focus-visible outline (3px, offset 3px), ghost button text, info banners (on royal-soft), hero glow. On the TV it is only the single glow on the board and ceremony grounds.
 
 ### Secondary
-- **Signal Turquoise** (`{colors.turquoise}`): "yours / live / progress". Voter: picked exhibitor ring and badge, voted state, text selection. TV: LIVE dot and dwell progress only. Always navy text on it.
-- **Leader Yellow** (`{colors.yellow}`): TV: the leader's row fill, leader counts on the rail, winner glow and winner count. Voter: sparing accent only (hero triangle motif, offline icon, warning tint). Always navy text on it.
+- **Signal Turquoise** (`{colors.turquoise}`): "yours / live / progress". Voter: picked exhibitor ring and badge, voted state, text selection. TV: the LIVE dot only. Category colours are not used on the TV at all. Always navy text on it.
+- **First-Place Yellow** (`{colors.yellow}`): TV: first place and nothing else: the solid first-place block (or each tied-first row), and in the ceremony the solid winner frame, the winner count and the "joint winners" headline. Voter: sparing accent only (hero triangle motif, offline icon, warning tint). Always navy text on it.
 - **Crimson** (`{colors.crimson}`): errors and refusals (text, field ring, alert icon). White text on it passes AA.
 
 ### Neutral
@@ -252,16 +283,21 @@ A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and
 - **Hairline Lavender** (`{colors.line}`): ring borders on fields and secondary buttons, sheet handle.
 - **Faint Lavender** (`{colors.faint}`): non-text UI boundaries only: the checkbox ring and the "forward" chevron on category cards (3.3:1 on white, above the 3:1 floor for UI components). Never text; placeholders use Muted Slate.
 - **Skeleton** (`{colors.skeleton}`): loading shimmer base, a mix of line and canvas (55/45 in oklab) defined in the token file.
-- **TV Dim** (`{colors.dim}`): white at 72%, the single value for TV secondary (English) lines, `text-dim` across the live surface; about 11:1 on navy-deep.
-- **TV Navy Dim** (`{colors.navy-dim}`): navy at 75%, the same role on the yellow leader row (`text-navy-dim`).
+- **TV Dim** (`--color-dim`, set once on `.tv-dark`): the secondary (English) text colour, `text-dim`, white at 72% (`{colors.dim}`) on the board, the pairing screen and the ceremony.
+- **TV Navy Dim** (`{colors.navy-dim}`): navy at 75%, the same role on yellow (first-place band, tied rows) and on the white offline pill.
+- **TV Veils**: the board's surfaces are white at low alpha, never a new hue: second-place block 20% with a 30% ring, third-place block 8% with a 15% ring, sealed column panel 6%, open-slot dashed outline 10% (its numeral disc 30%), paging dots 30%.
 - **Canvas** (`{colors.canvas}`): page background of the voter app. **Surface** (`{colors.surface}`): cards, fields, sheet.
-- **Navy Deep** (`{colors.navy-deep}`): TV ground base and QR modules.
+- **Navy Deep** (`{colors.navy-deep}`): the TV board ground (`.tv-ground`: flat navy-deep under one royal glow at top-end, 22%), the artboard bars, and the QR modules (the QR sits on a white tile). The ceremony curtain (`.tv-ground-ceremony`) is the brighter `{colors.navy}` under a dimmer royal glow (20%, top-centre), so it reads as a different scene.
 - **Soft tints** (`purple-soft`, `royal-soft`, `turquoise-soft`, `yellow-soft`, `crimson-soft`): state backgrounds for notices, voted card, pressed rows.
 
 ### Named Rules
 **The Never-On-White Rule.** Yellow and turquoise are never text on white or on canvas. On those fills the text is navy. Purple, royal and crimson carry white text.
 
-**The Leader-Only Yellow Rule.** On the TV, yellow marks the leading exhibitor and the winner and nothing else; the TV's no-photo tile therefore excludes the yellow-ground variant. Turquoise on the TV means liveness only. Category colour appears only as the chevron next to the category name.
+**The First-Place-Only Yellow Rule.** On the TV, yellow means first place and nothing else, in every scene: the first-place block or tied-first blocks, the ceremony winner's solid frame, count and "joint winners" line. Second is light glass and third darker glass, in the same place everywhere (`SKIN`, `PLACE_STYLE`). Placeholder photo tiles on the TV drop every yellow (`MotifTile noYellow`: no yellow ground, yellow accents turn white), and the offline notice is a white pill. Turquoise on the TV means liveness only (the LIVE dot).
+
+**The Plain-Title Rule.** On the TV a category title is plain white type with a white chevron, no slab, edge or category colour, so nothing competes with the podium ladder.
+
+**The Dark-Board, Brighter-Curtain Rule.** The whole TV is dark: white type on navy-deep, `--color-dim` white 72%. The ceremony is not a switch to dark but a switch of ground: the brand navy with a dimmer glow, opaque, over the board. Never put navy text on the board except on yellow or white fills.
 
 **The Tinted-Neutral Rule.** Greys are navy-tinted (ink, muted, line, canvas). Shadows are navy-tinted rgba, never black.
 
@@ -280,31 +316,33 @@ A deep-navy brand palette with one warm accent, tinted neutrals toward navy, and
 - **Label** (700, 0.875rem, 1.3): field labels, badges, "tap to choose".
 - Buttons 1.0625rem bold (md size 1rem); inputs 1.0625rem; OTP digits 1.75rem bold.
 
-### Hierarchy (TV, design pixels on 1920x1080; size floor 40px)
-- **Poster counts**: ceremony solo winner 240px; leader count 96px; ranked counts 72px; header numerals 52px; all Nexa Black (900), tabular numerals.
-- **Names**: Arabic Bold 56px (leader 60px; sealed headline 120px; waiting 104px; ceremony solo 104px), English beneath Regular 40px (leader 42px) in Dim (`{colors.dim}`, white at 72%).
-- **Chrome text**: header, pills, rail category: 40px minimum; rail leader name and count 56px.
-- Nothing on the TV is below 40px.
-- **Every TV size step** (design px): 40 secondary and chrome, 42 leader English, 44 category English and body, 48 secondary headlines, 52 header numerals, 56 names, 60 leader name, 64 joint-winner names, 72 ranked counts, 80 empty-state titles, 96 leader count and pairing title, 104 solo-winner name and waiting title, 120 sealed headline, 240 solo-winner count. The scale is deliberately wide: it is read from 3 to 25 metres, so each size answers one distance and role.
+### Hierarchy (TV, design pixels on 1920x1080)
+- **Names are fitted, never truncated.** `layout.ts` gives every name the largest tier at which it fits its box and wraps it; the Arabic/English pairs (px) run 52/42, 48/40, 44/38, 40/35, 36/32, 32/29, 28/26, 24/22, 21/20 for the longest. Arabic Bold, English Regular beneath in Dim. A name with no Arabic uses the large size for its English line. Category heads use the same tiers. The podium steps down in type too: first place may use the whole ladder (from 52/42, the leader gets the largest tier), second starts at 48/40, third at 44/38 (`TIER_FLOOR`). Category titles start at 44/38.
+- **Counts step down by place**: first 96px, second 80px, third 60px (tied-first blocks use the third-place size, 60px); header numerals 52px; all Nexa Black (900), tabular numerals. Only the solo leader's count shows a visible "votes / صوت" unit (34px Arabic Bold, 30px English); second and third carry it for screen readers only, because the leader's unit already names the numbers. The small unit (28/26px) is used in the ceremony strip headers.
+- **Medals**: the place numeral is 56% of its disc: 64px navy disc on the first-place block, 76px white disc second, 60px glass disc third (about 36, 43 and 34px numerals); open slots show a 64px outlined disc with a 36px number.
+- **Chrome**: header, pills, scan-to-vote and empty-state lines are 40px (the lowest regular size); the "sealed" label in a sealed column is 48/36px.
+- **Screens**: sealed headline 120px, waiting title 104px, pairing title 96px, connecting title 80px, secondary headlines 56px.
+- **Winner ceremony (poster tiers 128/64 down to 40/32)**: announcement "And the winner is…" 136px Arabic (64px English); winner count 170px with a 48/40px votes line (104px for two or three joint winners, 72px for more); winner name starts at the 128px tier for a solo winner, 64px for a few, 56px for many; second and third place in the reserved strip use the 64-tier (from the fifth tier down) and 72px counts.
+- The scale is wide on purpose: it is read from 3 to 25 metres. The old "nothing under 40px" floor no longer holds, because fitted names step down to 21px to stay whole; the guarantee is now that no name is ever clipped.
 - **Voter sizes outside the six-step ramp:** control text 1.0625rem, OTP digit and system titles 1.75rem, Arabic display 2.125rem, and the no-photo tile initial 3.25rem.
 
 ### Named Rules
 **The Both-Scripts Rule.** Arabic letter-spacing is always 0 (it breaks joining) and Arabic lines get more leading than Latin; Arabic display and title drop to Bold because that is its top weight.
 
-**The Arabic-Above Rule.** On the TV, Arabic is large and primary, English sits smaller beneath in its own LTR span (`lang="en"`, `dir="ltr"`) hanging from the same right edge. Truncated names carry padding with equal negative margin so descenders are never clipped.
+**The Arabic-Above Rule.** On the TV, Arabic is large and primary, English sits smaller beneath in its own LTR span (`lang="en"`, `dir="ltr"`) hanging from the same right edge. Wrapped names carry padding with equal negative margin so descenders are never clipped.
 
 ## Layout
 
 **Voter:** a single column, max 28rem wide (`max-w-md`), centred; on wider screens it becomes a rounded (2.5rem) card on a dark backdrop. Page gutters 20px (`px-5`), hero gutters 24px (`px-6`). Rhythm is Tailwind 4px steps: 12 to 16px inside lists, 24px between photo cards. Top insets use `env(safe-area-inset-top)`; the sticky action bar clears the home indicator with `env(safe-area-inset-bottom)` over a canvas-to-transparent fade. Primary action lives in the thumb zone (bottom). Short viewports (under 700px high) shrink the welcome hero to 44dvh and hide step details. Every tap target is at least 48px (language toggle `min-h-12`, back and search-clear buttons `size-12`, text links `min-h-12`, checkbox rows full-width 48px) and primary controls are 56px; the sheet's 36px drag handle is a pointer-drag region, not a button.
 
-**TV:** a fixed 1920x1080 artboard (`dir="rtl"`, `lang="ar"`), scaled by `min(w/1920, h/1080)` and centred; non-16:9 screens get navy-deep bars. Content is Header 80px, Stage (title row 76px, five rows of 128px with 8px gaps), Rail 144px, with 12px between stage parts. Rows use a 4-column grid: rank 84px, photo 104px, name flexible, count auto, 28px gap and gutter. The whole picture drifts 7px/5px over 240s to prevent burn-in. Z-order: sticky 20, banner 40, sheet 60 (voter); ceremony overlay z-50 (TV).
+**TV:** a fixed 1920x1080 artboard (`dir="rtl"`, `lang="ar"`), scaled by `min(w/1920, h/1080)` and centred; non-16:9 screens get navy-deep bars. Frame padding is 48px sides and 32px top and bottom, 16px between parts: Header 88px, Board 800px, Footer 96px (QR 88px with "scan to vote", and 16px page dots when there is more than one page). The board is one column per category side by side with a 32px gap, up to four across; more than four are shown in pages of three, and the page advances every 14s (page dots in the footer; this is the only timer left on the board). Column width is `(1824 - gaps) / n`. Inside a column the head is at least 108px and as tall as the tallest head on the board, so the podium blocks line up across all columns. Below it the podium is separate blocks with a 14px gap that step down in height by place: weights 1.8 for a solo first, 1.2 second, 0.95 third; when first place is tied each tied block has weight 1. At most five blocks. Open slots (dashed outline) take the height of the place they stand for, so every column's podium lines up with its neighbours until three exhibitors have votes. Blocks use 26px side and 14px vertical padding. The whole picture drifts 7px/5px over 240s to prevent burn-in. Z-order: sticky 20, banner 40, sheet 60 (voter); ceremony curtain z-50 (TV), with the board behind it `inert`.
 
 ## Elevation & Depth
 
-Hybrid: tonal layering first, soft navy-tinted shadows for lift. Cards sit on canvas by white surface plus a shadow; the TV has no shadows, only translucent white layers (`white/5`, `/7`, `/16`) over the ground.
+Hybrid: tonal layering first, soft navy-tinted shadows for lift. Cards sit on canvas by white surface plus a shadow. The TV board has no shadows at all: the ground is flat navy-deep with one royal glow, and depth is the place ladder itself: solid yellow, 20% white glass with a ring, 8% white glass with a fainter ring. The ceremony is flat too (the same glass blocks as runners-up over the brand-navy curtain, a solid yellow frame behind the winner).
 
 ### Shadow Vocabulary
-- **Card** (`0 1px 2px rgb(0 0 123 / 0.06), 0 10px 28px -6px rgb(0 0 123 / 0.12)`): category cards, step icon tiles, vote sheet photo.
+- **Card** (`0 1px 2px rgb(0 0 123 / 0.06), 0 10px 28px -6px rgb(0 0 123 / 0.12)`): category cards, step icon tiles, vote sheet photo (voter only).
 - **Raised** (`0 2px 4px rgb(0 0 123 / 0.08), 0 16px 36px -8px rgb(0 0 123 / 0.22)`): defined as a token for lifted elements.
 - **Sheet** (`0 -12px 48px rgb(0 0 60 / 0.28)`): the bottom sheet only.
 - **Primary button** (purple glow `0 10px 22px -8px rgb(127 50 217 / 0.7)` plus a 1px inset top highlight): gives the button its tactile "key" look. On-dark button uses a deep navy drop plus a 3px inset bottom edge.
@@ -313,11 +351,11 @@ Hybrid: tonal layering first, soft navy-tinted shadows for lift. Cards sit on ca
 ### Named Rules
 **The Navy-Shadow Rule.** Shadows are always navy-tinted at low alpha and long blur. No hard offset shadows, no black drops.
 
-**The Flat-TV Rule.** The TV expresses hierarchy by fill and scale (yellow leader, translucent rows, poster type), not shadow.
+**The Ring-Not-Shadow TV Rule.** On the TV, hierarchy is the block fill (yellow, glass, darker glass), block height and type size, and blocks are separated by a 14px gap and a hairline white ring on the glass, never a shadow.
 
 ## Shapes
 
-Soft and generous: controls 18px (1.125rem), cards 24px (1.5rem), exhibitor photos 22px (1.4rem), the sheet's top corners 32px (2rem), pills and icon buttons fully round. The chevron triangle (right-pointing, `M44.6 25.7 0 0v51.4Z`) is the signature silhouette and flips under RTL. TV scale-up: rows 32px, rail chips 28px, QR 14px, sealed/waiting panels 40px. Borders are inset rings (1.5px line colour; 2.5px purple on focus) rather than box borders; the TV's empty rank slots use a 3px dashed 13% white outline.
+Soft and generous: controls 18px (1.125rem), cards 24px (1.5rem), exhibitor photos 22px (1.4rem), the sheet's top corners 32px (2rem), pills and icon buttons fully round. The chevron triangle (right-pointing, `M44.6 25.7 0 0v51.4Z`) is the signature silhouette and flips under RTL. TV scale-up: podium blocks and the sealed column panel 28px (every place is its own rounded block), waiting panels 40px, first-place photo 30px, ceremony runner cards 32px, pairing field and button 28px, QR 14px. Place badges are full-round medals (navy on the yellow block, white on second, glass on third), the first-place one overlapping the photo's top-start corner with a 4px yellow cut-out ring. Borders are inset rings (1.5px line colour; 2.5px purple on focus) rather than box borders; TV glass blocks carry a 1px inset white ring (30% second, 15% third) and open slots use a 3px dashed 10% white outline. There are no share bars.
 
 ## Components
 
@@ -343,19 +381,22 @@ A native `<dialog>` with a 32px top radius, 24px side padding, a drag handle (44
 ### Hero and chrome
 Navy hero with two radial glows (purple top-end, royal bottom-start; a teal variant for gate/system screens) and slowly turning concentric rings. Language toggle (pill, 48px, labelled in the target language) is always visible. Offline banner is a sticky ink strip with a yellow icon. Chevron trail (one triangle per category, filled in brand order as votes land) is the progress device. Skeletons use a navy-tinted shimmer built from the skeleton token.
 
-### TV: Stage and rail
-- **Row:** 128px, 32px radius, translucent white 7% base; the row itself is the bar (fill scaleX to share of leader). **Leader** row is solid yellow with navy text, 60px name, 96px count. Non-leader fill white 15%. Rows slide to new rank in 900ms and cascade in at 70ms steps.
-- **Title row:** category-colour chevron, Arabic 56px bold, English 40px, dwell segments (64x10px pills; turquoise fills over the dwell period).
-- **Rail:** one chip per category (28px radius, white 7%, active 16% with turquoise 20% dwell fill), lock icon when sealed, leader name 56px and yellow count; with more than four categories only the active chip keeps text and others collapse to marker plus count. Static QR (white tile, navy-deep modules, 120px) with "Scan to vote" at the end.
-- **Header:** logo, status pill (LIVE with pulsing turquoise dot, sealed with lock, results), total votes, closing countdown; offline shows a white pill with navy text.
-- **Ceremony:** full-screen over the ground with turning rings and a huge faint gear; chevron and category, yellow glow behind the winner photo, count climbs from zero, runners-up in two translucent cards. Winner sizes scale by number (solo 420px photo, up to three 260px, more 150px). Runs 15s then returns to final standings.
-- **Sealed / Waiting / Pairing:** panels on the ground with rings and one slow dotted gear (sealed shows no numbers at all); waiting adds a 380px QR; pairing is a 96px-high field and white button.
+### TV: Board
+- **Column:** no sheet and no ring: the column is the category title over a stack of podium blocks, straight on the flat navy-deep ground (800px tall). The title is plain white fitted Arabic over dim English, with a 40px white chevron (no outline, no category colour). A lock (44px) sits in the head when Blind Hour shows the sealed snapshot. A sealed column (or the category currently being announced) shows a 28px-radius 6% white panel with a 72px lock and "sealed / مغلق" and no numbers.
+- **Podium as a ladder of blocks:** each place is its own 28px-radius block, loud to quiet, from `SKIN` and `PLACE_STYLE`, used the same way everywhere on the TV. Blocks step down in height (weights 1.8 / 1.2 / 0.95), count (96 / 80 / 60px) and largest name tier, so the order reads even without colour.
+- **First place (solo):** a solid yellow block, navy text: photo (104px, 30px radius) with a 64px navy medal (yellow numeral, 4px yellow ring) on its top-start corner, and on the top line the 96px count over a large "votes / صوت" unit in navy; the fitted name, largest tier, beneath in full width, English in Navy Dim. **Tied first:** every tied exhibitor is a yellow block of weight 1 (navy medal, 60px count).
+- **Second:** light glass (white 20%, 1px 30% white ring), white text, a 76px white medal with navy numeral, the fitted name, an 80px count. **Third:** darker glass (white 8%, 15% ring), a 60px glass medal (white 24%) with white numeral, a 60px count. Second and third show no visible unit (screen-reader text only). Open slots are dashed outlines (3px, 10% white) at the height of their place with a 64px outlined numeral disc; an empty column says "no votes yet".
+- **Live morph:** one `li` per exhibitor, keyed by id, so a block that changes place glides in place: transform, height, background-colour and text colour ease over 800ms (expo) while the content (photo/medal/name/count) is swapped by a fade that starts after 150ms.
+- **Header:** logo, status pill (white 10% pill with a 15% ring, white text: LIVE with pulsing turquoise dot, sealed with lock, results), total votes, closing countdown. Offline, the pill for "Live" is replaced entirely by the reconnecting notice (white pill, navy text, signal icon) and the countdown is hidden, so the screen never claims liveness it has lost.
+- **Footer:** static QR (88px, white tile, navy-deep modules) with "Scan to vote", and page dots 16px high (white; the current dot a 72px bar, others 16px at 30% white).
+- **Ceremony:** a brighter scene over the board. An opaque brand-navy curtain (`.tv-ground-ceremony`: one dimmer royal glow, slowly turning white 5% rings, no gear) slides up over the inert board and slides down to leave. Three beats: the announcement (136px, white; yellow only for "joint winners"), the winner (a solid yellow frame, 24px larger than the photo on every side, behind the photo; yellow count climbing from zero, solo photo 460px, a few 250px, many 150px), then second and third place as the same glass blocks (20% with ring, 8% with ring; 84px medal, 150px photo, 72px count) in a reserved 224px strip so the winner never moves. Runs 16s, then the board returns showing the final standings.
+- **Sealed / Waiting / Pairing:** sealed and waiting are full-board translucent white 40px panels (5% white, 10% ring) with a slow dotted gear (sealed shows no numbers at all; waiting adds a 380px QR); pairing is a dark `.tv-ground` screen with a 96px-high 10% white field (3px 40% white border, turquoise on focus) and a white button with navy text; connecting shows the gear on the dark ground.
 
 ### Signature: the no-photo tile
-A deterministic brand tile (seeded by exhibitor id) in one of five brand grounds with faint rings, one circle/triangle/dotted-ring accent and the initial in Nexa Black (Latin) or Helvetica Neue Arabic Bold (Arabic initials, the face's top weight). Reads as designed, not as a missing image. The TV scales a 160px tile and drops the yellow ground.
+A deterministic brand tile (seeded by exhibitor id) in one of five brand grounds with faint rings, one circle/triangle/dotted-ring accent and the initial in Nexa Black (Latin) or Helvetica Neue Arabic Bold (Arabic initials, the face's top weight). Reads as designed, not as a missing image. The TV scales a 160px tile and removes every yellow from it (`noYellow`): the yellow ground is never picked and a yellow accent becomes white.
 
 ### Motion
-Entrances use `cubic-bezier(0.25, 1, 0.5, 1)` (quart) or `cubic-bezier(0.16, 1, 0.3, 1)` (expo). Springs: press (stiffness 700, damping 32), soft (380/34), sheet (420/38). Voter and TV animate transform and opacity only. Reduced motion collapses durations to near zero; on the TV staged delays go to zero and the dwell fill is hidden so it does not look finished from frame one. Haptics and sound are enhancements only; the TV has no sound.
+Entrances use `cubic-bezier(0.25, 1, 0.5, 1)` (quart) or `cubic-bezier(0.16, 1, 0.3, 1)` (expo). Springs: press (stiffness 700, damping 32), soft (380/34), sheet (420/38). Voter and TV animate transform and opacity, except that TV rows also ease height and background and text colour so a place change morphs in place. TV motion: a column rises 24px and fades in over 0.8s (expo), its blocks fade in 80ms apart, rows glide to a new place over 800ms (transform, height, background, colour; expo) while their content fades in after a 150ms delay, a vote nudges the count (scale 1.09), the ceremony curtain slides up over 0.9s (expo) and down over 0.7s, and its beats rise and settle. Reduced motion collapses durations to near zero; on the TV staged delays go to zero and the curtain appears and leaves without a slide. Haptics and sound are enhancements only; the TV has no sound.
 
 ### RTL and bidi
 Layout is authored with logical properties (`start`/`end`, `ps`/`pe`); arrows, chevrons and the chevron trail flip under RTL (`rtl:-scale-x-100`, `Icon flip`). Digits are Western (Latin) everywhere: `ar-JO-u-nu-latn` for dates, input digits normalised to ASCII. Numbers, phone and times are `.num` (tabular, `direction: ltr`, `unicode-bidi: isolate`) or wrapped in LRI/PDI. Mixed-language names use `dir="auto"` on the voter app and `bdi` / separate `lang`+`dir` spans on the TV so `&`, digits and punctuation never reorder.
@@ -365,9 +406,11 @@ Layout is authored with logical properties (`start`/`end`, `ps`/`pe`); arrows, c
 ### Do:
 - **Do** put the primary action in the thumb zone as a 56px purple (or on-dark white) button with press scale and haptic.
 - **Do** use navy text on yellow and turquoise fills; white on purple, royal and crimson.
-- **Do** keep yellow on the TV for the leader and winner only, and turquoise for liveness and progress.
+- **Do** keep yellow on the TV for first place and the winner only (second light glass, third darker glass, from `SKIN`), and turquoise for liveness only.
 - **Do** write every error and refusal so it says what happened and what to do next.
-- **Do** keep TV text at 40px or more, names at 56px or more, and counts at 72px (leader 96px) or more.
+- **Do** fit every TV name to its box by tier (52 down to 21px, ceremony 128 down to 40px) and let it wrap; keep chrome at 40px, counts stepping 96 / 80 / 60px by place (winner 170px); the leader's count carries the visible votes unit and the others carry it for screen readers.
+- **Do** keep the TV board dark navy-deep with white type, and make the winner ceremony the brighter brand-navy curtain, opaque, that slides, never fades.
+- **Do** let names show in full on every surface: line clamps and truncation are removed from the voter app and the admin console as well as the TV.
 - **Do** keep Western digits and isolate numbers inside Arabic text.
 - **Do** animate only transform and opacity, with a reduced-motion alternative.
 - **Do** use the shared motifs (chevron, dotted gear, rings, triangle, circle) as the only decoration, and the no-photo tile for missing images.
@@ -376,9 +419,12 @@ Layout is authored with logical properties (`start`/`end`, `ps`/`pe`); arrows, c
 - **Don't** set yellow or turquoise text on white or canvas.
 - **Don't** add letter-spacing to Arabic, or use fluid type on the voter app (steps are fixed rem).
 - **Don't** introduce new brand hues; extend with tints of the six brand colours only.
-- **Don't** use gradient text, confetti, glass cards, or hard offset shadows; the anti-references are generic SaaS card grids, government-form density, and casino-style gamification.
+- **Don't** use gradient text, confetti, hard offset shadows, or blurred (backdrop-filter) glass; the TV's translucent white blocks are flat fills with a hairline ring, not blur; the anti-references are generic SaaS card grids, government-form density, and casino-style gamification.
 - **Don't** show "voted" before the server confirms; the vote sheet says recorded only after success.
 - **Don't** let the TV hide or invent numbers: the server decides what is sealed, the client renders it.
+- **Don't** truncate or ellipsize a name anywhere (TV, voter app, admin console), or put yellow on the TV anywhere but first place and the winner (including placeholder photo tiles).
+- **Don't** use category colours or share bars on the TV, or a gear in the ceremony; titles are white with a white chevron.
 
 ### Known inconsistencies in the build (recorded, not canonized)
+- The TV board still pages by timer (14s) when there are more than four categories, though the board itself has no rotation or dwell; recorded as built.
 - Voter focus ring (3px royal, 6px radius) is global, while fields suppress it and use their own purple ring; both are intended, but the ring colour differs.

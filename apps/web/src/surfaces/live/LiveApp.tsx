@@ -2,23 +2,24 @@ import type { ResultsFrame } from '@mc/shared';
 import { useCallback, useEffect, useRef } from 'react';
 import { Bi, SlowGear } from './parts';
 import { Artboard } from './Artboard';
+import { Board } from './Board';
 import { Ceremony } from './Ceremony';
+import { Footer } from './Footer';
 import { Header } from './Header';
 import { Pairing } from './Pairing';
-import { Rail } from './Rail';
 import { SealedScreen, WaitingScreen } from './Screens';
-import { Stage } from './Stage';
 import { useOfflineNotice, useRotation } from './hooks';
-import { DWELL_MS, screenFor, stageCategories } from './model';
+import { pagesOf } from './layout';
+import { PAGE_MS, screenFor } from './model';
 import { useDisplay } from './useDisplay';
 
 function Connecting() {
   return (
-    <main className="tv-ground flex size-full items-center justify-center gap-[64px] text-white">
+    <main className="tv-ground tv-dark flex size-full items-center justify-center gap-[64px] text-white">
       <SlowGear size={260} className="text-white/80" />
       <Bi
         k="connecting"
-        arClass="text-[80px] font-bold leading-[1.2]"
+        arClass="text-[80px] font-bold leading-[1.3]"
         enClass="text-[44px] leading-[1.15] text-dim"
       />
     </main>
@@ -29,17 +30,21 @@ type Display = ReturnType<typeof useDisplay>;
 
 function Screen({ d, frame }: { d: Display; frame: ResultsFrame }) {
   const screen = screenFor(frame);
-  const cats = stageCategories(frame);
+  const cats = frame.categories;
+  const pages = pagesOf(cats);
   const ceremonyCategory = d.reveal
     ? (cats.find((c) => c.id === d.reveal!.categoryId) ?? null)
     : null;
+  const ceremonyOn = ceremonyCategory !== null;
+
+  // Up to four categories share the screen; more are shown a page at a time.
   const rotation = useRotation(
-    cats.map((c) => c.id),
-    DWELL_MS,
-    ceremonyCategory !== null,
+    pages.map((_, i) => String(i)),
+    PAGE_MS,
+    ceremonyOn,
   );
-  const active = cats.find((c) => c.id === rotation.activeId) ?? null;
-  const rotating = cats.length > 1 && ceremonyCategory === null;
+  const pageIndex = Math.min(Number(rotation.activeId ?? 0), Math.max(0, pages.length - 1));
+  const shown = pages[pageIndex] ?? [];
 
   const { jumpTo } = rotation;
   const { clearReveal } = d;
@@ -48,45 +53,45 @@ function Screen({ d, frame }: { d: Display; frame: ResultsFrame }) {
   useEffect(() => {
     revealedRef.current = revealed;
   }, [revealed]);
-  /** Ceremony over: the stage now shows that category's final standings. */
+  const pagesRef = useRef(pages);
+  useEffect(() => {
+    pagesRef.current = pages;
+  }, [pages]);
+  /** Ceremony over: show the page that holds that category, now with its final standings. */
   const finish = useCallback(() => {
-    if (revealedRef.current) jumpTo(revealedRef.current);
+    const id = revealedRef.current;
+    if (id) {
+      const at = pagesRef.current.findIndex((p) => p.some((c) => c.id === id));
+      if (at >= 0) jumpTo(String(at));
+    }
     clearReveal();
   }, [jumpTo, clearReveal]);
 
   const offline = useOfflineNotice(d.link, d.offlineSince);
 
   return (
-    <main className="tv-ground relative size-full overflow-hidden text-white">
-      <div className="tv-burnin flex size-full flex-col gap-[16px] px-[64px] py-[32px]">
+    <main className="tv-ground tv-dark relative size-full overflow-hidden text-white">
+      {/* Blind Hour: the screen is frozen, and says so with an icy rim. */}
+      {frame.mode === 'FROZEN' && !ceremonyOn && <div aria-hidden="true" className="tv-frost" />}
+      <div
+        className="tv-burnin flex size-full flex-col gap-[12px] px-[48px] py-[24px]"
+        inert={ceremonyOn}
+        aria-hidden={ceremonyOn || undefined}
+      >
         <Header frame={frame} clockOffset={d.clockOffset} offline={offline} />
         <div className="min-h-0 flex-1">
           {screen === 'sealed' && <SealedScreen />}
           {screen === 'waiting' && <WaitingScreen />}
-          {screen === 'stage' && active && (
-            <Stage
-              key={active.id}
-              category={active}
+          {screen === 'stage' && (
+            <Board
+              key={pageIndex}
+              categories={shown}
               live={frame.mode === 'LIVE'}
-              segments={{
-                count: cats.length,
-                index: Math.max(
-                  0,
-                  cats.findIndex((c) => c.id === active.id),
-                ),
-                epoch: rotation.epoch,
-                rotating,
-              }}
+              held={ceremonyCategory?.id ?? null}
             />
           )}
         </div>
-        <Rail
-          categories={frame.categories}
-          activeId={screen === 'stage' ? rotation.activeId : null}
-          epoch={rotation.epoch}
-          rotating={rotating && screen === 'stage'}
-          showQr={screen !== 'waiting'}
-        />
+        <Footer showQr={screen !== 'waiting'} pages={pages.length} page={pageIndex} />
       </div>
 
       {ceremonyCategory && d.reveal && (

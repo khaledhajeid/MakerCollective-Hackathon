@@ -85,7 +85,7 @@ export function Displays() {
             {rows.map((d) => (
               <li key={d.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1 basis-48">
-                  <p className="truncate text-[0.9375rem] font-bold text-navy">{d.label}</p>
+                  <p className="break-words text-[0.9375rem] font-bold text-navy">{d.label}</p>
                   <p className="text-sm text-muted">
                     {d.revokedAt
                       ? `Switched off ${fmtTime(d.revokedAt)}`

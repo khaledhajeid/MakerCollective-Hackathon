@@ -94,7 +94,7 @@ export function Shell({
       >
         <AIcon name="key" />
         <span className="min-w-0">
-          <span className="block truncate">{admin.username}</span>
+          <span className="block break-words">{admin.username}</span>
           <span className="block text-xs font-normal opacity-80">
             {admin.role === 'SUPER_ADMIN' ? 'Super admin' : 'Admin'}
           </span>
@@ -127,7 +127,7 @@ export function Shell({
 
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-navy px-4 py-2 text-white lg:hidden">
         <Logo variant="white" className="h-9 w-auto" alt="MC2026" />
-        <span className="min-w-0 truncate text-sm font-bold">{current}</span>
+        <span className="min-w-0 break-words text-sm font-bold">{current}</span>
         <button
           type="button"
           aria-label="Open the menu"

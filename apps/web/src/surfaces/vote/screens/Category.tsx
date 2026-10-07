@@ -72,12 +72,7 @@ export function CategoryScreen({ id }: { id: string }) {
         <div className="flex items-center gap-3">
           <BackButton fallback="/vote" />
           <div className="min-w-0 flex-1">
-            <h1
-              className="t-heading line-clamp-2 text-navy"
-              tabIndex={-1}
-              data-screen-title
-              dir="auto"
-            >
+            <h1 className="t-heading text-navy" tabIndex={-1} data-screen-title dir="auto">
               {pick(category.nameAr, category.nameEn)}
             </h1>
             <p className="t-small text-muted">{countLabel(category.exhibitors.length)}</p>

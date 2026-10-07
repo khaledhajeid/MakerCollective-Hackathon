@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-07T12:00:00+00:00",
+  "generatedAt": "2026-10-07T19:30:00+00:00",
   "title": "Design System: MC2026 Voting",
   "extensions": {
     "colorMeta": {
@@ -66,7 +66,7 @@
       },
       "yellow": {
         "role": "secondary",
-        "displayName": "Leader Yellow",
+        "displayName": "First-Place Yellow",
         "canonical": "#f8d749",
         "tonalRamp": [
           "#706121",
@@ -96,7 +96,7 @@
       },
       "navy-deep": {
         "role": "neutral",
-        "displayName": "Navy Deep",
+        "displayName": "Navy Deep (TV board ground, one royal glow)",
         "canonical": "#00004a",
         "tonalRamp": [
           "#000021",
@@ -266,18 +266,6 @@
         "displayName": "Label",
         "purpose": "Field labels and badges."
       },
-      "tv-name": {
-        "displayName": "TV Name",
-        "purpose": "Arabic exhibitor and category names on the 1920x1080 artboard; floor 56px."
-      },
-      "tv-secondary": {
-        "displayName": "TV Secondary",
-        "purpose": "English lines and chrome; floor 40px, Dim (white at 72%)."
-      },
-      "tv-count": {
-        "displayName": "TV Count",
-        "purpose": "Vote counts, Nexa Black tabular; 72px, leader 96px, ceremony 240px."
-      },
       "control-text": {
         "displayName": "Control Text",
         "purpose": "Input and button text, 1.0625rem (buttons bold)."
@@ -294,56 +282,76 @@
         "displayName": "Tile Initial",
         "purpose": "Initial on the no-photo tile, 3.25rem; Arabic initials use Bold."
       },
-      "tv-caption": {
-        "displayName": "TV Caption",
-        "purpose": "Leader row English line, 42px."
-      },
-      "tv-caption-lg": {
-        "displayName": "TV Caption Large",
-        "purpose": "Ceremony category English and pairing body, 44px."
-      },
-      "tv-subhead": {
-        "displayName": "TV Subhead",
-        "purpose": "Secondary headlines and the votes label, 48px."
-      },
       "tv-stat": {
         "displayName": "TV Stat",
         "purpose": "Header numerals, 52px Nexa Black."
       },
-      "tv-leader-name": {
-        "displayName": "TV Leader Name",
-        "purpose": "Leader row Arabic name, 60px."
+      "tv-name-max": {
+        "displayName": "TV Name (largest tier)",
+        "purpose": "Largest fitted name tier, Arabic 52px / English 42px (the solo leader; second starts at 48/40, third at 44/38, category titles at 44/38); layout.ts steps down per name, never truncating."
       },
-      "tv-card-name": {
-        "displayName": "TV Card Name",
-        "purpose": "Ceremony joint-winner card names, 64px."
+      "tv-name-min": {
+        "displayName": "TV Name (smallest tier)",
+        "purpose": "Smallest fitted tier for the longest names, Arabic 21px / English 20px."
       },
-      "tv-title": {
-        "displayName": "TV Title",
-        "purpose": "Connecting and empty-state titles, 80px."
+      "tv-chrome": {
+        "displayName": "TV Chrome",
+        "purpose": "Header, pills, footer and empty-state lines, 40px; English in --color-dim."
       },
-      "tv-display": {
-        "displayName": "TV Display",
-        "purpose": "Leader count and pairing title, 96px."
+      "tv-unit": {
+        "displayName": "TV Votes Unit",
+        "purpose": "\"votes / صوت\" unit, 28px Arabic Bold and 26px English (34/30 large, visible only on the solo leader; second and third carry it for screen readers)."
       },
-      "tv-hero-name": {
-        "displayName": "TV Hero Name",
-        "purpose": "Ceremony solo winner name and waiting title, 104px."
+      "tv-body": {
+        "displayName": "TV Body",
+        "purpose": "Secondary headlines on sealed and waiting screens, 56px."
       },
-      "tv-headline": {
-        "displayName": "TV Headline",
-        "purpose": "Sealed-screen headline, 120px."
+      "tv-connecting-title": {
+        "displayName": "TV Connecting Title",
+        "purpose": "Connecting screen, 80px."
       },
-      "tv-poster-count": {
-        "displayName": "TV Poster Count",
-        "purpose": "Ceremony solo winner count, 240px Nexa Black."
+      "tv-leader-count": {
+        "displayName": "TV First-Place Count",
+        "purpose": "Solo first-place block count, 96px Nexa Black."
+      },
+      "tv-pairing-title": {
+        "displayName": "TV Pairing Title",
+        "purpose": "Pairing screen title, 96px."
+      },
+      "tv-screen-title": {
+        "displayName": "TV Screen Title",
+        "purpose": "Waiting title, 104px."
+      },
+      "tv-sealed-headline": {
+        "displayName": "TV Sealed Headline",
+        "purpose": "Sealed screen headline, 120px."
+      },
+      "tv-ceremony-name": {
+        "displayName": "TV Ceremony Name",
+        "purpose": "Solo winner name, top ceremony tier 128px (tiers run 128 down to 40)."
+      },
+      "tv-ceremony-announce": {
+        "displayName": "TV Ceremony Announcement",
+        "purpose": "\"And the winner is...\" beat, 136px, white (yellow only for joint winners)."
+      },
+      "tv-ceremony-count": {
+        "displayName": "TV Ceremony Count",
+        "purpose": "Solo winner count, 170px Nexa Black, climbs from zero."
+      },
+      "tv-second-count": {
+        "displayName": "TV Second Count",
+        "purpose": "Second-place count, 80px Nexa Black tabular."
+      },
+      "tv-third-count": {
+        "displayName": "TV Third Count",
+        "purpose": "Third-place and tied-first count, 60px Nexa Black tabular."
       }
     },
     "shadows": [
       {
         "name": "card",
         "value": "0 1px 2px rgb(0 0 123 / 0.06), 0 10px 28px -6px rgb(0 0 123 / 0.12)",
-        "purpose": "Cards and tiles on canvas."
+        "purpose": "Voter cards and tiles on canvas. The TV board uses no shadows."
       },
       {
         "name": "raised",
@@ -370,7 +378,7 @@
       {
         "name": "ease-out-expo",
         "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Row rise, rank slides, ceremony entrances."
+        "purpose": "Column rise, row morph, ceremony curtain and beat entrances."
       },
       {
         "name": "spring-press",
@@ -383,14 +391,39 @@
         "purpose": "Bottom sheet entrance and snap-back."
       },
       {
-        "name": "tv-dwell",
-        "value": "14000ms linear scaleX",
-        "purpose": "Active category progress."
+        "name": "tv-column-rise",
+        "value": "0.8s expo, translateY 24px + opacity",
+        "purpose": "A column arrives once."
+      },
+      {
+        "name": "tv-row-fade",
+        "value": "0.6s quart, 80ms stagger per row (+120ms)",
+        "purpose": "Podium blocks fade in one after another."
+      },
+      {
+        "name": "tv-reorder-glide",
+        "value": "800ms expo on transform, height, background-color and color",
+        "purpose": "Podium blocks morph in place to a new place."
+      },
+      {
+        "name": "tv-content-swap",
+        "value": "0.45s quart after 150ms delay, opacity",
+        "purpose": "Block content (photo, medal, name, count) fades in after the block starts moving."
+      },
+      {
+        "name": "tv-page",
+        "value": "14000ms",
+        "purpose": "Page advance when more than four categories (pages of three)."
+      },
+      {
+        "name": "tv-curtain",
+        "value": "up 0.9s expo, down 0.7s cubic-bezier(0.65,0,0.35,1); translateY only",
+        "purpose": "Opaque ceremony curtain slides, never fades."
       },
       {
         "name": "tv-ceremony",
-        "value": "15000ms",
-        "purpose": "Winner ceremony length."
+        "value": "16000ms (announcement to 2.6s, winner to 10s, then second and third)",
+        "purpose": "Winner ceremony length and beats."
       }
     ],
     "breakpoints": [
@@ -458,31 +491,31 @@
       "css": ".ds-pick{display:inline-flex;align-items:center;padding:6px 12px;border-radius:9999px;background:#74dccf;color:#00007b;font:700 .875rem Nexa,system-ui,sans-serif}"
     },
     {
-      "name": "TV Leader Row",
-      "kind": "custom",
-      "refersTo": "tv-row-leader",
-      "description": "Solid yellow row, navy text, 96px count; the only yellow on the TV.",
-      "html": "<div class=\"ds-tv-row ds-tv-lead\"><span class=\"ds-tv-rank\">1</span><span class=\"ds-tv-name\">اسم المشروع</span><span class=\"ds-tv-count\">128</span></div>",
-      "css": ".ds-tv-row{display:grid;grid-template-columns:84px minmax(0,1fr) auto;align-items:center;gap:28px;height:128px;padding:0 28px;border-radius:32px;font-family:Nexa,'Helvetica Neue Arabic',sans-serif} .ds-tv-lead{background:#f8d749;color:#00007b} .ds-tv-rank{font-size:56px;font-weight:900;text-align:center} .ds-tv-name{font-size:60px;font-weight:700} .ds-tv-count{font-size:96px;font-weight:900;font-variant-numeric:tabular-nums}"
+      "name": "TV Category Column",
+      "kind": "card",
+      "refersTo": "tv-column",
+      "description": "Plain white category title with a white chevron over a ladder of separate rounded blocks: solid yellow first with a navy medal, light glass second, darker glass third, no share bars.",
+      "html": "<div class=\"ds-col\"><div class=\"ds-col-head\"><span class=\"ds-chev\"></span><span class=\"ds-col-ar\">فئة</span></div><div class=\"ds-b ds-b1\"><span class=\"ds-medal ds-m1\">1</span><span class=\"ds-n1\">96</span></div><div class=\"ds-b ds-b2\"><span class=\"ds-medal ds-m2\">2</span><span class=\"ds-name\">اسم آخر</span><span class=\"ds-n2\">80</span></div><div class=\"ds-b ds-b3\"><span class=\"ds-medal ds-m3\">3</span><span class=\"ds-name\">اسم ثالث</span><span class=\"ds-n3\">60</span></div></div>",
+      "css": ".ds-col{width:440px;display:flex;flex-direction:column;gap:14px;background:#00004a;padding:12px;color:#fff;font-family:Nexa,\"Helvetica Neue Arabic\",sans-serif} .ds-col-head{display:flex;align-items:center;gap:14px;height:108px;padding:0 13px} .ds-chev{width:40px;height:46px;background:#fff;clip-path:polygon(100% 50%,0 0,0 100%);transform:scaleX(-1)} .ds-col-ar{font-size:44px;font-weight:700} .ds-b{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 26px;border-radius:28px} .ds-b1{height:200px;background:#f8d749;color:#00007b} .ds-b2{height:130px;background:rgb(255 255 255 / .2);box-shadow:inset 0 0 0 1px rgb(255 255 255 / .3)} .ds-b3{height:104px;background:rgb(255 255 255 / .08);box-shadow:inset 0 0 0 1px rgb(255 255 255 / .15)} .ds-medal{display:inline-flex;align-items:center;justify-content:center;border-radius:9999px;font-weight:900;flex:none} .ds-m1{width:64px;height:64px;font-size:36px;background:#00007b;color:#f8d749} .ds-m2{width:76px;height:76px;font-size:43px;background:#fff;color:#00007b} .ds-m3{width:60px;height:60px;font-size:34px;background:rgb(255 255 255 / .24);color:#fff} .ds-name{flex:1;font-size:40px;font-weight:700} .ds-n1{font-size:96px;font-weight:900;line-height:1} .ds-n2{font-size:80px;font-weight:900;line-height:1} .ds-n3{font-size:60px;font-weight:900;line-height:1}"
     },
     {
-      "name": "TV Rail Chip",
-      "kind": "nav",
-      "refersTo": "tv-rail-chip",
-      "description": "Category chip with colour chevron, name, leader and yellow count.",
-      "html": "<div style=\"background:#00004a;padding:16px\"><div class=\"ds-chip\"><svg width=\"34\" height=\"39\" viewBox=\"0 0 44.6 51.4\"><path d=\"M44.6 25.7 0 0v51.4Z\" fill=\"#74dccf\" transform=\"translate(44.6 0) scale(-1 1)\"/></svg><span><span class=\"ds-chip-c\">فئة</span><span class=\"ds-chip-l\">Leader <b>42</b></span></span></div></div>",
-      "css": ".ds-chip{display:flex;align-items:center;gap:20px;height:144px;padding:0 26px;border-radius:28px;background:rgb(255 255 255 / .16);color:#fff;font-family:Nexa,sans-serif} .ds-chip-c{display:block;font-size:40px;font-weight:700} .ds-chip-l{display:block;font-size:56px;font-weight:700} .ds-chip-l b{color:#f8d749;font-weight:900}"
+      "name": "TV Ceremony Announcement",
+      "kind": "custom",
+      "refersTo": "tv-ceremony",
+      "description": "The brighter scene: opaque brand-navy curtain with one dimmer royal glow, white announcement.",
+      "html": "<div class=\"ds-cer\"><span class=\"ds-cer-t\">الفائز هو…</span></div>",
+      "css": ".ds-cer{display:flex;align-items:center;justify-content:center;height:240px;background:radial-gradient(70% 65% at 50% 0%,rgb(74 104 216 / .2),transparent 70%),#00007b;color:#fff;font-family:Nexa,\"Helvetica Neue Arabic\",sans-serif} .ds-cer-t{font-size:72px;font-weight:700}"
     }
   ],
   "narrative": {
     "northStar": "The Workshop Banner",
-    "overview": "One brand world expressed twice: a premium native-app feel on the phone (navy hero, light navy-tinted canvas, thumb-sized purple button, bottom sheet) and a poster-scale navy ground on the hall TV with yellow reserved for the leader. Depth is soft and navy-tinted; motion is crisp; Arabic is first-class and everything is built RTL first.",
+    "overview": "One brand world expressed twice: a premium native-app feel on the phone (navy hero, light navy-tinted canvas, thumb-sized purple button, bottom sheet) and, on the hall TV, the same world after dark: a flat navy-deep board with one royal glow, plain white category titles with a white chevron, a podium that is a ladder of separate rounded blocks (solid yellow first, light glass second, darker glass third) and a brighter brand-navy ceremony curtain with a dimmer glow for the winner. Depth is soft and navy-tinted on the phone and tonal on the TV; motion is crisp; Arabic is first-class and everything is built RTL first.",
     "keyCharacteristics": [
       "Navy-tinted neutrals; no pure grey or black text.",
       "Brand hues are few and saturated; soft tints carry state.",
-      "Purple is voter action; yellow is TV leader; turquoise means yours, live or progress.",
+      "Purple is voter action; yellow is TV first place only; turquoise means yours, live or progress.",
       "Pattern motifs (chevron, dotted gear, rings, triangle, circle) are the only decoration.",
-      "Two variants share tokens, fonts and motifs: voter and TV (1920x1080 artboard)."
+      "Two variants share tokens, fonts and motifs: voter and TV (dark navy-deep 1920x1080 board; the ceremony curtain is the brighter brand navy)."
     ],
     "rules": [
       {
@@ -491,53 +524,67 @@
         "section": "colors"
       },
       {
-        "name": "The Leader-Only Yellow Rule",
-        "body": "On the TV, yellow marks the leading exhibitor and the winner and nothing else; turquoise means liveness only; category colour appears only as the chevron beside the name.",
-        "section": "colors"
-      },
-      {
         "name": "The Tinted-Neutral Rule",
-        "body": "Greys are navy-tinted. Shadows are navy-tinted rgba, never black.",
+        "body": "Greys are navy-tinted (ink, muted, line, canvas). Shadows are navy-tinted rgba, never black.",
         "section": "colors"
       },
       {
         "name": "The Both-Scripts Rule",
-        "body": "Arabic letter-spacing is always 0 and Arabic lines get more leading; Arabic display and title drop to Bold.",
+        "body": "Arabic letter-spacing is always 0 (it breaks joining) and Arabic lines get more leading than Latin; Arabic display and title drop to Bold because that is its top weight.",
         "section": "typography"
       },
       {
         "name": "The Arabic-Above Rule",
-        "body": "On the TV, Arabic is large and primary with English smaller beneath in its own LTR span, hanging from the same right edge.",
+        "body": "On the TV, Arabic is large and primary, English sits smaller beneath in its own LTR span (lang=\"en\", dir=\"ltr\") hanging from the same right edge. Wrapped names carry padding with equal negative margin so descenders are never clipped.",
         "section": "typography"
       },
       {
         "name": "The Navy-Shadow Rule",
-        "body": "Shadows are navy-tinted at low alpha and long blur. No hard offset shadows, no black drops.",
+        "body": "Shadows are always navy-tinted at low alpha and long blur. No hard offset shadows, no black drops.",
         "section": "elevation"
       },
       {
-        "name": "The Flat-TV Rule",
-        "body": "The TV expresses hierarchy by fill and scale, not shadow.",
+        "name": "The First-Place-Only Yellow Rule",
+        "body": "On the TV, yellow means first place and nothing else, in every scene: the first-place block or tied-first blocks, the ceremony winner's solid frame, count and \"joint winners\" line. Second is light glass and third darker glass, in the same place everywhere (SKIN, PLACE_STYLE). Placeholder photo tiles on the TV drop every yellow (MotifTile noYellow: no yellow ground, yellow accents turn white), and the offline notice is a white pill. Turquoise on the TV means liveness only (the LIVE dot).",
+        "section": "colors"
+      },
+      {
+        "name": "The Plain-Title Rule",
+        "body": "On the TV a category title is plain white type with a white chevron, no slab, edge or category colour, so nothing competes with the podium ladder.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dark-Board, Brighter-Curtain Rule",
+        "body": "The whole TV is dark: white type on navy-deep, --color-dim white 72%. The ceremony is not a switch to dark but a switch of ground: the brand navy with a dimmer glow, opaque, over the board. Never put navy text on the board except on yellow or white fills.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ring-Not-Shadow TV Rule",
+        "body": "On the TV, hierarchy is the block fill (yellow, glass, darker glass), block height and type size, and blocks are separated by a 14px gap and a hairline white ring on the glass, never a shadow.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do put the primary action in the thumb zone as a 56px purple (or on-dark white) button with press scale and haptic.",
-      "Do use navy text on yellow and turquoise fills; white on purple, royal and crimson.",
-      "Do keep yellow on the TV for the leader and winner only, and turquoise for liveness and progress.",
-      "Do write every error and refusal so it says what happened and what to do next.",
-      "Do keep TV text at 40px or more, names at 56px or more, and counts at 72px (leader 96px) or more.",
-      "Do keep Western digits and isolate numbers inside Arabic text.",
-      "Do animate only transform and opacity, with a reduced-motion alternative.",
-      "Do use the shared motifs as the only decoration, and the no-photo tile for missing images."
+      "**Do** put the primary action in the thumb zone as a 56px purple (or on-dark white) button with press scale and haptic.",
+      "**Do** use navy text on yellow and turquoise fills; white on purple, royal and crimson.",
+      "**Do** keep yellow on the TV for first place and the winner only (second light glass, third darker glass, from SKIN), and turquoise for liveness only.",
+      "**Do** write every error and refusal so it says what happened and what to do next.",
+      "**Do** fit every TV name to its box by tier (52 down to 21px, ceremony 128 down to 40px) and let it wrap; keep chrome at 40px, counts stepping 96 / 80 / 60px by place (winner 170px); the leader's count carries the visible votes unit and the others carry it for screen readers.",
+      "**Do** keep the TV board dark navy-deep with white type, and make the winner ceremony the brighter brand-navy curtain, opaque, that slides, never fades.",
+      "**Do** let names show in full on every surface: line clamps and truncation are removed from the voter app and the admin console as well as the TV.",
+      "**Do** keep Western digits and isolate numbers inside Arabic text.",
+      "**Do** animate only transform and opacity, with a reduced-motion alternative.",
+      "**Do** use the shared motifs (chevron, dotted gear, rings, triangle, circle) as the only decoration, and the no-photo tile for missing images."
     ],
     "donts": [
-      "Don't set yellow or turquoise text on white or canvas.",
-      "Don't add letter-spacing to Arabic, or use fluid type on the voter app.",
-      "Don't introduce new brand hues; extend with tints of the six brand colours only.",
-      "Don't use gradient text, confetti, glass cards, or hard offset shadows.",
-      "Don't show \"voted\" before the server confirms.",
-      "Don't let the TV hide or invent numbers: the server decides what is sealed."
+      "**Don't** set yellow or turquoise text on white or canvas.",
+      "**Don't** add letter-spacing to Arabic, or use fluid type on the voter app (steps are fixed rem).",
+      "**Don't** introduce new brand hues; extend with tints of the six brand colours only.",
+      "**Don't** use gradient text, confetti, hard offset shadows, or blurred (backdrop-filter) glass; the TV's translucent white blocks are flat fills with a hairline ring, not blur; the anti-references are generic SaaS card grids, government-form density, and casino-style gamification.",
+      "**Don't** show \"voted\" before the server confirms; the vote sheet says recorded only after success.",
+      "**Don't** let the TV hide or invent numbers: the server decides what is sealed, the client renders it.",
+      "**Don't** truncate or ellipsize a name anywhere (TV, voter app, admin console), or put yellow on the TV anywhere but first place and the winner (including placeholder photo tiles).",
+      "**Don't** use category colours or share bars on the TV, or a gear in the ceremony; titles are white with a white chevron."
     ]
   }
 }

@@ -72,7 +72,7 @@ export function ExhibitorCard({ exhibitor, picked, locked, onOpen }: Props) {
           {name}
         </span>
         {project && (
-          <span className="t-small mt-0.5 line-clamp-2 block text-muted" dir="auto">
+          <span className="t-small mt-0.5 block text-muted" dir="auto">
             {project}
           </span>
         )}

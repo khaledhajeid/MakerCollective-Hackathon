@@ -86,6 +86,39 @@ async function recordStream(page: Page) {
 }
 /** An ISO-8601 UTC instant exactly as the API writes it (`toISOString()`), for hand-built snapshot JSON. */
 const NOW_ISO = `to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
+/** The board's category headings (one per column). */
+const heads = (page: Page) => page.getByRole('heading', { level: 2 });
+/** Row `n` (0 = the leader) of column `col` (0 = first category). */
+const row = (page: Page, col: number, n: number) =>
+  page.locator('section').nth(col).locator('li').nth(n);
+/** The medals: gold, silver, bronze. Gold is deliberately not the brand yellow, which stays first place's block. */
+const GOLD = 'rgb(224, 165, 38)';
+const SILVER = 'rgb(200, 205, 214)';
+const BRONZE = 'rgb(201, 122, 58)';
+
+/** Every row: nothing a row contains may spill past the row's own edges (no clipped or overflowing names). */
+const spill = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll('section li')]
+      .filter((li) => li.getAttribute('aria-hidden') !== 'true')
+      .map((li) => {
+        const box = li.getBoundingClientRect();
+        let worst = 0;
+        for (const el of li.querySelectorAll('*')) {
+          const r = el.getBoundingClientRect();
+          if (r.height === 0) continue;
+          worst = Math.max(
+            worst,
+            r.bottom - box.bottom,
+            box.top - r.top,
+            r.right - box.right,
+            box.left - r.left,
+          );
+        }
+        return { text: (li.textContent ?? '').slice(0, 40), worst: Math.round(worst) };
+      })
+      .filter((x) => x.worst > 1),
+  );
 const streamed = (page: Page) =>
   page.evaluate(() => (window as unknown as { __sse: string[] }).__sse);
 
@@ -170,16 +203,14 @@ test('pairs from the link, waits for the first vote, then shows live standings t
   await vote(a.id, ex[1]!, 3);
   await vote(a.id, ex[2]!, 2);
   await vote(b.id, s.byCategory.get(b.id)![0]!, 4);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(page.locator('li').filter({ hasText: /^1/ }).first()).toContainText('5');
+  await expect(heads(page).first()).toBeVisible();
+  await expect(row(page, 0, 0)).toContainText('5');
   await page.waitForTimeout(1600); // let the cascade and count-ups settle
   await shot(page, '02-stage');
 
   const before = Date.now();
   await vote(a.id, ex[1]!, 4); // overtakes: 7 vs 5
-  await expect(page.locator('li').filter({ hasText: /^1/ }).first()).toContainText('7', {
-    timeout: 3000,
-  });
+  await expect(row(page, 0, 0)).toContainText('7', { timeout: 3000 });
   expect(Date.now() - before).toBeLessThan(3000);
   await page.waitForTimeout(1200);
   await shot(page, '03-overtake');
@@ -196,7 +227,7 @@ test('Blind Hour: frozen standings stay frozen while votes keep arriving, and th
   await vote(a.id, ex[1]!, 2);
   await recordStream(page);
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
 
   // Freeze exactly as the service does: snapshot + mode in one statement, so the settings trigger notifies.
   await pool.query(
@@ -208,14 +239,16 @@ test('Blind Hour: frozen standings stay frozen while votes keep arriving, and th
   );
   await expect(page.getByText('ساعة الترقّب').first()).toBeVisible();
   // The sealed standings themselves are on screen (6 and 2), not a blank "sealed" fallback.
-  await expect(page.locator('li').filter({ hasText: /^1/ }).first()).toContainText('6');
-  await expect(page.locator('li').filter({ hasText: /^2/ }).first()).toContainText('2');
+  await expect(row(page, 0, 0)).toContainText('6');
+  await expect(row(page, 0, 1)).toContainText('2');
   await page.waitForTimeout(1600);
   await shot(page, '04-frozen');
+  await expect(page.locator('.tv-frost')).toHaveCount(1); // Blind Hour is marked by an icy rim
 
   await vote(a.id, ex[1]!, 41); // the room keeps voting: 43 for the runner-up
   await page.waitForTimeout(2500);
-  const body = await page.locator('body').innerText();
+  // (the "sealed at 21:49" clock time is not a vote count)
+  const body = (await page.locator('body').innerText()).replace(/\d{1,2}:\d{2}/g, '');
   expect(body).not.toMatch(/\b43\b|\b49\b/); // neither the new count nor the new total is on screen…
   const frames = (await streamed(page)).join('\n');
   expect(frames).not.toMatch(/"votes":43|"totalVotes":49/); // …and was never sent to this browser at all
@@ -229,7 +262,7 @@ test('Hidden: the sealed screen shows no vote numbers at all', async ({ page }) 
   await vote(a.id, s.byCategory.get(a.id)![0]!, 12);
   await recordStream(page);
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   await pool.query(`UPDATE settings SET results_visibility = 'HIDDEN'`);
   await expect(page.getByText('النتائج مختومة')).toBeVisible();
   await page.waitForTimeout(1800);
@@ -263,19 +296,45 @@ test('Reveal: a winner announced while watching plays the ceremony, then settles
          jsonb_build_object('exhibitorId', $4::text, 'votes', 3))))`,
     [a.id, ex[0], ex[1], ex[2]],
   );
-  const ceremony = page.getByRole('status').filter({ hasText: 'الفائز' });
-  await expect(ceremony).toBeVisible();
-  await page.waitForTimeout(3600);
-  await shot(page, '06-ceremony-winner');
-  await page.waitForTimeout(3600);
+  await expect(page.getByRole('status').filter({ hasText: 'والفائز هو' })).toBeVisible();
+  const ceremony = page.locator('div.tv-dark[role="status"]'); // the curtain itself, whichever beat is showing
+
+  // The curtain is opaque from its first frame to its last: it is never faded over the board.
+  const seenOpacity = new Set<string>();
+  for (const wait of [40, 120, 300, 900]) {
+    await page.waitForTimeout(wait);
+    seenOpacity.add(await ceremony.evaluate((el) => getComputedStyle(el).opacity));
+  }
+  expect([...seenOpacity]).toEqual(['1']);
+  // Behind it the board is switched off for everyone (inert), and the announced category is still sealed there.
+  await expect(page.locator('div[inert]')).toHaveCount(1);
+  await expect(page.locator('div[inert] section').first()).toContainText('مختومة');
+  await page.waitForTimeout(700);
+  await shot(page, '06a-ceremony-announce');
+  await page.waitForTimeout(2800); // the winner beat (from 2.6 s)
+  await shot(page, '06b-ceremony-winner');
+  await expect(ceremony).toContainText('أكوا فوغ');
+  await page.waitForTimeout(7000); // the podium beat (from 10 s)
   await shot(page, '07-ceremony-podium');
+  await expect(ceremony).toContainText('رفيق برايل');
+  // The runners-up match the board: silver and bronze medals on light and dark glass; first place's count is the only yellow.
+  await expect(ceremony.locator('[data-place="2"]')).toHaveCSS('background-color', SILVER);
+  await expect(ceremony.locator('[data-place="3"]')).toHaveCSS('background-color', BRONZE);
+  const ceremonyAxe = await new AxeBuilder({ page })
+    .include('[role="status"]')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
+    .analyze();
+  expect(ceremonyAxe.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
   await expect(ceremony).toBeHidden({ timeout: 12_000 });
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
+  await expect(page.locator('div[inert]')).toHaveCount(0);
+  await page.waitForTimeout(1500);
   await shot(page, '08-revealed-final');
+  await expect(row(page, 0, 0)).toContainText('9'); // the column unlocked with its final standings
 
   // A reload must not replay the ceremony.
   await page.reload();
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: 'الفائز' })).toHaveCount(0);
 });
 
@@ -287,13 +346,13 @@ test('revoking the display returns the TV to pairing and takes the results off t
   const a = s.categories[0]!;
   await vote(a.id, s.byCategory.get(a.id)![0]!, 3);
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   await pool.query('UPDATE display_tokens SET revoked_at = now() WHERE id = $1', [id]);
   await expect(page.getByText('اقتران هذه الشاشة', { exact: true })).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByRole('alert')).toContainText('أُلغي اقتران');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0);
+  await expect(heads(page)).toHaveCount(0);
 });
 
 test('copes with seven categories, very long names, a dark category colour and a three-way tie', async ({
@@ -340,7 +399,7 @@ test('copes with seven categories, very long names, a dark category colour and a
     ids.push(rows[0].id);
   }
   for (const id of ids) await vote(first, id, 4);
-  // Off-stage categories with votes: their collapsed chips must still show the leader's count.
+  // Categories on later pages also have votes.
   for (const [slug, n] of [
     ['extra-1', 3],
     ['extra-2', 2],
@@ -359,15 +418,22 @@ test('copes with seven categories, very long names, a dark category colour and a
   }
   const { token } = await newDisplay();
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   await page.waitForTimeout(1800);
-  // Three-way tie: three rows carry rank 1.
-  await expect(page.locator('li').filter({ hasText: /^1/ })).toHaveCount(3);
-  await expect(page.getByRole('navigation')).toContainText('3');
+  // Three-way tie: three leader rows share first place in the first column.
+  await expect(page.locator('section').first().locator('li.bg-yellow')).toHaveCount(3);
+  // Seven categories do not squeeze into one screen: three columns at a time, with page dots.
+  await expect(page.locator('section')).toHaveCount(3);
   await shot(page, '09-stress');
+  // Every name is shown in full: no ellipsis anywhere, and nothing spills out of its row.
+  const names = await page.locator('section').first().innerText();
+  expect(names).not.toContain('…');
+  expect(names).toContain('Autonomous Greenhouse Robotics Collective of Amman');
+  expect(names).toContain('Community Water Project');
+  expect(await spill(page)).toEqual([]);
   const overflowing = await page.evaluate(
     () =>
-      [...document.querySelectorAll('li, h1, nav *')].filter((el) => {
+      [...document.querySelectorAll('li, h2, footer *')].filter((el) => {
         const r = el.getBoundingClientRect();
         return r.right > innerWidth + 1 || r.left < -1 || r.bottom > innerHeight + 1;
       }).length,
@@ -383,7 +449,7 @@ test('scales to a 4K TV, a laptop mirror and a non-16:9 monitor without distorti
   const a = s.categories[0]!;
   await vote(a.id, s.byCategory.get(a.id)![0]!, 5);
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   for (const [w, h] of [
     [3840, 2160],
     [1366, 768],
@@ -427,8 +493,8 @@ test('silent link: the last numbers stay, a notice appears, and it clears as soo
   await expect(page.getByRole('status')).toHaveCount(0); // a blip is not announced to the room
   const chip = page.getByRole('status').filter({ hasText: 'إعادة الاتصال' });
   await expect(chip).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible(); // never a blank screen
-  await expect(page.locator('li').filter({ hasText: /^1/ }).first()).toContainText('6');
+  await expect(heads(page).first()).toBeVisible(); // never a blank screen
+  await expect(row(page, 0, 0)).toContainText('6');
   await shot(page, '11-offline-frozen');
   await page.evaluate(() => ((window as unknown as { __muted: boolean }).__muted = false));
   await expect(chip).toBeHidden({ timeout: 15_000 }); // the next heartbeat (5 s) clears it
@@ -444,14 +510,14 @@ test('silent link over a LIVE frame: the notice fits beside the LIVE pill and th
   await pool.query(`UPDATE settings SET voting_closes_at = now() + interval '2 hours'`);
   await recordStream(page);
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   await page.evaluate(() => ((window as unknown as { __muted: boolean }).__muted = true));
   const chip = page.getByRole('status').filter({ hasText: 'إعادة الاتصال' });
   await expect(chip).toBeVisible({ timeout: 20_000 });
   await shot(page, '13-offline-live');
-  const header = await page.locator('header').boundingBox();
+  const header = await page.locator('main header').first().boundingBox();
   const boxes = await page
-    .locator('header > div > *')
+    .locator('main header:first-of-type > div > *')
     .evaluateAll((els) =>
       els.map((e) => e.getBoundingClientRect()).map((r) => ({ l: r.left, r: r.right })),
     );
@@ -491,10 +557,97 @@ test('a five-way tie for first names every co-winner in the ceremony', async ({ 
   );
   const ceremony = page.getByRole('status').filter({ hasText: 'الفائزون بالتساوي' });
   await expect(ceremony).toBeVisible();
-  await page.waitForTimeout(4200);
+  await page.waitForTimeout(4200); // joint winners show from 2.6 s
   for (const n of ['Alpha Team', 'Beta Team', 'Gamma Team', 'Delta Team', 'Epsilon Team'])
     await expect(ceremony).toContainText(n);
   await shot(page, '12-ceremony-five-way-tie');
+});
+
+test('places read at a glance: yellow is first place and nothing else, second a light glass with a white medal, third darker glass', async ({
+  page,
+}) => {
+  const s = await seed();
+  const { token } = await newDisplay();
+  const a = s.categories[0]!;
+  const b = s.categories[1]!;
+  const ex = s.byCategory.get(a.id)!;
+  await vote(a.id, ex[0]!, 6);
+  await vote(a.id, ex[1]!, 4);
+  await vote(a.id, ex[2]!, 2);
+  await vote(b.id, s.byCategory.get(b.id)![0]!, 3);
+  await page.goto(`/live#t=${token}`);
+  await expect(heads(page).first()).toBeVisible();
+  await page.waitForTimeout(2200);
+  await shot(page, '14-places');
+  await expect(page.locator('.tv-frost')).toHaveCount(0); // live voting has no freeze effect
+  // The QR is large and centred under the board.
+  const qr = (await page
+    .getByRole('img', { name: /امسح|Scan/ })
+    .first()
+    .boundingBox())!;
+  expect(qr.width).toBeGreaterThanOrEqual(180);
+  expect(Math.abs(qr.x + qr.width / 2 - 960)).toBeLessThan(12); // dead centre (the anti burn-in drift moves the picture by up to 7px)
+
+  const YELLOW = 'rgb(248, 215, 73)';
+  const found = await page.evaluate((yellow) => {
+    const out: { place: string; where: string }[] = [];
+    for (const el of document.querySelectorAll('main *')) {
+      const cs = getComputedStyle(el);
+      const isYellow =
+        cs.backgroundColor === yellow ||
+        cs.color === yellow ||
+        (cs.borderTopColor === yellow && cs.borderTopWidth !== '0px');
+      if (!isYellow) continue;
+      const li = el.closest('li');
+      const place = li?.querySelector('[data-place]')?.getAttribute('data-place') ?? 'none';
+      out.push({ place, where: li ? 'row' : el.tagName.toLowerCase() });
+    }
+    return out;
+  }, YELLOW);
+  // Every yellow thing on the board sits inside a first-place row (and inside a header/pill only if it is one).
+  expect(found.length).toBeGreaterThan(0);
+  for (const f of found) expect(f, JSON.stringify(f)).toMatchObject({ where: 'row', place: '1' });
+
+  // The ladder: first a yellow block, second a white block, third pale glass (neither yellow nor white);
+  // the medals are gold, silver and bronze with navy numerals.
+  const block = async (place: string) =>
+    page
+      .locator(`section li:has([data-place="${place}"])`)
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await block('1')).toBe('rgb(248, 215, 73)');
+  // Only first place is a solid colour: second and third are translucent glass, second the lighter of the two.
+  const alpha = (c: string) => Number(c.match(/([\d.]+)\)$/)?.[1] ?? 1);
+  expect(alpha(await block('2'))).toBeGreaterThan(alpha(await block('3')));
+  expect(alpha(await block('2'))).toBeLessThan(0.5);
+  const badge = async (place: string) =>
+    page
+      .locator(`section [data-place="${place}"]`)
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await badge('1')).toBe(GOLD);
+  expect(await badge('2')).toBe(SILVER);
+  expect(await badge('3')).toBe(BRONZE);
+  // The podium steps down: first is taller than second, second than third.
+  const heights = await page
+    .locator('section')
+    .first()
+    .locator('li')
+    .evaluateAll((els) => els.slice(0, 3).map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(heights[0]!).toBeGreaterThan(heights[1]!);
+  expect(heights[1]!).toBeGreaterThan(heights[2]!);
+  // Every column's podium lines up with its neighbours: same top and height for first, second and third,
+  // whether the place is filled or still an open slot.
+  const grid = await page.locator('section').evaluateAll((cols) =>
+    cols.map((c) =>
+      [...c.querySelectorAll('li')].slice(0, 3).map((li) => {
+        const r = li.getBoundingClientRect();
+        return `${Math.round(r.top)}:${Math.round(r.height)}`;
+      }),
+    ),
+  );
+  expect(grid[1]).toEqual(grid[0]);
+  expect(grid[2]).toEqual(grid[0]);
 });
 
 test('the live stage has no accessibility violations (contrast included)', async ({ page }) => {
@@ -505,7 +658,7 @@ test('the live stage has no accessibility violations (contrast included)', async
   await vote(a.id, ex[0]!, 5);
   await vote(a.id, ex[1]!, 3);
   await page.goto(`/live#t=${token}`);
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(heads(page).first()).toBeVisible();
   await page.waitForTimeout(1800);
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])

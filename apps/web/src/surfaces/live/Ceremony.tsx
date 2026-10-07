@@ -1,89 +1,79 @@
-import type { CSSProperties } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ResultCategory, ResultExhibitor } from '@mc/shared';
 import { Rings } from '../../design-system/Motifs';
-import { Bi, Chevron, Names, Photo, SlowGear } from './parts';
-import { CEREMONY_MS, podiumOf } from './model';
+import { Bi, Chevron, FitNames, Photo, PlaceBadge, VotesUnit, placeOf } from './parts';
+import { CEREMONY_TIERS, fitName } from './layout';
+import {
+  CEREMONY_LEAVE_MS,
+  CEREMONY_MS,
+  CEREMONY_PODIUM_AT,
+  CEREMONY_WINNER_AT,
+  podiumOf,
+} from './model';
 import { Ticker } from './Ticker';
 
-const at = (seconds: number): CSSProperties => ({ ['--d' as string]: `${seconds}s` });
+type Phase = 'intro' | 'winner' | 'podium';
 
-type WinnerSize = {
-  photo: number;
-  radius: number;
-  ar: string;
-  en: string;
-  count: string;
-  card: number;
-};
-const SIZES: Record<'one' | 'few' | 'many', WinnerSize> = {
-  one: {
-    photo: 420,
-    radius: 48,
-    ar: 'text-[104px] leading-[1.2]',
-    en: 'text-[56px] leading-[1.15]',
-    count: 'text-[240px]',
-    card: 0,
-  },
-  few: {
-    photo: 260,
-    radius: 36,
-    ar: 'text-[64px] leading-[1.25]',
-    en: 'text-[40px] leading-[1.15]',
-    count: 'text-[96px]',
-    card: 520,
-  },
-  many: {
-    photo: 150,
-    radius: 28,
-    ar: 'text-[56px] leading-[1.25]',
-    en: 'text-[40px] leading-[1.15]',
-    count: 'text-[72px]',
-    card: 540,
-  },
-};
-const sizeFor = (n: number): WinnerSize => (n === 1 ? SIZES.one : n <= 3 ? SIZES.few : SIZES.many);
+/** Size of one winner's photo, card and type, by how many share first place. */
+const LAYOUT = {
+  one: { photo: 460, radius: 60, name: { w: 880, h: 380 }, count: 'text-[170px]', tiers: 0 },
+  few: { photo: 250, radius: 36, name: { w: 520, h: 200 }, count: 'text-[104px]', tiers: 4 },
+  many: { photo: 150, radius: 28, name: { w: 520, h: 150 }, count: 'text-[72px]', tiers: 5 },
+} as const;
+const layoutFor = (n: number) => (n === 1 ? LAYOUT.one : n <= 3 ? LAYOUT.few : LAYOUT.many);
 
-function Winner({ ex, size, solo }: { ex: ResultExhibitor; size: WinnerSize; solo: boolean }) {
+/** The winner's tally climbs from zero once the winner has landed. */
+const Count = ({ ex, className }: { ex: ResultExhibitor; className: string }) => (
+  <Ticker
+    value={ex.votes}
+    from={0}
+    duration={2000}
+    delay={700}
+    nudge={false}
+    className={`inline-block font-black leading-none text-yellow ${className}`}
+  />
+);
+
+function Winner({ ex, count }: { ex: ResultExhibitor; count: number }) {
+  const L = layoutFor(count);
+  const solo = count === 1;
+  const fit = useMemo(
+    () => fitName(ex.nameAr, ex.nameEn, L.name.w, L.name.h, CEREMONY_TIERS.slice(L.tiers)),
+    [ex.nameAr, ex.nameEn, L.name.w, L.name.h, L.tiers],
+  );
   return (
     <div
-      className={`cer-in flex items-center ${solo ? 'gap-[64px]' : 'flex-col gap-[16px] text-center'}`}
-      style={at(1.7)}
+      className={`cer-in flex items-center ${solo ? 'gap-[64px]' : 'flex-col gap-[18px] text-center'}`}
     >
       <div className="relative shrink-0">
         <span
           aria-hidden="true"
-          className="cer-glow absolute -inset-[24px] rounded-[64px] bg-yellow/90"
+          className="cer-glow absolute -inset-[24px] rounded-[72px] bg-yellow"
         />
-        <Photo ex={ex} size={size.photo} radius={size.radius} ring="ring-0" className="relative" />
+        <Photo ex={ex} size={L.photo} radius={L.radius} ring="ring-0" className="relative" />
       </div>
-      <div
-        className={solo ? 'min-w-0 max-w-[820px]' : 'min-w-0'}
-        style={solo ? undefined : { width: size.card }}
-      >
-        {solo && (
-          <Bi
-            k="winner"
-            arClass="text-[56px] font-bold leading-[1.25] text-yellow"
-            enClass="text-[40px] leading-[1.15] text-dim"
-            className="mb-[18px]"
-          />
-        )}
-        <Names
+      <div className="min-w-0" style={{ width: solo ? undefined : L.name.w }}>
+        <FitNames
           nameAr={ex.nameAr}
           nameEn={ex.nameEn}
-          arClass={`font-bold ${size.ar}`}
-          enClass={`text-white/80 ${size.en}`}
+          fit={fit}
+          enClass="text-white/80"
           centered={!solo}
+          className={solo ? '' : 'mb-[10px]'}
         />
-        {!solo && <Count ex={ex} size={size.count} />}
+        {!solo && (
+          <>
+            <Count ex={ex} className={L.count} />
+            <VotesUnit large className="mt-[6px] block text-white/80" />
+          </>
+        )}
       </div>
       {solo && (
         <div className="shrink-0 text-center">
-          <Count ex={ex} size={size.count} />
+          <Count ex={ex} className={L.count} />
           <Bi
             k="votes"
-            arClass="text-[48px] font-bold leading-[1.2]"
+            arClass="text-[48px] font-bold leading-[1.3]"
             enClass="text-[40px] leading-[1.1] text-dim"
             className="mt-[8px]"
           />
@@ -93,49 +83,78 @@ function Winner({ ex, size, solo }: { ex: ResultExhibitor; size: WinnerSize; sol
   );
 }
 
-/** The winner's tally climbs from zero once the photo has landed. */
-const Count = ({ ex, size }: { ex: ResultExhibitor; size: string }) => (
-  <Ticker
-    value={ex.votes}
-    from={0}
-    duration={2200}
-    delay={2400}
-    nudge={false}
-    className={`inline-block font-black leading-none text-yellow ${size}`}
-  />
-);
+function Runner({ ex, index }: { ex: ResultExhibitor; index: number }) {
+  const fit = useMemo(
+    () => fitName(ex.nameAr, ex.nameEn, 520, 150, CEREMONY_TIERS.slice(4)),
+    [ex.nameAr, ex.nameEn],
+  );
+  return (
+    <div
+      className={`cer-in flex min-w-0 flex-1 items-center gap-[24px] rounded-[32px] p-[22px] ${
+        placeOf(ex.rank) === 2
+          ? 'bg-white/[0.2] text-white ring-1 ring-inset ring-white/30'
+          : 'bg-white/[0.08] text-white ring-1 ring-inset ring-white/15'
+      }`}
+      style={{ ['--d' as string]: `${index * 0.45}s` }}
+    >
+      <PlaceBadge rank={ex.rank} size={84} />
+      <Photo ex={ex} size={150} radius={28} />
+      <FitNames
+        nameAr={ex.nameAr}
+        nameEn={ex.nameEn}
+        fit={fit}
+        enClass="text-white/80"
+        className="flex-1"
+      />
+      <span className="flex shrink-0 flex-col items-end gap-[10px]">
+        <Ticker value={ex.votes} nudge={false} className="text-[72px] font-black leading-none" />
+        <VotesUnit large className="text-white/80" />
+      </span>
+    </div>
+  );
+}
 
 /**
  * Full-screen announcement of one category's winner (or joint winners), then second and third place.
- * It runs once, for CEREMONY_MS, and hands the stage back showing that category's final standings.
+ *
+ * It is an OPAQUE curtain: it rises over the board in one piece (a slide, never a fade, so the board cannot show
+ * through) and leaves the same way. Behind it the board is inert and shows that category still sealed, so nothing
+ * of the result can be seen before the announcement. Three beats, timed by one effect: the announcement, the
+ * winner, then the runners-up. The curtain runs once, for CEREMONY_MS, and hands back the board.
  */
 export function Ceremony({ category, onDone }: { category: ResultCategory; onDone: () => void }) {
   const { winners, runnersUp } = podiumOf(category);
+  const [phase, setPhase] = useState<Phase>('intro');
   const [leaving, setLeaving] = useState(false);
+  const podium = runnersUp.length > 0;
   useEffect(() => {
-    const out = setTimeout(() => setLeaving(true), CEREMONY_MS - 600);
-    const done = setTimeout(onDone, CEREMONY_MS);
-    return () => {
-      clearTimeout(out);
-      clearTimeout(done);
-    };
+    const timers = [
+      setTimeout(() => setPhase('winner'), CEREMONY_WINNER_AT),
+      setTimeout(() => setPhase('podium'), CEREMONY_PODIUM_AT),
+      setTimeout(() => setLeaving(true), CEREMONY_MS - CEREMONY_LEAVE_MS),
+      setTimeout(onDone, CEREMONY_MS),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [onDone]);
 
+  const joint = winners.length > 1;
+  const showWinners = phase !== 'intro';
   return (
     <div
       role="status"
-      className={`tv-ground absolute inset-0 z-50 overflow-hidden ${leaving ? 'cer-leave' : 'cer'}`}
+      className={`tv-ground-ceremony tv-dark absolute inset-0 z-50 overflow-hidden text-white ${
+        leaving ? 'cer-leave' : 'cer'
+      }`}
     >
       <Rings
         className="rings-turn absolute left-1/2 top-1/2 size-[1500px] -translate-x-1/2 -translate-y-1/2"
-        stroke="rgb(255 255 255 / 0.07)"
+        stroke="rgb(255 255 255 / 0.05)"
       />
-      <SlowGear size={900} className="absolute -end-[240px] -top-[260px] text-white/10" />
 
-      <div className="relative flex h-full flex-col px-[96px] pb-[48px] pt-[52px]">
-        <div className="cer-in flex items-center gap-[26px]" style={at(0.3)}>
-          <Chevron color={category.color} size={54} />
-          <span lang="ar" className="text-[72px] font-bold leading-[1.25]">
+      <div className="relative flex h-full flex-col px-[96px] pb-[56px] pt-[56px]">
+        <div className="flex items-center gap-[26px]">
+          <Chevron color="#ffffff" size={54} edge="transparent" />
+          <span lang="ar" className="text-[72px] font-bold leading-[1.3]">
             {category.nameAr}
           </span>
           <bdi lang="en" className="text-[44px] leading-[1.2] text-dim">
@@ -147,65 +166,54 @@ export function Ceremony({ category, onDone }: { category: ResultCategory; onDon
           <div className="flex flex-1 items-center justify-center">
             <Bi
               k="noVotesYet"
-              arClass="text-[80px] font-bold leading-[1.25]"
+              arClass="text-[80px] font-bold leading-[1.3]"
               enClass="text-[44px] leading-[1.15] text-dim"
               className="text-center"
             />
           </div>
         ) : (
-          <>
-            {winners.length > 1 && (
-              <div className="cer-in mt-[26px]" style={at(1.0)}>
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            {joint && showWinners && (
+              <div className="cer-in mt-[44px]">
                 <Bi
                   k="jointWinners"
-                  arClass="text-[56px] font-bold leading-[1.25] text-yellow"
+                  arClass="text-[56px] font-bold leading-[1.3] text-yellow"
                   enClass="text-[40px] leading-[1.15] text-dim"
                 />
               </div>
             )}
-            <div
-              className={`flex flex-1 items-center justify-center ${
-                winners.length > 1 ? 'flex-wrap content-center gap-x-[48px] gap-y-[28px]' : ''
-              }`}
-            >
-              {winners.map((w) => (
-                <Winner
-                  key={w.id}
-                  ex={w}
-                  size={sizeFor(winners.length)}
-                  solo={winners.length === 1}
+
+            {!showWinners && (
+              <div key="intro" className="cer-in absolute inset-0 flex items-center justify-center">
+                <Bi
+                  k={joint ? 'jointWinners' : 'winnerIs'}
+                  arClass={`text-[136px] font-bold leading-[1.3] ${joint ? 'text-yellow' : 'text-white'}`}
+                  enClass="text-[64px] leading-[1.15] text-white/80"
+                  className="text-center"
                 />
-              ))}
-            </div>
-            {runnersUp.length > 0 && (
-              <div className="flex shrink-0 gap-[28px]">
-                {runnersUp.slice(0, 2).map((r, i) => (
-                  <div
-                    key={r.id}
-                    className="cer-in flex min-w-0 flex-1 items-center gap-[24px] rounded-[32px] bg-white/[0.09] p-[20px]"
-                    style={at(5.2 + i * 0.5)}
-                  >
-                    <span className="num w-[64px] text-center text-[56px] font-black leading-none text-white/70">
-                      {r.rank}
-                    </span>
-                    <Photo ex={r} size={132} radius={26} />
-                    <Names
-                      nameAr={r.nameAr}
-                      nameEn={r.nameEn}
-                      arClass="text-[56px] font-bold leading-[1.25]"
-                      enClass="text-[40px] leading-[1.1] text-dim"
-                      className="flex-1"
-                    />
-                    <Ticker
-                      value={r.votes}
-                      nudge={false}
-                      className="text-[72px] font-black leading-none"
-                    />
-                  </div>
+              </div>
+            )}
+
+            {showWinners && (
+              <div
+                className={`flex flex-1 items-center justify-center ${
+                  joint ? 'flex-wrap content-center gap-x-[48px] gap-y-[28px]' : ''
+                }`}
+              >
+                {winners.map((w) => (
+                  <Winner key={w.id} ex={w} count={winners.length} />
                 ))}
               </div>
             )}
-          </>
+
+            {/* The runners-up have their own reserved strip, so the winner never moves when they arrive. */}
+            {podium && (
+              <div className="flex h-[224px] shrink-0 gap-[28px]">
+                {phase === 'podium' &&
+                  runnersUp.slice(0, 2).map((r, i) => <Runner key={r.id} ex={r} index={i} />)}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

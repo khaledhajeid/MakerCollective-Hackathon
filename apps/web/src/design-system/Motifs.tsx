@@ -168,12 +168,15 @@ export function MotifTile({
   seed: string;
   label: string;
   className?: string;
-  /** Skip the yellow-ground tile (a surface that reserves yellow for something else, e.g. the TV leader row). */
+  /** Skip every yellow in the tile (a surface that reserves yellow for something else, e.g. the TV's first place). */
   noYellow?: boolean;
 }) {
   const h = hash(seed);
   const pool = noYellow ? TONES.filter((t) => t.bg !== '#f8d749') : TONES;
-  const tone = pool[h % pool.length]!;
+  const picked = pool[h % pool.length]!;
+  // Where yellow is reserved (the TV: first place only) the tile's yellow accent turns white too.
+  const noY = (c: string) => (noYellow && c === '#f8d749' ? '#ffffff' : c);
+  const tone = { ...picked, a: noY(picked.a), b: noY(picked.b) };
   const layout = (h >>> 5) % 3;
   const initial = [...label.trim()][0] ?? '·';
   // Helvetica Neue Arabic tops out at Bold (700); asking for Black would be a synthesised faux weight.
