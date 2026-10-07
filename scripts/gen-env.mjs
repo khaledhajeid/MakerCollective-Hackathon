@@ -14,6 +14,7 @@ if (existsSync(target)) {
 
 const hex = (n) => randomBytes(n).toString('hex');
 const pgPassword = hex(18);
+const appDbPassword = hex(24);
 
 writeFileSync(
   target,
@@ -23,6 +24,8 @@ LOG_LEVEL=info
 PUBLIC_ORIGIN=http://localhost:5173
 
 POSTGRES_PASSWORD=${pgPassword}
+# Least-privilege role the API connects as (created by the migrate step, ADR-009). Never the owner password.
+APP_DB_PASSWORD=${appDbPassword}
 DATABASE_URL=postgres://mc:${pgPassword}@127.0.0.1:55432/mc
 REDIS_URL=redis://127.0.0.1:56379
 

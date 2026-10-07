@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest';
+import { scrubError } from './log-scrub.js';
+
+describe('scrubError', () => {
+  const pgErr = Object.assign(new Error('duplicate key value violates unique constraint "x"'), {
+    code: '23505',
+    constraint: 'visitors_phone_hash_key',
+    table: 'visitors',
+    detail: 'Key (phone_hash)=(deadbeefcafe) already exists.',
+    where: 'secret context',
+  });
+  const wrapped = new Error(
+    'Failed query: select "id" from "admin_sessions" where "token_hash" = $1\nparams: s3cr3t-token-hash',
+    { cause: pgErr },
+  );
+
+  it('drops bound parameters from the message and the stack', () => {
+    const out = scrubError(wrapped) as { message: string; stack: string };
+    expect(out.message).toContain('Failed query: select');
+    expect(out.message).not.toContain('s3cr3t');
+    expect(out.stack).not.toContain('s3cr3t');
+    expect(out.stack).toContain('    at ');
+  });
+
+  it('keeps the SQL state and constraint but drops the row values in `detail`', () => {
+    const out = scrubError(wrapped) as unknown as { cause: Record<string, unknown> };
+    expect(out.cause.code).toBe('23505');
+    expect(out.cause.constraint).toBe('visitors_phone_hash_key');
+    expect(JSON.stringify(out)).not.toContain('deadbeefcafe');
+    expect(JSON.stringify(out)).not.toContain('secret context');
+  });
+
+  it('survives non-errors and cyclic causes', () => {
+    expect(scrubError('boom').message).toBe('boom');
+    expect(scrubError({ a: 1 }).message).toBe('[non-error value]');
+    const a = new Error('a');
+    (a as Error & { cause?: unknown }).cause = a;
+    expect(() => JSON.stringify(scrubError(a))).not.toThrow();
+  });
+});

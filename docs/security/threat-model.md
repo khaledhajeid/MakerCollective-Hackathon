@@ -175,3 +175,22 @@ Assets added: exhibitor photos, the event settings an organiser can change live,
 - **R-C1 organisers can read live counts during the Blind Hour (Low-Medium, by design):** the audit log and the on-screen warning are the controls.
 - **R-C2 export by ADMIN (owner decision):** see above; revisit if the export is ever used outside the organising team.
 - **R-C3 the demo SMS inbox shows OTPs** to SUPER_ADMINs. It exists only while `SMS_PROVIDER=demo-inbox` (pre-event checklist: switch to `http`).
+
+## Phase 7: Hardening and event operations
+
+Assets added: none. New operator tools: `stack:preflight`, `stack:reset-event`, the load harness (`load/`, test machine only). Changes to the trust boundary: the API's database identity, the container privileges, the edge's public surface (ADR-009).
+
+| STRIDE | Threat | Mitigation | Test / evidence | Residual |
+|---|---|---|---|---|
+| Elevation / Tampering | **SQL injection or a stolen `DATABASE_URL` used to switch off the vote and audit triggers, rewrite votes or read server files** (R-6) | The API connects as `mc_app`: no superuser, no DDL, no `TRIGGER`/`TRUNCATE`, `UPDATE`/`DELETE` only on listed tables and never on `votes`, `audit_log`, `visitors`, `settings`; grants rebuilt from an allow-list on every start | `provision.test.ts` (each attack gets SQLSTATE 42501); the whole 358-test integration suite runs as `mc_app`; preflight fails if the role is missing or privileged | Low: a bug could still *insert* bogus votes or read data the API may read |
+| Info disclosure | Secrets reach a compromised API container (tunnel token, database owner password) | No `env_file`: explicit variable list; the owner password goes to the migrate container only | `docker exec … env` check | Low: the API still holds `SESSION_SECRET`, the PII key and the `mc_app` password, by necessity |
+| Elevation | Container breakout / persistence after a remote-code-execution bug | API and Caddy: read-only root, all capabilities dropped, `no-new-privileges`, process and memory limits; API as `node`, Caddy as uid 1000 | Compose config; `touch /x` fails; `id` | Low |
+| Info disclosure | Dependency status (database / Redis up or down) readable by anyone (R-1) | `/api/readyz` answers 404 at the edge | Checked through Caddy and by the preflight | None |
+| Info disclosure | A failed query writes a session hash, phone hash or name into the logs | Error serializer drops bound parameters and driver `detail` | `log-scrub.test.ts` | None known |
+| Tampering | Rehearsal data counted in the real event | `stack:reset-event` (refuses while voting is open, needs an explicit confirmation word, audited) and a preflight FAIL when test data exists | Run on the load database | Low: operator must run it |
+| Elevation | Event started with demo SMS, the gate off or the demo catalogue | `stack:preflight` fails on each (SMS provider, demo mode, non-production build, gate off/empty, placeholder exhibitors, privileged role, no authenticator-enrolled super admin) | Pure-function table tests | Low: operator must run it |
+
+### Residual risks after Phase 7
+- **R-3 `style-src 'unsafe-inline'` (Low, accepted):** inline `style` attributes from React and the animation code; scripts remain `'self'` only.
+- **R-A2 admin reachable from the internet (Medium, owner decision):** a Cloudflare Access / WAF rule closes it without code (runbook `event-day.md`).
+- **R-5 the laptop is a single point of failure (accepted for the demo host):** see the load report for the application layer.

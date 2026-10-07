@@ -27,7 +27,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/api/**/*.ts', 'packages/**/*.ts', 'scripts/**/*.mjs', '*.js'],
+    files: ['apps/api/**/*.ts', 'packages/**/*.ts', 'scripts/**/*.mjs', 'load/**/*.mjs', '*.js'],
     languageOptions: { globals: globals.node },
   },
   {
@@ -36,8 +36,14 @@ export default tseslint.config(
       'apps/api/src/db/seed.ts',
       'apps/api/src/cli/**',
       'scripts/**',
+      'load/**',
     ],
     rules: { 'no-console': 'off' },
+  },
+  {
+    // k6 runs this in its own (Go) runtime: `__ENV` is its global, not Node's.
+    files: ['load/**/*.js'],
+    languageOptions: { globals: { __ENV: 'readonly' } },
   },
   {
     files: ['apps/web/**/*.{ts,tsx}'],

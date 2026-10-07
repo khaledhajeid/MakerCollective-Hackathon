@@ -13,7 +13,9 @@ import {
 } from '../../src/db/schema.js';
 import { openTestDb } from './db.js';
 
-const { pool, db, reset } = openTestDb();
+// This file tests the schema's own guards (checks, triggers), so it connects as the schema OWNER: the triggers must
+// hold even against a privileged connection. The privilege layer above them is tested in provision.test.ts.
+const { pool, ownerDb: db, reset } = openTestDb();
 afterAll(() => pool.end());
 beforeEach(() => reset());
 

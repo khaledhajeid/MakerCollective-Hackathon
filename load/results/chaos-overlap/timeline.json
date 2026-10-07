@@ -1,0 +1,22 @@
+[
+  {
+    "t": 42,
+    "what": "KILL api1"
+  },
+  {
+    "t": 82,
+    "what": "START api1"
+  },
+  {
+    "t": 82,
+    "what": "KILL api2"
+  },
+  {
+    "t": 122,
+    "what": "START api2"
+  },
+  {
+    "t": 171,
+    "what": "k6 finished"
+  }
+]

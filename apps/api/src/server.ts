@@ -1,6 +1,7 @@
 import { buildApp } from './app.js';
 import { loadEnv } from './config/env.js';
 import { createDb } from './db/client.js';
+import { connectedAsPrivilegedRole } from './db/provision.js';
 import { createRedis } from './lib/redis.js';
 
 const env = loadEnv();
@@ -8,6 +9,16 @@ const { pool, db } = createDb(env.DATABASE_URL, env.DATABASE_POOL_MAX);
 const redis = createRedis(env.REDIS_URL);
 
 const app = await buildApp({ env, db, redis });
+
+// R-6: the API should not run as the schema owner or a superuser (it could switch the vote triggers off).
+void connectedAsPrivilegedRole(pool)
+  .then((privileged) => {
+    if (privileged)
+      app.log.warn(
+        'database role is privileged (owner/superuser): run the stack with APP_DB_PASSWORD so the API uses mc_app',
+      );
+  })
+  .catch(() => undefined);
 
 if (redis) {
   redis.on('error', (err) => app.log.warn({ err: err.message }, 'redis unavailable — degrading'));

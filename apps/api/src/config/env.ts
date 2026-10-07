@@ -28,6 +28,8 @@ const EnvSchema = z
     PUBLIC_ORIGIN: z.url(),
 
     DATABASE_URL: z.url(),
+    /** Migrate step only: password of the least-privilege `mc_app` role it provisions (ADR-009). */
+    APP_DB_PASSWORD: z.string().min(24, 'must be at least 24 characters').optional(),
     DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
     /** Optional: Redis accelerates rate limiting; the API degrades gracefully without it. */
     REDIS_URL: z.url().optional(),

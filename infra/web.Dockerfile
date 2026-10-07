@@ -13,5 +13,10 @@ COPY apps/web apps/web
 RUN pnpm --filter @mc/shared build && pnpm --filter @mc/web build
 
 FROM caddy:2-alpine
+# The stock binary carries the file capability cap_net_bind_service, which cannot start in a container that runs as
+# a normal user with no capabilities. A plain copy drops that attribute; binding port 80 is allowed instead by a
+# sysctl on this container only (docker-compose.yml).
+RUN cp /usr/bin/caddy /usr/local/bin/caddy
 COPY infra/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/apps/web/dist /srv
+CMD ["/usr/local/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

@@ -37,6 +37,7 @@ import type { SmsProvider } from './modules/sms/provider.js';
 import { RateLimiter } from './lib/rate-limit.js';
 import { originGuardPlugin } from './plugins/origin-guard.js';
 import { catalogRoutes } from './modules/catalog/routes.js';
+import { scrubError } from './lib/log-scrub.js';
 import { healthRoutes } from './modules/health/routes.js';
 import { errorsPlugin } from './plugins/errors.js';
 import { securityPlugin } from './plugins/security.js';
@@ -110,6 +111,8 @@ export async function buildApp(deps: AppDeps, overrides: FastifyServerOptions = 
             redact: { paths: LOG_REDACT_PATHS, censor: '[redacted]' },
             // Log the trust-resolved client IP (not the proxy socket) and drop query strings.
             serializers: {
+              // No bound query parameters or row values in error logs (lib/log-scrub.ts).
+              err: scrubError,
               req: (req: FastifyRequest) => ({
                 method: req.method,
                 url: req.routeOptions.url ?? req.url.split('?')[0],

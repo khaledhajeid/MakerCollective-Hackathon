@@ -1,0 +1,30 @@
+[
+  {
+    "t": 45,
+    "what": "KILL api1"
+  },
+  {
+    "t": 85,
+    "what": "START api1"
+  },
+  {
+    "t": 90,
+    "what": "api1 healthy"
+  },
+  {
+    "t": 100,
+    "what": "KILL api2"
+  },
+  {
+    "t": 141,
+    "what": "START api2"
+  },
+  {
+    "t": 146,
+    "what": "api2 healthy"
+  },
+  {
+    "t": 210,
+    "what": "k6 finished"
+  }
+]

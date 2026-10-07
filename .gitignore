@@ -40,3 +40,7 @@ apps/web/playwright-report/
 apps/web/.impeccable/review/
 apps/web/.impeccable/mocks/
 apps/web/.impeccable/build/
+load/results/*/points.json
+load/results/*/tokens.tmp.json
+load/results/*/*.log
+load/results/smoke/

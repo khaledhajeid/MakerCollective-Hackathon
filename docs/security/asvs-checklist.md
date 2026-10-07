@@ -56,8 +56,11 @@ Self-assessment, updated each phase for the chapters that phase touches. Chapter
 |---|---|---|
 | V3 Web frontend security (cookies, CSP) | ✅ | CSP and cookie attributes as above; the console is plain React (no `dangerouslySetInnerHTML`), its axe scan is clean on 10 screens × laptop and phone |
 | V4 API and web service (CSRF, content type) | ✅ | JSON-only bodies, Origin guard, CSRF token on state changes |
-| V13 Configuration | ✅ | No new secrets; boot fails on a route without an access declaration |
+| V13 Configuration | ✅ | Boot fails on a route without an access declaration. Phase 7: explicit environment per container (no `env_file`), least-privilege database role, `stack:preflight` gate (ADR-009) |
 | V14 Data protection | ✅ | Secrets encrypted or hashed at rest; responses are allow-lists; `Cache-Control: no-store` on every API response |
 | V2 Validation and business logic | ✅ | Zod at the boundary for every body, parameter and query; domain invariants (last SUPER_ADMIN, self-protection) enforced in the service under row locks |
 | V5 File handling | ✅ | Photo upload: size cap, structural WebP validation, no metadata, server-generated names, stored in the database, served `nosniff` (ADR-008) |
-| V9 Tokens, V10 OAuth, V12 Transport, V15 Architecture, V17 WebRTC | ⬜ / ➖ | Transport/hardening review in Phase 7 |
+| V12 Transport | ✅ | TLS at the Cloudflare tunnel (HSTS, Secure `__Host-` cookie for admins); Caddy/API only on a private Docker network, data stores on loopback; `/api/readyz` not served at the edge |
+| V15 Architecture | ✅ | Least privilege at three layers: DB role (DML allow-list), container (read-only, no capabilities, non-root), per-route permission table. Deny by default |
+| V9 Tokens | ✅ | Visitor session: signed cookie, 12 h; admin: hashed 256-bit token, idle and absolute limits; display: hashed revocable token |
+| V10 OAuth, V17 WebRTC | ➖ | Not used |

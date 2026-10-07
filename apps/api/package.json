@@ -15,7 +15,9 @@
     "db:seed:dev": "tsx --conditions=development --env-file-if-exists=../../.env src/db/seed.ts --dev",
     "ops:admin": "tsx --conditions=development --env-file-if-exists=../../.env src/cli/admin.ts",
     "ops:display": "tsx --conditions=development --env-file-if-exists=../../.env src/cli/display.ts",
-    "ops:results": "tsx --conditions=development --env-file-if-exists=../../.env src/cli/results.ts"
+    "ops:results": "tsx --conditions=development --env-file-if-exists=../../.env src/cli/results.ts",
+    "ops:preflight": "tsx --conditions=development --env-file-if-exists=../../.env src/cli/preflight.ts",
+    "ops:reset-event": "tsx --conditions=development --env-file-if-exists=../../.env src/cli/reset-event.ts"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",

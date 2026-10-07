@@ -17,7 +17,7 @@ import { testEnv } from '../helpers.js';
 import { openTestDb } from './db.js';
 import { testDatabaseUrl } from './global-setup.js';
 
-const { pool, db, reset } = openTestDb();
+const { pool, owner, db, reset } = openTestDb();
 afterAll(() => pool.end());
 
 const operator = { adminId: null, label: 'test:operator' };
@@ -509,7 +509,7 @@ describe('resilience', () => {
     const { cookie } = await pair(t);
     const s = openStream(t.port, cookie);
     await s.frameWhere(() => true);
-    await pool.query(
+    await owner.query(
       `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name = 'mc-results-listener'`,
     );
     await sleep(1800); // backoff 500 ms (+ jitter), then reconnect + resync

@@ -18,6 +18,11 @@
 :80 {
 	encode zstd gzip
 
+	# Readiness reveals which dependency is down (database / Redis): internal use only, never through the tunnel (R-1).
+	handle /api/readyz {
+		respond "Not found" 404
+	}
+
 	handle /api/* {
 		reverse_proxy api1:3000 api2:3000 {
 			lb_policy round_robin

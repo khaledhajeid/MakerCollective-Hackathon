@@ -5,21 +5,49 @@
 #   or `--profile tunnel-ngrok` -> ngrok fallback
 name: mc2026
 
+# Environment the API process needs, listed explicitly (no `env_file`): the tunnel token, the Postgres superuser
+# password and the ngrok token never reach an API container (ADR-009). Values come from `.env` via --env-file.
+x-api-env: &api-env
+  NODE_ENV: ${STACK_NODE_ENV:-production}
+  PUBLIC_ORIGIN: ${STACK_PUBLIC_ORIGIN:-http://localhost:8080}
+  REDIS_URL: redis://redis:6379
+  TRUST_PROXY: 172.28.0.10
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  SESSION_SECRET: ${SESSION_SECRET:?run node scripts/gen-env.mjs first}
+  PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:?run node scripts/gen-env.mjs first}
+  PHONE_HASH_PEPPER: ${PHONE_HASH_PEPPER:?run node scripts/gen-env.mjs first}
+  EXTRA_ORIGINS: ${EXTRA_ORIGINS:-}
+  SMS_PROVIDER: ${SMS_PROVIDER:-console}
+  DEMO_MODE: ${DEMO_MODE:-false}
+  SMS_HTTP_URL: ${SMS_HTTP_URL:-}
+  SMS_HTTP_AUTH_HEADER: ${SMS_HTTP_AUTH_HEADER:-}
+  SMS_HTTP_BODY_TEMPLATE: ${SMS_HTTP_BODY_TEMPLATE:-}
+  SMS_HTTP_TIMEOUT_MS: ${SMS_HTTP_TIMEOUT_MS:-5000}
+  OTP_GLOBAL_PER_HOUR: ${OTP_GLOBAL_PER_HOUR:-4000}
+  DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+
 x-api: &api
   build: { context: .., dockerfile: infra/api.Dockerfile }
   profiles: [full]
   restart: unless-stopped
-  env_file: ../.env
-  environment:
-    NODE_ENV: ${STACK_NODE_ENV:-production}
-    PUBLIC_ORIGIN: ${STACK_PUBLIC_ORIGIN:-http://localhost:8080}
-    DATABASE_URL: postgres://mc:${POSTGRES_PASSWORD}@postgres:5432/mc
-    REDIS_URL: redis://redis:6379
-    TRUST_PROXY: 172.28.0.10
   depends_on:
     migrate: { condition: service_completed_successfully }
     redis: { condition: service_started } # optional dependency: API degrades without it
   networks: [backend]
+
+# Replicas: DML-only database role, read-only filesystem, no capabilities, bounded memory and processes.
+x-api-replica: &api-replica
+  <<: *api
+  environment:
+    <<: *api-env
+    # STACK_DB lets the load test run against a throw-away database (load/README.md); the default is the real one.
+    DATABASE_URL: postgres://mc_app:${APP_DB_PASSWORD:?run node scripts/gen-env.mjs first}@postgres:5432/${STACK_DB:-mc}
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  pids_limit: 256
+  mem_limit: 1g
 
 services:
   postgres:
@@ -63,17 +91,23 @@ services:
       retries: 10
     networks: [backend]
 
+  # Operator container: migrations, seed and the admin/display/results CLIs. It is the only service that holds the
+  # database owner's password; after migrating it provisions the API's least-privilege role (db/provision.ts).
   migrate:
     <<: *api
     restart: 'no'
+    environment:
+      <<: *api-env
+      DATABASE_URL: postgres://mc:${POSTGRES_PASSWORD:?run node scripts/gen-env.mjs first}@postgres:5432/${STACK_DB:-mc}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?run node scripts/gen-env.mjs first}
     command: ['node', 'dist/db/migrate.js']
     depends_on:
       postgres: { condition: service_healthy }
 
   api1:
-    <<: *api
+    <<: *api-replica
   api2:
-    <<: *api
+    <<: *api-replica
 
   caddy:
     build: { context: .., dockerfile: infra/web.Dockerfile }
@@ -81,6 +115,15 @@ services:
     restart: unless-stopped
     ports: ['127.0.0.1:8080:80']
     depends_on: [api1, api2]
+    # Not root: ports below 1024 are allowed for this container's own network namespace only, nothing is writable
+    # except throw-away memory, and no capabilities are held (R-2).
+    user: '1000:1000'
+    read_only: true
+    tmpfs: ['/data:uid=1000,gid=1000,mode=0700', '/config:uid=1000,gid=1000,mode=0700', '/tmp']
+    cap_drop: [ALL]
+    sysctls: ['net.ipv4.ip_unprivileged_port_start=0']
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 256
     networks:
       backend: { ipv4_address: 172.28.0.10 }
 

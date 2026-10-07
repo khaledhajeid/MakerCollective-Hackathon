@@ -25,6 +25,8 @@
     "stack:admin": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/admin.js",
     "stack:display": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/display.js",
     "stack:results": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/results.js",
+    "stack:preflight": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/preflight.js",
+    "stack:reset-event": "docker compose --env-file .env -f infra/docker-compose.yml --profile full run --rm migrate node dist/cli/reset-event.js",
     "stack:tunnel": "node scripts/stack-tunnel.mjs",
     "e2e": "pnpm --filter @mc/web e2e"
   },

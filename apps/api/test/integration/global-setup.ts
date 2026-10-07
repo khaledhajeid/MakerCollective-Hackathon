@@ -2,7 +2,15 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { randomBytes } from 'node:crypto';
 import pg from 'pg';
+import { provisionAppRole } from '../../src/db/provision.js';
+
+/**
+ * Roles are cluster-wide, so the suite must never touch the real `mc_app` (provisioning resets its password and the
+ * running stack would stop authenticating). Same code, a role of its own.
+ */
+export const TEST_APP_ROLE = 'mc_app_test';
 
 /** Resolves the dedicated test database URL (never the dev/prod database). */
 export function testDatabaseUrl(): string {
@@ -40,7 +48,15 @@ export default async function setup() {
   await migrate(drizzle(pool), {
     migrationsFolder: fileURLToPath(new URL('../../drizzle', import.meta.url)),
   });
+  // The API under test connects as the least-privilege role, exactly as in production (ADR-009): the whole
+  // integration suite therefore proves the application never needs more than DML on the allow-listed tables.
+  const appPassword = `t-${randomBytes(24).toString('hex')}`;
+  await provisionAppRole(pool, appPassword, TEST_APP_ROLE);
   await pool.end();
 
+  const appUrl = new URL(testUrl);
+  appUrl.username = TEST_APP_ROLE;
+  appUrl.password = appPassword;
+  process.env.TEST_APP_DATABASE_URL = appUrl.toString();
   process.env.TEST_DATABASE_URL = testUrl;
 }

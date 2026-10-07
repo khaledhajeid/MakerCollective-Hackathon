@@ -1,0 +1,6 @@
+{
+  "what": "50 concurrent committers, same INSERT, pgbench inside the Postgres container, 15 s each (load/notify-bench.mjs)",
+  "plain": { "tps": 64410, "avgLatencyMs": 0.776 },
+  "withNotify": { "tps": 10978, "avgLatencyMs": 4.555 },
+  "overheadPercent": 83
+}
