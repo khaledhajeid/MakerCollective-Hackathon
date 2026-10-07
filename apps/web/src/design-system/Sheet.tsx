@@ -92,7 +92,7 @@ function SheetBody({
         onClick={close}
       />
       <m.div
-        className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-[2rem] bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)]"
+        className="absolute inset-x-0 bottom-0 mx-auto max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-[2rem] bg-surface pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[var(--shadow-sheet)]"
         style={{ y }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}

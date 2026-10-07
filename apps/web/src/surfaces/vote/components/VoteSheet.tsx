@@ -20,10 +20,20 @@ function Description({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const [clipped, setClipped] = useState(false);
 
-  // Measured while collapsed: a short description never shows the toggle. Re-measured when the text changes.
+  // Is the text cut off? Only meaningful while collapsed. A short description never shows the toggle. The paragraph
+  // is first laid out inside a sheet that is still hidden (0 px tall), so it is measured again whenever its size
+  // changes (the sheet becoming visible, a rotation, a resize) and once the web fonts have loaded.
   useLayoutEffect(() => {
     const p = el.current;
-    if (p && !expanded) setClipped(p.scrollHeight > p.clientHeight + 1);
+    if (!p) return;
+    const measure = () => {
+      if (!expanded && p.clientHeight > 0) setClipped(p.scrollHeight > p.clientHeight + 1);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(p);
+    void document.fonts?.ready.then(measure);
+    return () => ro.disconnect();
   }, [text, expanded]);
 
   return (
@@ -31,9 +41,7 @@ function Description({ text }: { text: string }) {
       <p
         ref={el}
         dir="auto"
-        className={`t-body whitespace-pre-line text-ink/80 ${
-          expanded ? 'max-h-[40dvh] overflow-y-auto' : 'line-clamp-4'
-        }`}
+        className={`t-body whitespace-pre-line text-ink/80 ${expanded ? '' : 'line-clamp-4'}`}
       >
         {text}
       </p>

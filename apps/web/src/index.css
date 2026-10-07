@@ -134,12 +134,6 @@
       radial-gradient(100% 70% at 100% 100%, rgb(127 50 217 / 0.8) 0%, transparent 58%),
       var(--color-navy);
   }
-  .drift {
-    animation: drift 7s ease-in-out infinite alternate;
-  }
-  .drift-slow {
-    animation: drift 11s ease-in-out infinite alternate-reverse;
-  }
   .rings-turn {
     animation: turn 90s linear infinite;
   }
@@ -171,14 +165,6 @@
   }
 }
 
-@keyframes drift {
-  from {
-    transform: translate3d(0, -5px, 0) rotate(-2deg);
-  }
-  to {
-    transform: translate3d(0, 7px, 0) rotate(3deg);
-  }
-}
 @keyframes turn {
   to {
     transform: rotate(360deg);
