@@ -1,6 +1,6 @@
 # Runbook: admin accounts
 
-For the organiser at the laptop. The console (Phase 6) will manage accounts with buttons; the operator commands below are the **bootstrap** (the first SUPER_ADMIN has to come from somewhere) and the **break-glass** path (a locked-out organiser, a lost phone). They use the same service as the console, so the same rules and the same audit trail apply.
+For the organiser at the laptop. The console manages accounts with buttons (Organisers page, SUPER_ADMIN only); the operator commands below are the **bootstrap** (the first SUPER_ADMIN has to come from somewhere) and the **break-glass** path (a locked-out organiser, a lost phone). They use the same service as the console, so the same rules and the same audit trail apply.
 
 All commands run in the Docker stack. Locally, use `pnpm --filter @mc/api ops:admin …` instead of `pnpm stack:admin …`.
 
@@ -10,7 +10,7 @@ pnpm stack:admin create <username> SUPER_ADMIN
 ```
 It prints a **temporary password, once** (only a hash is stored). Usernames are 3–32 characters of `a-z 0-9 . _ -`.
 
-Then, **immediately and in person**, sign in with it at `https://<your-domain>/admin` (the console arrives in Phase 6; until then the API is `POST /api/admin/auth/login`):
+Then, **immediately and in person**, sign in with it at `https://<your-domain>/admin` (the console walks you through each step):
 1. Enter the temporary password.
 2. Scan the QR code with an authenticator app (Google Authenticator, Microsoft Authenticator, 1Password, Authy …) and type the 6-digit code.
 3. **Save the ten recovery codes** (print them or store them in a password manager). They are shown once. Each works once.
@@ -32,7 +32,7 @@ pnpm stack:admin disable <username>         # and enable <username>
 | Situation | What to do |
 |---|---|
 | **"Sign-in failed" for someone who knows their password** | Five wrong answers (password or code) lock sign-in for 5 min, then 10, 20, 40, 60. `list` shows `LOCKED until …`. Wait, or `unlock <username>`. Someone who knows a username can cause this on purpose; unlocking is always safe. |
-| **Lost phone, has recovery codes** | Sign in with the password, choose "use a recovery code" and type one. Then set up the authenticator again (Phase 6 screen) or ask for `reset`. |
+| **Lost phone, has recovery codes** | Sign in with the password, choose "use a recovery code" and type one. Then set up the authenticator again (the console offers it at sign-in) or ask for `reset`. |
 | **Lost phone, no recovery codes** | `reset <username>`: voids the password, the authenticator, the recovery codes and every session, and prints a new temporary password. They go through the first-sign-in steps again. |
 | **Forgot password, phone fine** | Same: `reset <username>` (the password and the authenticator are reset together on purpose: resetting only one would let anyone who knows the other take over). |
 | **Someone's laptop or session may be compromised** | `disable <username>` ends all their sessions at once. Then `reset` and `enable` when it is safe. |

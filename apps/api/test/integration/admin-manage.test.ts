@@ -105,7 +105,13 @@ beforeEach(async () => {
 function webp(
   width = 800,
   height = 600,
-  o: { extraChunk?: [string, number]; flags?: number; trailing?: number; riffDelta?: number } = {},
+  o: {
+    extraChunk?: [string, number];
+    beforeImage?: [string, number];
+    flags?: number;
+    trailing?: number;
+    riffDelta?: number;
+  } = {},
 ): Buffer {
   const chunk = (id: string, payload: Buffer) => {
     const head = Buffer.alloc(8);
@@ -124,6 +130,7 @@ function webp(
     x.writeUIntLE(height - 1, 7, 3);
     parts.push(chunk('VP8X', x));
   }
+  if (o.beforeImage) parts.push(chunk(o.beforeImage[0], Buffer.alloc(o.beforeImage[1], 1)));
   parts.push(chunk('VP8L', vp8l));
   if (o.extraChunk) parts.push(chunk(o.extraChunk[0], Buffer.alloc(o.extraChunk[1], 1)));
   const body = Buffer.concat([Buffer.from('WEBP', 'latin1'), ...parts]);
@@ -335,6 +342,7 @@ describe('exhibitors', () => {
       body: { categoryIds: [c.id] },
     });
     expect(refused.statusCode).toBe(409);
+    expect(refused.json().error.message).toMatch(/already has votes in a category/);
     // Nothing was half-applied.
     const rows = await pool.query(
       'SELECT category_id FROM exhibitor_categories WHERE exhibitor_id = $1',
@@ -415,11 +423,18 @@ describe('exhibitor photos', () => {
       ['an HTML file', Buffer.from('<script>alert(1)</script>'.padEnd(80, ' '))],
       ['an EXIF chunk', webp(800, 600, { extraChunk: ['EXIF', 40] })],
       ['an XMP chunk', webp(800, 600, { extraChunk: ['XMP ', 40] })],
-      ['an ICC chunk', webp(800, 600, { extraChunk: ['ICCP', 40] })],
+      ['an ICC chunk with no flag', webp(800, 600, { beforeImage: ['ICCP', 40] })],
+      ['an ICC chunk after the image', webp(800, 600, { flags: 0x20, extraChunk: ['ICCP', 40] })],
+      ['an enormous ICC chunk', webp(800, 600, { flags: 0x20, beforeImage: ['ICCP', 20_000] })],
+      [
+        'EXIF hidden behind an ICC flag',
+        webp(800, 600, { flags: 0x20, beforeImage: ['EXIF', 40] }),
+      ],
       ['an unknown chunk', webp(800, 600, { extraChunk: ['EVIL', 8] })],
       ['animation flag', webp(800, 600, { flags: 0x02 })],
       ['EXIF flag', webp(800, 600, { flags: 0x08 })],
       ['bytes hidden after the image', webp(800, 600, { trailing: 16 })],
+      ['hidden bytes the RIFF header admits to', webp(800, 600, { trailing: 16, riffDelta: 16 })],
       ['a lying RIFF size', webp(800, 600, { riffDelta: 4 })],
       ['too small a picture', webp(100, 100)],
       ['an absurd picture', webp(9000, 9000)],
@@ -434,6 +449,10 @@ describe('exhibitor photos', () => {
     const big = await put(Buffer.concat([webp(), Buffer.alloc(400 * 1024)]));
     expect(big.statusCode).toBe(413);
     expect(await db.$count(exhibitorPhotos)).toBe(0);
+    // What a browser really produces: a header, its small colour profile, then the image.
+    expect(
+      (await put(webp(640, 480, { flags: 0x20, beforeImage: ['ICCP', 456] }))).statusCode,
+    ).toBe(200);
     // A plain alpha-flag WebP (VP8X + VP8L) is fine.
     expect((await put(webp(640, 480, { flags: 0x10 }))).statusCode).toBe(200);
   });
@@ -660,7 +679,8 @@ describe('results control and overview', () => {
     await seeded();
     const live = await call('GET', '/api/admin/results/live');
     expect(live.json()).toMatchObject({ mode: 'LIVE', audited: false });
-    expect(live.json().categories[0].rows[0]).toMatchObject({ votes: 2 });
+    const busiest = live.json().categories.find((c: { total: number }) => c.total === 3);
+    expect(busiest.rows[0]).toMatchObject({ votes: 2 });
     expect(await audit('results.live.read')).toHaveLength(0);
 
     await call('POST', '/api/admin/results/mode', { body: { mode: 'FROZEN' } });
@@ -850,9 +870,15 @@ describe('visitors', () => {
     expect((await send()).statusCode).toBe(200);
     const again = await send();
     expect(again.statusCode).toBeGreaterThanOrEqual(400); // inside the resend cooldown
+    // The hourly per-phone counter is cleared too, not only the stored codes.
+    const { hmacHex } = await import('../../src/lib/crypto.js');
+    const hash = hmacHex(env.PHONE_HASH_PEPPER, '+962791234888');
+    await ctx.app.limiter.hit('otp-req-phone', hash, 1, 3600);
+    expect((await ctx.app.limiter.hit('otp-req-phone', hash, 1, 3600)).allowed).toBe(false);
     const cleared = await call('POST', '/api/admin/otp-throttle/clear', {
       body: { phone: '+962791234888' },
     });
+    expect((await ctx.app.limiter.hit('otp-req-phone', hash, 1, 3600)).allowed).toBe(true);
     expect(cleared.json()).toEqual({ cleared: 1 });
     expect((await send()).statusCode).toBe(200);
     const [entry] = await audit('otp.throttle.clear');

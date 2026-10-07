@@ -25,12 +25,12 @@ Self-assessment, updated each phase for the chapters that phase touches. Chapter
 | V7.3 Session timeout | Idle and absolute timeouts | ✅ | 30 min idle, 8 h absolute, 10 min before MFA; tests with a controllable clock |
 | V7.4 Session termination | Logout and administrative termination are effective server-side; password change ends other sessions | ✅ | Logout deletes the row; sign-out / disable / reset-credentials; password change ends all sessions |
 | V7.5 Defenses against session abuse | Re-authenticate for sensitive changes; CSRF defence | ✅ | Password change needs the current password; recovery-code regeneration needs a fresh TOTP code; per-session CSRF token + Origin check + SameSite |
-| V7.5 Defenses against session abuse | View / terminate own other sessions | 🟨 | Sessions are recorded (IP, user agent); the "my sessions" screen arrives with the console (Phase 6) |
+| V7.5 Defenses against session abuse | View / terminate own other sessions | 🟨 | Sessions are recorded (IP, user agent); a "my sessions" list is not built; an admin can be signed out everywhere by a SUPER_ADMIN, and a password change ends the others |
 
 ### V8 Authorization
 | Section | Intent | Status | Evidence |
 |---|---|---|---|
-| V8.1 Documentation | Authorisation rules documented | ✅ | `permissions.ts` (data), ADR-007 §6 incl. the Phase 6 proposal |
+| V8.1 Documentation | Authorisation rules documented | ✅ | `permissions.ts` (data), ADR-007 §6, ADR-008 (final Phase 6 table) |
 | V8.2 General design | Least privilege; enforced on a trusted service layer, not the client; deny by default | ✅ | `onRequest` guard; a route without a declaration cannot boot; role, status and password obligation read from the DB on every request |
 | V8.3 Operation level | Every function checks permission; changes take effect immediately | ✅ | Route-table matrix test (5 caller types × every route); role change and disable effective on the next request |
 | V8.4 Other considerations | Separation of administrative interfaces from user ones; separate credentials | ✅ | `/api/admin` has its own cookie, store and guard; display and visitor credentials are refused there |
@@ -54,9 +54,10 @@ Self-assessment, updated each phase for the chapters that phase touches. Chapter
 ### Other chapters touched
 | Chapter | Status | Note |
 |---|---|---|
-| V3 Web frontend security (cookies, CSP) | ✅ | CSP and cookie attributes as above; admin UI itself in Phase 6 |
+| V3 Web frontend security (cookies, CSP) | ✅ | CSP and cookie attributes as above; the console is plain React (no `dangerouslySetInnerHTML`), its axe scan is clean on 10 screens × laptop and phone |
 | V4 API and web service (CSRF, content type) | ✅ | JSON-only bodies, Origin guard, CSRF token on state changes |
 | V13 Configuration | ✅ | No new secrets; boot fails on a route without an access declaration |
 | V14 Data protection | ✅ | Secrets encrypted or hashed at rest; responses are allow-lists; `Cache-Control: no-store` on every API response |
 | V2 Validation and business logic | ✅ | Zod at the boundary for every body, parameter and query; domain invariants (last SUPER_ADMIN, self-protection) enforced in the service under row locks |
-| V5 File handling, V9 Tokens, V10 OAuth, V12 Transport, V15 Architecture, V17 WebRTC | ⬜ / ➖ | Uploads in Phase 6; transport/hardening review in Phase 7 |
+| V5 File handling | ✅ | Photo upload: size cap, structural WebP validation, no metadata, server-generated names, stored in the database, served `nosniff` (ADR-008) |
+| V9 Tokens, V10 OAuth, V12 Transport, V15 Architecture, V17 WebRTC | ⬜ / ➖ | Transport/hardening review in Phase 7 |

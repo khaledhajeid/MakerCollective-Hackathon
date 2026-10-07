@@ -99,7 +99,8 @@ export class VisitorAdminService {
       const [row] = await tx
         .update(visitors)
         .set({
-          isBlocked: blocked, // App clock, like a visitor's own logout: the same clock that stamps a session's issue time (auth/service.ts).
+          isBlocked: blocked,
+          // App clock, like a visitor's own logout: the clock that stamps a session's issue time (auth/service.ts).
           ...(blocked && { sessionsRevokedAt: new Date() }),
         })
         .where(eq(visitors.id, id))

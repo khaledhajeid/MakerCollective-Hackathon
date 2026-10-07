@@ -323,3 +323,8 @@ export const SmsInboxSchema = z.object({
     z.object({ id: z.uuid(), to: z.string(), body: z.string(), createdAt: z.iso.datetime() }),
   ),
 });
+
+export type VisitorPage = z.infer<typeof VisitorPageSchema>;
+export type SmsInbox = z.infer<typeof SmsInboxSchema>;
+export type DisplayCreated = z.infer<typeof DisplayCreatedSchema>;
+export type ModeChanged = z.infer<typeof ModeChangedSchema>;

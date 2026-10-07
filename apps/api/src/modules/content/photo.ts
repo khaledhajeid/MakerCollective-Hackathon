@@ -11,8 +11,15 @@ const reject = (why: string): never => {
 };
 
 const FLAG_ALPHA = 0x10;
-// Animation, XMP, EXIF and ICC profile: all refused. A photo carries pixels and nothing else.
-const FLAGS_REFUSED = 0x02 | 0x04 | 0x08 | 0x20;
+const FLAG_ICC = 0x20;
+// Animation, XMP and EXIF: refused. A photo carries pixels and nothing else.
+const FLAGS_REFUSED = 0x02 | 0x04 | 0x08;
+/**
+ * The one extra a browser always adds: a small colour profile (Chrome writes its 456-byte sRGB profile into every WebP a
+ * canvas exports). It describes colours, not the person or the place, so it is allowed, but only in its place (right
+ * after the header), only when the header says so, and only if it is small.
+ */
+const ICC_MAX_BYTES = 8 * 1024;
 
 /**
  * Parses a WebP file the way a decoder would find its structure, and refuses anything that is not a plain still
@@ -32,6 +39,8 @@ export function inspectWebp(buf: Buffer): WebpInfo {
   let canvas: WebpInfo | null = null;
   let image: WebpInfo | null = null;
   let sawAlpha = false;
+  let iccAllowed = false;
+  let sawIcc = false;
 
   while (off < buf.length) {
     if (off + 8 > buf.length) return reject('the file is damaged');
@@ -51,8 +60,14 @@ export function inspectWebp(buf: Buffer): WebpInfo {
           height: 1 + buf.readUIntLE(start + 7, 3),
         };
         sawAlpha = !!(flags & FLAG_ALPHA);
+        iccAllowed = !!(flags & FLAG_ICC);
         break;
       }
+      case 'ICCP':
+        if (!canvas || !iccAllowed || sawIcc || image || size > ICC_MAX_BYTES)
+          return reject('animation and metadata are not allowed');
+        sawIcc = true;
+        break;
       case 'ALPH':
         if (!canvas || !sawAlpha || image) return reject('the file is damaged');
         break;

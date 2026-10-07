@@ -1,6 +1,6 @@
 # Runbook: TVs and the Blind Hour
 
-For the organiser at the laptop. The admin console (Phase 6) will do all of this with buttons; until then, and as a break-glass path if the console is ever unavailable, these commands do the same thing through the same code. Run them from the project folder. They work against the running Docker stack.
+For the organiser at the laptop. The admin console does all of this with buttons (see `admin-console.md`); these commands are the break-glass path if the console is ever unavailable and do the same thing through the same code. Run them from the project folder. They work against the running Docker stack.
 
 ## Pair a TV (once per screen)
 ```

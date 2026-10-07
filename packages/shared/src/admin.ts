@@ -137,3 +137,9 @@ export const AuditPageSchema = z.object({
   entries: z.array(AuditEntrySchema),
   nextBefore: z.number().int().nullable(),
 });
+
+export type MfaEnrollStart = z.infer<typeof MfaEnrollStartSchema>;
+export type MfaVerified = z.infer<typeof MfaVerifiedSchema>;
+export type MfaEnrolled = z.infer<typeof MfaEnrolledSchema>;
+export type AdminCredentialsIssued = z.infer<typeof AdminCredentialsIssuedSchema>;
+export type AuditPage = z.infer<typeof AuditPageSchema>;
