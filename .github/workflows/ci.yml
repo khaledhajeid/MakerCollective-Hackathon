@@ -59,6 +59,9 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version-file: .nvmrc
+          # This job never runs `pnpm install`, so there is no pnpm store to save; v5 would otherwise auto-cache
+          # (package.json has `packageManager`) and fail its post step with "Path Validation Error".
+          package-manager-cache: false
       - name: Dependency audit (fails on high/critical)
         run: pnpm audit --audit-level high
       - name: SAST (Semgrep, OWASP Top 10 + Node/TS rules)
