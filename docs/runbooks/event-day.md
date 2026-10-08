@@ -38,4 +38,4 @@ Join the venue Wi-Fi on a phone, open the console's Settings → Venue network �
 The console is reachable from the internet behind passwords, authenticators, a lock-out and the audit log (risk R-A2, accepted). To close it entirely without changing code, add a Cloudflare rule: *Zero Trust → Access → Applications* (or a WAF custom rule) that only allows your own IP addresses or email domain on the paths `/admin*` and `/api/admin*`. Voters and TVs use other paths and are unaffected. Test by signing in from your phone on mobile data before relying on it.
 
 ## After the event
-Export results from the console (Export → Results), switch the stack off (`pnpm stack:down`), and restore `minimumReleaseAge` to 10080 in `pnpm-workspace.yaml`.
+Export results from the console (Export → Results), and switch the stack off (`pnpm stack:down`). `minimumReleaseAge` stays at 10080 (7 days) in `pnpm-workspace.yaml`; a new or upgraded dependency must be at least that old.

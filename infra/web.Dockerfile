@@ -19,4 +19,7 @@ FROM caddy:2-alpine
 RUN cp /usr/bin/caddy /usr/local/bin/caddy
 COPY infra/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/apps/web/dist /srv
+# Never root. Compose gives this user a writable /data and /config (tmpfs) and the sysctl that lets it bind port 80;
+# run the image on its own and it needs the same (--tmpfs and --sysctl net.ipv4.ip_unprivileged_port_start=0).
+USER 1000:1000
 CMD ["/usr/local/bin/caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

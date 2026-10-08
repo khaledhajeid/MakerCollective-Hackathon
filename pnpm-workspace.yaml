@@ -3,10 +3,11 @@ packages:
   - packages/*
 
 # Supply-chain hardening (Phase 0 security review):
-# - refuse versions published < 3 days ago (7 days is ideal; shortened only for the 2-day hackathon).
+# - refuse versions published < 7 days ago (10080 minutes). Locked versions are unaffected (frozen installs
+#   do not re-resolve), so this only gates a NEW or upgraded dependency.
 #   Never add minimumReleaseAgeExclude entries — pin an older, vetted version instead.
 # - block transitive deps from git/tarball URLs; refuse packages whose trust evidence regresses.
-minimumReleaseAge: 4320
+minimumReleaseAge: 10080
 blockExoticSubdeps: true
 trustPolicy: no-downgrade
 # Reviewed exceptions (exact versions only, with justification):
